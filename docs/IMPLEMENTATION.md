@@ -48,7 +48,7 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 - [ ] Decide CLAUDE.md vs AGENTS.md roles (remove symlink if needed)
 - [x] Update README to reflect scaffold status
 - [x] Verify tests pass (`uv run pytest`) - 91 passed, 17 skipped (embedding tests)
-- [ ] Tag as v0.1.0-alpha
+- [x] Tag as v0.1.0-alpha (`48b537f`)
 
 ### Worklog
 
@@ -168,15 +168,25 @@ Created framework documentation:
 
 ### Punchlist
 
-- [ ] `/init` command
-- [ ] `/analyze` command
-- [ ] `/claim` command
-- [ ] `/validate` command
-- [ ] `/export` command
-- [ ] `/search` command
-- [ ] `/help` command
-- [ ] Shell wrapper scripts
-- [ ] Test each command
+**Flagship commands:**
+- [ ] `/check <url>` - Full analysis workflow (fetch → extract → analyze → register → report)
+- [ ] `/realitycheck <url>` - Alias for `/check`
+
+**CRUD commands (extend rc-db CLI):**
+- [ ] `rc-db add claim|source|chain|prediction` - Add records via CLI
+- [ ] `rc-db get <id>` - Retrieve single record
+- [ ] `rc-db list claims|sources|chains` - List records with filters
+- [ ] `rc-db update <id>` - Update existing record
+- [ ] `rc-db related <claim-id>` - Find related claims
+- [ ] `rc-db import <file>` - Bulk import from YAML
+
+**Plugin wiring:**
+- [ ] Shell wrapper scripts in `plugin/scripts/`
+- [ ] Update `/analyze`, `/extract`, `/validate`, `/export`, `/search` to invoke CLI
+- [ ] Lifecycle hooks (`plugin/hooks/hooks.json`)
+- [ ] Test each command end-to-end
+
+**Release:**
 - [ ] Tag as v0.1.0-beta
 
 ---
@@ -222,6 +232,9 @@ Created framework documentation:
 |------|----------|-----------|
 | 2026-01-20 | Use ANALYSIS_DB_PATH env var | Matches existing db.py, simpler than --db-path flag |
 | 2026-01-20 | Bundle Python scripts in plugin/lib/ | Plugin-only mode needs to be self-contained |
+| 2026-01-20 | Code schemas are canonical for v0.1.x | Ported schemas from analysis-framework are complete and tested; docs updated to match |
+| 2026-01-20 | No co-author footers in commits | Project rule (AGENTS.md) wins over external tooling defaults; use worklog for provenance |
+| 2026-01-20 | Git tag is pre-release marker only | Package version stays `0.1.0` (PEP 440); `alpha` is git tag only, not in version string |
 | 2026-01-20 | Single unified KB default | Epistemological advantage: cross-domain synthesis |
 | 2026-01-20 | Use `uv` for package management | Fast, modern, handles both deps and Python version; future-proof replacement for pip/venv/pyenv |
 | 2026-01-20 | Publish to PyPI as `realitycheck` | Name available; enables `pip install realitycheck` for easy adoption |

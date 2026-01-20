@@ -2,6 +2,19 @@
 
 Integrate RealityCheck methodology into your Claude Code sessions.
 
+## Current Status (v0.1.0-alpha)
+
+The plugin currently provides:
+- **Command definitions** (`plugin/commands/*.md`) - Methodology templates for analysis workflows
+- **Plugin manifest** (`plugin/.claude-plugin/plugin.json`) - Plugin registration
+
+**Not yet implemented** (planned for Phase 2):
+- Shell wrapper scripts (`plugin/scripts/`)
+- Bundled Python scripts (`plugin/lib/`)
+- Lifecycle hooks (`plugin/hooks/`)
+
+The current plugin is **methodology-only**: it provides templates and guidance for analysis but does not directly execute database operations. Use the CLI tools (`rc-db`, `rc-validate`, etc.) for actual data manipulation.
+
 ## Installation
 
 ### Local Development
@@ -23,22 +36,18 @@ pip install realitycheck
 
 ### /analyze - Source Analysis
 
-Full 3-stage analysis of a source.
+Full 3-stage analysis of a source. Provides the methodology template.
 
 ```
 /analyze <url_or_source_id>
 ```
 
-**Process**:
+**Process** (methodology-guided):
 1. Stage 1: Descriptive (summarize, extract claims, identify assumptions)
 2. Stage 2: Evaluative (assess coherence, rate evidence, find disconfirming evidence)
 3. Stage 3: Dialectical (steelman, counterarguments, synthesis)
 
-**Examples**:
-```
-/analyze https://example.com/ai-labor-report
-/analyze epoch-2024-training
-```
+**Note**: After analysis, use `rc-db` commands or Python API to persist results.
 
 ### /extract - Claim Extraction
 
@@ -53,13 +62,8 @@ Quick claim extraction without full analysis.
 2. Identify claims
 3. Classify by type and domain
 4. Assign evidence level and credence
-5. Register in database
 
-**Examples**:
-```
-/extract https://arxiv.org/abs/2301.xxxxx
-/extract "AI will automate 50% of jobs by 2030"
-```
+**Note**: Use Python API to register claims in database.
 
 ### /search - Semantic Search
 
@@ -73,11 +77,7 @@ Search claims and sources using natural language.
 - `--domain`: Filter by domain (LABOR, ECON, GOV, TECH, etc.)
 - `--limit`: Max results (default: 10)
 
-**Examples**:
-```
-/search "AI automation labor displacement"
-/search "training costs" --domain TECH --limit 5
-```
+**Backend**: Runs `rc-db search` command.
 
 ### /validate - Data Integrity
 
@@ -91,10 +91,7 @@ Check database integrity.
 - `--strict`: Treat warnings as errors
 - `--json`: Output as JSON
 
-**Checks**:
-- Schema validation (ID format, types, ranges)
-- Referential integrity (all references resolve)
-- Logical consistency (chain credences, prediction links)
+**Backend**: Runs `rc-validate` command.
 
 ### /export - Data Export
 
@@ -108,20 +105,19 @@ Export to Markdown or YAML.
 ```
 /export yaml claims -o registry.yaml
 /export yaml sources -o sources.yaml
-/export yaml all -o data/
 ```
 
 **Markdown Export**:
 ```
 /export md claim --id TECH-2026-001
-/export md chain --id CHAIN-2026-001
 /export md predictions -o predictions.md
-/export md summary -o dashboard.md
 ```
+
+**Backend**: Runs `rc-export` command.
 
 ## Methodology Templates
 
-The plugin injects methodology from:
+The plugin references methodology from:
 
 - `methodology/evidence-hierarchy.md` - E1-E6 rating scale
 - `methodology/claim-taxonomy.md` - Claim types and domains
@@ -150,30 +146,11 @@ The plugin injects methodology from:
 }
 ```
 
-### Hooks (Optional)
-
-`plugin/hooks/hooks.json`:
-
-```json
-{
-  "post-analyze": ["scripts/validate.sh"],
-  "post-extract": ["scripts/embed.sh"]
-}
-```
-
-## Script Wrappers
-
-Shell scripts in `plugin/scripts/` wrap Python CLI tools:
-
-- `validate.sh` - Run validation
-- `embed.sh` - Generate embeddings
-- `export.sh` - Export data
-
 ## Dependencies
 
 The plugin requires:
 
-1. **Python scripts** installed (`pip install realitycheck` or `uv sync`)
+1. **Python scripts** installed (`uv sync` in realitycheck repo)
 2. **LanceDB database** initialized (`rc-db init`)
 3. **Embeddings** generated for search (`rc-embed generate`)
 
@@ -187,14 +164,14 @@ The plugin requires:
 
 ### Database errors
 
-1. Initialize database: `rc-db init`
+1. Initialize database: `uv run rc-db init`
 2. Check path: `echo $ANALYSIS_DB_PATH`
 3. Verify permissions on data directory
 
 ### Search returns no results
 
-1. Generate embeddings: `rc-embed generate`
-2. Check data exists: `rc-db list claims`
+1. Generate embeddings: `uv run rc-embed generate`
+2. Verify data exists: `uv run rc-db stats`
 3. Try broader query
 
 ## Development
@@ -203,43 +180,40 @@ The plugin requires:
 
 1. Make changes to `plugin/commands/*.md`
 2. Test in Claude Code session
-3. Commands auto-reload on next invocation
+3. Commands reload on next invocation
 
 ### Adding New Commands
 
 1. Create `plugin/commands/newcommand.md`
 2. Add entry to `plugin/.claude-plugin/plugin.json`
-3. Create wrapper script if needed in `plugin/scripts/`
 
-### Command Template
+---
 
-```markdown
-# /command - Short Description
+## Planned Features (Phase 2)
 
-Long description of what this command does.
+### Shell Wrappers
 
-## Usage
+`plugin/scripts/` will contain shell wrappers that invoke CLI tools:
 
-\`\`\`
-/command <args> [--options]
-\`\`\`
-
-## Arguments
-
-- `arg`: Description
-
-## Options
-
-- `--option`: Description (default: value)
-
-## Examples
-
-\`\`\`
-/command example1
-/command example2 --option value
-\`\`\`
-
-## Related Commands
-
-- `/other`: Related functionality
+```bash
+# plugin/scripts/validate.sh (planned)
+#!/bin/bash
+uv run rc-validate "$@"
 ```
+
+### Bundled Scripts
+
+`plugin/lib/` will contain bundled Python scripts for plugin-only installations (no separate `uv sync` required).
+
+### Lifecycle Hooks
+
+`plugin/hooks/hooks.json` will support:
+
+```json
+{
+  "post-analyze": ["scripts/validate.sh"],
+  "post-extract": ["scripts/embed.sh"]
+}
+```
+
+These hooks would automatically validate and embed after analysis operations.
