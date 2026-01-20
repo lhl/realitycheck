@@ -345,6 +345,11 @@ RealityCheck uses `all-MiniLM-L6-v2` for semantic search embeddings. This model 
 
 The 384-dimension vectors are stored in LanceDB and used for similarity search across claims.
 
+**Note:** Embeddings default to CPU to avoid GPU driver crashes. To use GPU:
+```bash
+export EMBEDDING_DEVICE="cuda"  # or "mps" for Apple Silicon
+```
+
 ## Development
 
 ```bash
