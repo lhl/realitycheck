@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LanceDB wrapper for RealityCheck.
+LanceDB wrapper for Reality Check.
 
 Provides schema definitions, CRUD operations, and semantic search
 for claims, sources, chains, predictions, contradictions, and definitions.
@@ -768,7 +768,7 @@ def main():
     import yaml
 
     parser = argparse.ArgumentParser(
-        description="RealityCheck Database CLI",
+        description="Reality Check Database CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -792,7 +792,7 @@ Examples:
     # init-project command
     init_project_parser = subparsers.add_parser(
         "init-project",
-        help="Initialize a new RealityCheck data project"
+        help="Initialize a new Reality Check data project"
     )
     init_project_parser.add_argument(
         "--path", default=".",
@@ -990,7 +990,7 @@ Examples:
         project_path = Path(args.path).resolve()
         db_path = args.db_path
 
-        print(f"Initializing RealityCheck project at: {project_path}")
+        print(f"Initializing Reality Check project at: {project_path}")
 
         # Create directory structure
         directories = [
@@ -1010,7 +1010,7 @@ Examples:
         # Create .realitycheck.yaml config
         config_path = project_path / ".realitycheck.yaml"
         if not config_path.exists():
-            config_content = f'''# RealityCheck Project Configuration
+            config_content = f'''# Reality Check Project Configuration
 version: "1.0"
 db_path: "{db_path}"
 
@@ -1027,7 +1027,7 @@ db_path: "{db_path}"
         # Create .gitignore
         gitignore_path = project_path / ".gitignore"
         if not gitignore_path.exists():
-            gitignore_content = '''# RealityCheck
+            gitignore_content = '''# Reality Check
 *.pyc
 __pycache__/
 .pytest_cache/
@@ -1064,7 +1064,7 @@ data/**/*.lance filter=lfs diff=lfs merge=lfs -text
         # Create README.md
         readme_path = project_path / "README.md"
         if not readme_path.exists():
-            readme_content = '''# My RealityCheck Knowledge Base
+            readme_content = '''# My Reality Check Knowledge Base
 
 A unified knowledge base for rigorous claim analysis.
 

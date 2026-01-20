@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validation script for RealityCheck.
+Validation script for Reality Check.
 
 Supports two modes:
 - DB mode (default): Validates LanceDB database integrity
@@ -394,7 +394,7 @@ def validate_yaml(repo_root: Path, strict_paths: bool = False) -> list[Finding]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Validate RealityCheck data integrity"
+        description="Validate Reality Check data integrity"
     )
     parser.add_argument(
         "--mode",

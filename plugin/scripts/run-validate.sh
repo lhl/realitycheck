@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# run-validate.sh - Shell wrapper for the RealityCheck validation CLI (validate.py)
+# run-validate.sh - Shell wrapper for the Reality Check validation CLI (validate.py)
 #
 # This script resolves the project context and runs validate.py with proper environment.
 #

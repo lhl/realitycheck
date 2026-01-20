@@ -1,10 +1,10 @@
-# RealityCheck Database Schema
+# Reality Check Database Schema
 
 LanceDB-backed storage for claims, sources, chains, predictions, contradictions, and definitions.
 
 ## Overview
 
-RealityCheck uses LanceDB for vector storage with semantic search capabilities. The database is stored at `data/realitycheck.lance/` by default (configurable via `ANALYSIS_DB_PATH` environment variable).
+Reality Check uses LanceDB for vector storage with semantic search capabilities. The database is stored at `data/realitycheck.lance/` by default (configurable via `ANALYSIS_DB_PATH` environment variable).
 
 ## Tables
 

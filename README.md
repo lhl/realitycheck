@@ -1,4 +1,4 @@
-# realitycheck
+# Reality Check
 
 A framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains.
 
@@ -6,7 +6,7 @@ A framework for rigorous, systematic analysis of claims, sources, predictions, a
 
 ## Overview
 
-RealityCheck helps you build and maintain a **unified knowledge base** with:
+Reality Check helps you build and maintain a **unified knowledge base** with:
 
 - **Claim Registry**: Track claims with evidence levels, credence scores, and relationships
 - **Source Analysis**: Structured 3-stage methodology (descriptive → evaluative → dialectical)

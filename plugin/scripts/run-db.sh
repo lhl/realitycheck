@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# run-db.sh - Shell wrapper for the RealityCheck database CLI (db.py)
+# run-db.sh - Shell wrapper for the Reality Check database CLI (db.py)
 #
 # This script resolves the project context and runs db.py with proper environment.
 #

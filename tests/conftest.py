@@ -1,5 +1,5 @@
 """
-Pytest fixtures for RealityCheck tests.
+Pytest fixtures for Reality Check tests.
 """
 
 import os

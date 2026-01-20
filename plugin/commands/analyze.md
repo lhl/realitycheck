@@ -1,6 +1,6 @@
 # /analyze - Source Analysis
 
-Perform a full 3-stage analysis of a source following the RealityCheck methodology.
+Perform a full 3-stage analysis of a source following the Reality Check methodology.
 
 ## Usage
 

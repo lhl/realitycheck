@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Embedding generation utilities for RealityCheck.
+Embedding generation utilities for Reality Check.
 
 Supports:
 - Batch embedding generation for existing records

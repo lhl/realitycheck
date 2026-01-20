@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# run-export.sh - Shell wrapper for the RealityCheck export CLI (export.py)
+# run-export.sh - Shell wrapper for the Reality Check export CLI (export.py)
 #
 # This script resolves the project context and runs export.py with proper environment.
 #

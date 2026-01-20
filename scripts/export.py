@@ -365,7 +365,7 @@ def export_summary_md(db_path: Optional[Path] = None) -> str:
     chains = list_chains(limit=100000, db=db)
 
     lines = [
-        "# RealityCheck Summary",
+        "# Reality Check Summary",
         "",
         f"*Generated {date.today()}*",
         "",
@@ -430,7 +430,7 @@ def export_summary_md(db_path: Optional[Path] = None) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Export RealityCheck data"
+        description="Export Reality Check data"
     )
     parser.add_argument(
         "--db-path",

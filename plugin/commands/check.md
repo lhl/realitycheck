@@ -1,6 +1,6 @@
 # /check - Full Analysis Workflow
 
-The flagship RealityCheck command for rigorous source analysis.
+The flagship Reality Check command for rigorous source analysis.
 
 ---
 allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
@@ -22,7 +22,7 @@ allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "
 
 ## Workflow
 
-This command orchestrates the full RealityCheck analysis pipeline:
+This command orchestrates the full Reality Check analysis pipeline:
 
 ### Step 1: Fetch Source
 
@@ -46,7 +46,7 @@ Extract and confirm source metadata:
 
 ### Step 3: Three-Stage Analysis
 
-Perform the RealityCheck 3-stage methodology:
+Perform the Reality Check 3-stage methodology:
 
 #### Stage 1: Descriptive Analysis
 

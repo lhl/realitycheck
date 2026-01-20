@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Migration script for importing YAML data into RealityCheck.
+Migration script for importing YAML data into Reality Check.
 
 Handles:
 - Domain migration (VALUE/DIST → ECON, SOCIAL → SOC)

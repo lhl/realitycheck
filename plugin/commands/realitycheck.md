@@ -1,6 +1,6 @@
 # /realitycheck - Full Analysis Workflow (Alias)
 
-Alias for `/check`. Runs the full RealityCheck analysis pipeline.
+Alias for `/check`. Runs the full Reality Check analysis pipeline.
 
 ## Usage
 
@@ -13,7 +13,7 @@ This command is identical to `/check`. See `/check` documentation for full detai
 
 ## Quick Reference
 
-The RealityCheck workflow:
+The Reality Check workflow:
 
 1. **Fetch** - Retrieve source content via WebFetch
 2. **Metadata** - Extract title, author, date, type

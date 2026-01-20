@@ -30,7 +30,7 @@ if [[ -f "$FRAMEWORK_ROOT/scripts/validate.py" ]]; then
     # Check if there are errors (not just warnings)
     if echo "$RESULT" | grep -q "ERROR"; then
         echo ""
-        echo "⚠️  RealityCheck Validation Issues Detected:"
+        echo "⚠️  Reality Check Validation Issues Detected:"
         echo "$RESULT" | grep -E "(ERROR|error)" | head -5
         echo ""
         echo "Run '/validate' for full details."

@@ -1,8 +1,8 @@
-# RealityCheck Implementation Tracking
+# Reality Check Implementation Tracking
 
 ## Overview
 
-This document tracks implementation progress for the RealityCheck framework.
+This document tracks implementation progress for the Reality Check framework.
 See `PLAN-separation.md` for the full architecture and implementation plan.
 
 ---

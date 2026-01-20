@@ -1,6 +1,6 @@
-# RealityCheck Claude Code Plugin
+# Reality Check Claude Code Plugin
 
-Integrate RealityCheck methodology and database operations into Claude Code sessions.
+Integrate Reality Check methodology and database operations into Claude Code sessions.
 
 ## Status: v0.1.0-beta
 

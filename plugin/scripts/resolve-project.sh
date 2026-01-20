@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# resolve-project.sh - Find RealityCheck project root and set environment variables
+# resolve-project.sh - Find Reality Check project root and set environment variables
 #
 # This script searches upward from the current directory to find:
 # 1. A .realitycheck.yaml config file (data project)

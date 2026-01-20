@@ -1,6 +1,6 @@
-# Contributing to RealityCheck
+# Contributing to Reality Check
 
-Guidelines for contributing to the RealityCheck framework.
+Guidelines for contributing to the Reality Check framework.
 
 ## Development Philosophy
 

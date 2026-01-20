@@ -1,6 +1,6 @@
-# RealityCheck Scripts
+# Reality Check Scripts
 """
-Scripts for managing the RealityCheck framework database.
+Scripts for managing the Reality Check framework database.
 
 - db.py: LanceDB wrapper and CRUD operations
 - migrate.py: YAML → LanceDB migration

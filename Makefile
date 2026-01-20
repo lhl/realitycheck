@@ -1,9 +1,9 @@
-# RealityCheck Makefile
+# Reality Check Makefile
 
 .PHONY: help install-plugin uninstall-plugin test test-all init clean
 
 help:
-	@echo "RealityCheck - Available targets:"
+	@echo "Reality Check - Available targets:"
 	@echo ""
 	@echo "  install-plugin    Install Claude Code plugin (symlink)"
 	@echo "  uninstall-plugin  Remove Claude Code plugin"
@@ -18,7 +18,7 @@ PLUGIN_DIR := $(HOME)/.claude/plugins/local
 PLUGIN_NAME := realitycheck
 
 install-plugin:
-	@echo "Installing RealityCheck plugin to Claude Code..."
+	@echo "Installing Reality Check plugin to Claude Code..."
 	@mkdir -p $(PLUGIN_DIR)
 	@if [ -L "$(PLUGIN_DIR)/$(PLUGIN_NAME)" ]; then \
 		echo "Removing existing symlink..."; \
@@ -35,7 +35,7 @@ install-plugin:
 	@echo "Available commands: /check, /realitycheck, /analyze, /extract, /search, /validate, /export"
 
 uninstall-plugin:
-	@echo "Removing RealityCheck plugin..."
+	@echo "Removing Reality Check plugin..."
 	@if [ -L "$(PLUGIN_DIR)/$(PLUGIN_NAME)" ]; then \
 		rm "$(PLUGIN_DIR)/$(PLUGIN_NAME)"; \
 		echo "Plugin removed."; \

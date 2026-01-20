@@ -1,11 +1,11 @@
-# RealityCheck - Development Guide
+# Reality Check - Development Guide
 
 Please refer to `README.md`, `docs/PLAN-separation.md`, and `docs/IMPLEMENTATION.md` if they exist for project-specific details.
 This `AGENTS.md`/`CLAUDE.md` is specifically for ground rules, process, and behavior notes.
 
 ## Project Overview
 
-RealityCheck is a framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains. It provides:
+Reality Check is a framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains. It provides:
 - LanceDB-backed storage with semantic search
 - Structured methodology for claim extraction and evaluation
 - Evidence hierarchy and prediction tracking

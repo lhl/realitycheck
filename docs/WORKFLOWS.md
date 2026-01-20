@@ -1,6 +1,6 @@
-# RealityCheck Workflows
+# Reality Check Workflows
 
-Common workflows for using the RealityCheck framework.
+Common workflows for using the Reality Check framework.
 
 ## CLI Commands (v0.1.0-beta)
 
@@ -279,7 +279,7 @@ uv run python scripts/validate.py
 
 ## Claude Code Plugin
 
-If using the RealityCheck plugin with Claude Code:
+If using the Reality Check plugin with Claude Code:
 
 ### Full Analysis Workflow
 

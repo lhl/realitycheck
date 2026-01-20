@@ -1,5 +1,5 @@
 """
-End-to-end integration tests for RealityCheck.
+End-to-end integration tests for Reality Check.
 
 Tests cover the full workflow:
 1. Initialize database
