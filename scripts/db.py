@@ -697,7 +697,9 @@ def _format_record_text(record: dict, record_type: str = "claim") -> str:
     lines = []
     if record_type == "claim":
         lines.append(f"[{record['id']}] {record['text'][:80]}{'...' if len(record.get('text', '')) > 80 else ''}")
-        lines.append(f"  Type: {record['type']} | Domain: {record['domain']} | Evidence: {record['evidence_level']} | Credence: {record.get('credence', 'N/A')}")
+        credence = record.get('credence')
+        credence_str = f"{credence:.2f}" if credence is not None else "N/A"
+        lines.append(f"  Type: {record['type']} | Domain: {record['domain']} | Evidence: {record['evidence_level']} | Credence: {credence_str}")
         if record.get("notes"):
             lines.append(f"  Notes: {record['notes']}")
     elif record_type == "source":
@@ -710,7 +712,9 @@ def _format_record_text(record: dict, record_type: str = "claim") -> str:
     elif record_type == "chain":
         lines.append(f"[{record['id']}] {record['name']}")
         lines.append(f"  Thesis: {record['thesis'][:80]}{'...' if len(record.get('thesis', '')) > 80 else ''}")
-        lines.append(f"  Credence: {record.get('credence', 'N/A')} | Claims: {len(record.get('claims', []))}")
+        credence = record.get('credence')
+        credence_str = f"{credence:.2f}" if credence is not None else "N/A"
+        lines.append(f"  Credence: {credence_str} | Claims: {len(record.get('claims', []))}")
     elif record_type == "prediction":
         lines.append(f"[{record['claim_id']}] Status: {record['status']}")
         lines.append(f"  Source: {record['source_id']} | Target: {record.get('target_date', 'N/A')}")
@@ -1145,7 +1149,9 @@ rc-validate
         else:
             for i, result in enumerate(results, 1):
                 print(f"{i}. [{result['id']}] {result['text'][:80]}...")
-                print(f"   Type: {result['type']} | Domain: {result['domain']} | Credence: {result['credence']}")
+                credence = result.get('credence')
+                credence_str = f"{credence:.2f}" if credence is not None else "N/A"
+                print(f"   Type: {result['type']} | Domain: {result['domain']} | Credence: {credence_str}")
                 print()
             sys.stdout.flush()
 
