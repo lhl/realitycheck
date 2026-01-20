@@ -1,8 +1,8 @@
 # Embeddings: Model Options for Local Search
 
-This document reviews candidate **local** embedding models for RealityCheck’s semantic search and how they fit the current LanceDB + `sentence-transformers` pipeline.
+This document reviews candidate **local** embedding models for Reality Check’s semantic search and how they fit the current LanceDB + `sentence-transformers` pipeline.
 
-## Goals (RealityCheck-specific)
+## Goals (Reality Check-specific)
 
 - **Local-first**: run without external APIs; works offline after the model is present.
 - **Good retrieval** on short texts (claims) and medium texts (source titles/notes).
@@ -11,7 +11,7 @@ This document reviews candidate **local** embedding models for RealityCheck’s 
 
 ## Current State (in this repo today)
 
-RealityCheck currently has a dense-embedding implementation wired into:
+Reality Check currently has a dense-embedding implementation wired into:
 
 - `scripts/db.py` (embedding generation via `sentence-transformers` + semantic search over a vector column)
 - `scripts/embed.py` (`rc-embed status|generate|regenerate`)
@@ -31,7 +31,7 @@ If the intention is to redesign before any “real” indexing/storage lands, yo
 
 ## Model Families: “Drop-in” vs “Not Drop-in”
 
-RealityCheck’s current search is **dense single-vector retrieval**.
+Reality Check’s current search is **dense single-vector retrieval**.
 
 - **Dense embeddings (single vector per text)**: typically drop-in *if* you can match the vector size the DB expects (or migrate schema).
 - **Late-interaction / ColBERT-style models (multiple vectors per text)**: **not drop-in** to the current design; they require a different storage/indexing/search approach (token-level embeddings + MaxSim).
@@ -52,7 +52,7 @@ Notes:
 
 ## Candidate Models (provided list)
 
-RealityCheck candidates to evaluate:
+Reality Check candidates to evaluate:
 
 - https://huggingface.co/nomic-ai/nomic-embed-text-v2-moe
 - https://huggingface.co/LiquidAI/LFM2-ColBERT-350M
@@ -134,7 +134,7 @@ As of 2026-01-21 (HF `downloads` field):
 - `sentence-transformers/all-MiniLM-L12-v2`: **2,724,889** downloads
 - `mixedbread-ai/mxbai-edge-colbert-v0-32m`: **43,126** downloads
 
-## Relative Speed & Index Size (RealityCheck-relevant)
+## Relative Speed & Index Size (Reality Check-relevant)
 
 ### What dominates latency?
 
@@ -188,9 +188,9 @@ Interpretation:
 - For claim-sized text, `embeddinggemma-300m` is slower than MiniLM but not unusably slow on CPU; `stella_en_400M_v5` is much slower.
 - For “chunk” texts, **max sequence length dominates**: MiniLM appears fast largely because it truncates aggressively (256 tokens).
 
-## How These Models Fit RealityCheck’s Use Cases
+## How These Models Fit Reality Check’s Use Cases
 
-RealityCheck uses embeddings for:
+Reality Check uses embeddings for:
 
 - **Claims**: short, precise propositions (often 1–3 sentences).
 - **Sources**: title + (optional) bias notes; later likely abstract/summary snippets.
@@ -227,14 +227,14 @@ ColBERT-style models may improve retrieval quality (especially for longer texts 
 
 If we want ColBERT, treat it as a distinct “search backend” rather than just swapping models.
 
-### RealityCheck-specific take (given typical data shape)
+### Reality Check-specific take (given typical data shape)
 
 - **Claims are short** → dense models do very well; ColBERT is usually unnecessary here.
 - **Analyses / notes can be long** → don’t store “one vector per full doc”; use **chunking** (dense) or a ColBERT backend.
 
 ## Concrete Facts From Model Cards (summary)
 
-These are the RealityCheck-relevant “gotchas” surfaced directly from the model cards (as of 2026-01-21).
+These are the Reality Check-relevant “gotchas” surfaced directly from the model cards (as of 2026-01-21).
 
 ### Dense candidates
 
@@ -359,7 +359,7 @@ For “local-only after initial download”, standard knobs include:
 - `TRANSFORMERS_CACHE=/path/to/cache` (older pattern; still seen)
 - Pin a model revision (commit hash) in documentation/config to avoid silent upgrades.
 
-RealityCheck should eventually record the model id + revision in project config to keep embeddings reproducible across machines.
+Reality Check should eventually record the model id + revision in project config to keep embeddings reproducible across machines.
 
 ### Recommendation: record an “embedding signature” in the project config
 
@@ -381,11 +381,11 @@ If the new model’s embedding dim differs from 384, you need one of:
 2. **New column**: add a second vector column per table (e.g., `embedding_v2`) with the new dimension (requires code + schema updates).
 3. **New tables**: create parallel tables keyed by `id` just for embeddings per model (clean separation; slightly more code).
 
-RealityCheck should pick one approach and document it before standardizing on a new default.
+Reality Check should pick one approach and document it before standardizing on a new default.
 
-## How to Evaluate Models (RealityCheck-oriented)
+## How to Evaluate Models (Reality Check-oriented)
 
-RealityCheck has built-in weak labels you can use for retrieval evaluation:
+Reality Check has built-in weak labels you can use for retrieval evaluation:
 
 - claim relationships: `supports`, `contradicts`, `depends_on`, `modified_by`
 - chain membership: claims within the same chain

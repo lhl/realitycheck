@@ -92,7 +92,7 @@ rm -rf .venv && uv sync --extra-index-url <your-index-url>
 # Create a new directory for your data
 mkdir my-research && cd my-research
 
-# Initialize a RealityCheck project (creates structure + database)
+# Initialize a Reality Check project (creates structure + database)
 uv run python /path/to/realitycheck/scripts/db.py init-project
 
 # This creates:
@@ -106,7 +106,7 @@ uv run python /path/to/realitycheck/scripts/db.py init-project
 ### 2. Set Environment Variable
 
 ```bash
-# Tell RealityCheck where your database is
+# Tell Reality Check where your database is
 export ANALYSIS_DB_PATH="data/realitycheck.lance"
 
 # Add to your shell profile for persistence:
@@ -209,7 +209,7 @@ export.py yaml claims -o claims.yaml    # Export to YAML
 
 ## Claude Code Plugin
 
-[Claude Code](https://claude.ai/code) is Anthropic's AI coding assistant. RealityCheck includes a plugin that adds slash commands for analysis workflows.
+[Claude Code](https://claude.ai/code) is Anthropic's AI coding assistant. Reality Check includes a plugin that adds slash commands for analysis workflows.
 
 ### Install the Plugin
 
@@ -323,7 +323,7 @@ my-research/                  # Your data repo (separate)
 
 ## Why a Unified Knowledge Base?
 
-RealityCheck recommends **one knowledge base per user**, not per topic:
+Reality Check recommends **one knowledge base per user**, not per topic:
 
 - Claims build on each other across domains (AI claims inform economics claims)
 - Shared evidence hierarchy enables consistent evaluation
@@ -334,7 +334,7 @@ Create separate databases only for: organizational boundaries, privacy requireme
 
 ## Embedding Model
 
-RealityCheck uses `all-MiniLM-L6-v2` for semantic search embeddings. This model provides the best balance of performance and quality for CPU inference:
+Reality Check uses `all-MiniLM-L6-v2` for semantic search embeddings. This model provides the best balance of performance and quality for CPU inference:
 
 | Model | Dim | Load Time | Throughput | Memory |
 |-------|-----|-----------|------------|--------|

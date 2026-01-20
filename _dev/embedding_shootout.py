@@ -8,7 +8,7 @@ Benchmarks embedding models for:
 - CPU RSS (current + peak, Linux /proc-based)
 - GPU memory (CUDA/XPU peak allocated/reserved when available)
 
-Designed for local, reproducible comparisons in RealityCheck.
+Designed for local, reproducible comparisons in Reality Check.
 """
 
 from __future__ import annotations
@@ -28,9 +28,9 @@ from typing import Any, Optional
 DEFAULT_MODELS = [
     "sentence-transformers/all-MiniLM-L6-v2",
     "google/embeddinggemma-300m",
-    "ibm-granite/granite-embedding-278m-multilingual",
-    "sentence-transformers/all-mpnet-base-v2",
-    "NovaSearch/stella_en_400M_v5",
+    # "ibm-granite/granite-embedding-278m-multilingual",
+    # "sentence-transformers/all-mpnet-base-v2",
+    # "NovaSearch/stella_en_400M_v5",
     "Alibaba-NLP/gte-multilingual-base",
 ]
 
@@ -122,6 +122,17 @@ def _default_spec_for_model_id(model_id: str, *, truncate_dim: Optional[int] = N
             truncate_dim=truncate_dim,
             query_prompt_name="query",
             doc_prompt_name="document",
+            extra_st_kwargs={},
+        )
+
+    if model_id == "Alibaba-NLP/gte-multilingual-base":
+        return ModelSpec(
+            model_id=model_id,
+            name=name,
+            trust_remote_code=True,
+            truncate_dim=truncate_dim,
+            query_prompt_name=None,
+            doc_prompt_name=None,
             extra_st_kwargs={},
         )
 
@@ -618,7 +629,7 @@ def main() -> int:
         "--models",
         nargs="*",
         default=None,
-        help="Model ids to benchmark (default: a RealityCheck starter set).",
+        help="Model ids to benchmark (default: a Reality Check starter set).",
     )
     parser.add_argument(
         "--limit-models",
