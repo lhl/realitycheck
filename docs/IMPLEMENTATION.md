@@ -169,25 +169,140 @@ Created framework documentation:
 ### Punchlist
 
 **Flagship commands:**
-- [ ] `/check <url>` - Full analysis workflow (fetch → extract → analyze → register → report)
-- [ ] `/realitycheck <url>` - Alias for `/check`
+- [x] `/check <url>` - Full analysis workflow (fetch → extract → analyze → register → report)
+- [x] `/realitycheck <url>` - Alias for `/check`
 
 **CRUD commands (extend rc-db CLI):**
-- [ ] `rc-db add claim|source|chain|prediction` - Add records via CLI
-- [ ] `rc-db get <id>` - Retrieve single record
-- [ ] `rc-db list claims|sources|chains` - List records with filters
-- [ ] `rc-db update <id>` - Update existing record
-- [ ] `rc-db related <claim-id>` - Find related claims
-- [ ] `rc-db import <file>` - Bulk import from YAML
+- [x] `rc-db claim add/get/list/update` - Claim operations via CLI
+- [x] `rc-db source add/get/list` - Source operations via CLI
+- [x] `rc-db chain add/get/list` - Chain operations via CLI
+- [x] `rc-db prediction add/list` - Prediction operations via CLI
+- [x] `rc-db related <claim-id>` - Find related claims
+- [x] `rc-db import <file>` - Bulk import from YAML
 
 **Plugin wiring:**
-- [ ] Shell wrapper scripts in `plugin/scripts/`
-- [ ] Update `/analyze`, `/extract`, `/validate`, `/export`, `/search` to invoke CLI
-- [ ] Lifecycle hooks (`plugin/hooks/hooks.json`)
-- [ ] Test each command end-to-end
+- [x] Shell wrapper scripts in `plugin/scripts/`
+  - resolve-project.sh - Find project root, set env vars
+  - run-db.sh - Wrapper for db.py
+  - run-validate.sh - Wrapper for validate.py
+  - run-export.sh - Wrapper for export.py
+- [x] Update `/analyze`, `/extract`, `/validate`, `/export`, `/search` to invoke CLI
+- [x] Lifecycle hooks (`plugin/hooks/hooks.json`)
+  - on-stop.sh - Auto-validate on session end
+  - post-db-modify.sh - Post-database-operation hook (silent by default)
+- [x] CLI tests (20 new tests) - all passing
 
 **Release:**
 - [ ] Tag as v0.1.0-beta
+
+### Worklog
+
+#### 2026-01-21: Phase 2 Implementation
+
+**CLI Extension (db.py)**
+
+Extended db.py with comprehensive nested subparsers:
+
+```
+rc-db init                              # Initialize database
+rc-db stats                             # Show statistics
+rc-db reset                             # Reset database
+
+rc-db claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
+rc-db claim get <id>                    # JSON output
+rc-db claim list [--domain D] [--type T] [--format json|text]
+rc-db claim update <id> --credence 0.9
+
+rc-db source add --id "..." --title "..." --type "PAPER" --author "..." --year 2026
+rc-db source get <id>
+rc-db source list [--type T] [--status S]
+
+rc-db chain add --id "..." --name "..." --thesis "..." --claims "ID1,ID2"
+rc-db chain get <id>
+rc-db chain list
+
+rc-db prediction add --claim-id "..." --source-id "..." --status "[P→]"
+rc-db prediction list [--status S]
+
+rc-db related <claim-id>                # Show relationships
+
+rc-db import <file.yaml> --type claims  # Bulk import
+rc-db search "query" --limit 10         # Semantic search
+```
+
+Key features:
+- Auto-ID generation for claims (DOMAIN-YYYY-NNN format)
+- JSON output by default, `--format text` for human-readable
+- Embedded CLI helper functions for output formatting
+
+**Tests Added (tests/test_db.py)**
+
+18 new CLI tests covering:
+- TestClaimCLI: add, get, list, update, filters
+- TestSourceCLI: add, get, list with type filters
+- TestChainCLI: add, get, list
+- TestPredictionCLI: add, list with status filters
+- TestRelatedCLI: relationship traversal
+- TestImportCLI: YAML import, error handling
+- TestTextFormatOutput: human-readable format
+
+All tests pass: `SKIP_EMBEDDING_TESTS=1 uv run pytest -v` (110 passed, 17 skipped)
+
+**Shell Wrapper Scripts (plugin/scripts/)**
+
+Created shell wrappers for plugin integration:
+- `resolve-project.sh` - Find project root via .realitycheck.yaml or data/*.lance
+- `run-db.sh` - Wrapper for db.py with project context
+- `run-validate.sh` - Wrapper for validate.py
+- `run-export.sh` - Wrapper for export.py
+
+Scripts support:
+- Framework repo (development mode) - uses uv run
+- Bundled scripts in plugin/lib/ - for distribution
+- Installed package - uses rc-db/rc-validate/rc-export commands
+
+**Flagship Commands (plugin/commands/)**
+
+Created flagship `/check` command (`check.md`):
+- Full 7-step analysis workflow
+- Fetch → Metadata → 3-Stage Analysis → Extract → Register → Validate → Report
+- Includes evidence hierarchy reference, claim types
+- CLI invocation examples for registration
+
+Created `/realitycheck` alias (`realitycheck.md`):
+- Quick reference for /check workflow
+- Links to full documentation
+
+**Updated Existing Commands**
+
+Updated to include CLI integration:
+- `validate.md` - Added allowed-tools and CLI invocation
+- `search.md` - Added allowed-tools and CLI invocation
+- `export.md` - Added allowed-tools and CLI invocation
+- `analyze.md` - Added database registration examples
+- `extract.md` - Added claim registration examples
+
+**Files Created/Modified**
+
+| File | Status | Description |
+|------|--------|-------------|
+| scripts/db.py | UPDATE | Extended CLI with nested subparsers |
+| tests/test_db.py | UPDATE | Added 18 CLI tests |
+| plugin/scripts/resolve-project.sh | NEW | Project context detection |
+| plugin/scripts/run-db.sh | NEW | db.py wrapper |
+| plugin/scripts/run-validate.sh | NEW | validate.py wrapper |
+| plugin/scripts/run-export.sh | NEW | export.py wrapper |
+| plugin/commands/check.md | NEW | Flagship analysis command |
+| plugin/commands/realitycheck.md | NEW | Alias for /check |
+| plugin/commands/validate.md | UPDATE | CLI integration |
+| plugin/commands/search.md | UPDATE | CLI integration |
+| plugin/commands/export.md | UPDATE | CLI integration |
+| plugin/commands/analyze.md | UPDATE | Registration examples |
+| plugin/commands/extract.md | UPDATE | Registration examples |
+
+**Next Steps**
+- Tag as v0.1.0-beta after final review
+- Optional: Add plugin/hooks/hooks.json for lifecycle hooks
 
 ---
 
@@ -285,4 +400,4 @@ Created framework documentation:
 
 ---
 
-*Last updated: 2026-01-20 (Phase 1 near-complete, ready for v0.1.0-alpha tag)*
+*Last updated: 2026-01-21 (Phase 2 complete, ready for v0.1.0-beta tag)*

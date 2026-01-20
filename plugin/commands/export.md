@@ -2,10 +2,28 @@
 
 Export data to Markdown or YAML formats.
 
+---
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-export.sh *)"]
+---
+
 ## Usage
 
 ```
 /export <format> <type> [--id ID] [-o OUTPUT]
+```
+
+## CLI Invocation
+
+Run export using the shell wrapper:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-export.sh" <format> <type> [OPTIONS]
+```
+
+Or directly via the Python script:
+
+```bash
+uv run python scripts/export.py <format> <type> [OPTIONS]
 ```
 
 ## Formats

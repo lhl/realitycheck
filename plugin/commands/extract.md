@@ -23,10 +23,26 @@ Quick claim extraction from a source without full 3-stage analysis.
    - Assign credence (0.0-1.0)
    - Note operationalization, assumptions, falsifiers
 
-**Phase 2** will add automatic:
-- Claim registration in database
-- Embedding generation for semantic search
-- Source backlink updates
+## Registering Claims
+
+After extraction, register claims using the CLI:
+
+```bash
+# Via shell wrapper
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" claim add \
+  --id "DOMAIN-YYYY-NNN" \
+  --text "Claim text" \
+  --type "[F]" \
+  --domain "TECH" \
+  --evidence-level "E3" \
+  --credence 0.7 \
+  --source-ids "source-id"
+
+# Or directly
+uv run python scripts/db.py claim add [OPTIONS]
+```
+
+See `/check` for fully automated analysis + registration workflow.
 
 ## Claim Types
 

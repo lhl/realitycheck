@@ -1,213 +1,318 @@
-# RealityCheck
+# realitycheck
 
 A framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains.
 
-## Status
-
-**v0.1.0-alpha** - Core functionality implemented. Python scripts, tests, Claude Code plugin, and methodology templates are complete. Ready for testing.
-
-See `docs/IMPLEMENTATION.md` for detailed progress tracking.
+> With so many hot takes, plausible theories, misinformation, and AI-generated content, sometimes, you just need a `realitycheck`.
 
 ## Overview
 
 RealityCheck helps you build and maintain a **unified knowledge base** with:
 
-- **Claim Registry**: Track individual claims with evidence levels, confidence scores, and relationships
-- **Source Analysis**: Structured methodology for evaluating sources (3-stage: descriptive → evaluative → dialectical)
+- **Claim Registry**: Track claims with evidence levels, credence scores, and relationships
+- **Source Analysis**: Structured 3-stage methodology (descriptive → evaluative → dialectical)
 - **Prediction Tracking**: Monitor forecasts with falsification criteria and status updates
 - **Argument Chains**: Map logical dependencies and identify weak links
 - **Semantic Search**: Find related claims across your entire knowledge base
 
-## Why Unified?
+## Status
 
-RealityCheck recommends a **single knowledge base per user** rather than topic-based separation:
+**v0.1.0-beta** - Core functionality complete. Extended CLI, Claude Code plugin with full workflow automation, and 112 passing tests.
 
-- Claims build on each other across topics (AI claims inform economics claims)
-- Shared evidence hierarchy enables consistent evaluation
-- Cross-domain synthesis becomes possible
-- Semantic search works across your entire knowledge base
-- Avoids siloed thinking
+## Prerequisites
 
-Separate databases only for: org boundaries, privacy requirements, or collaboration needs.
+- **Python 3.11+**
+- **[uv](https://docs.astral.sh/uv/)** - Fast Python package manager
+  ```bash
+  # Install uv (macOS/Linux)
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+
+  # Or with pip
+  pip install uv
+  ```
+- **[Claude Code](https://claude.ai/code)** (optional) - For plugin integration
 
 ## Installation
 
-### Using uv (Recommended)
-
 ```bash
-# Clone and install
+# Clone the framework
 git clone https://github.com/lhl/realitycheck.git
 cd realitycheck
+
+# Install dependencies
 uv sync
 
 # Verify installation
-uv run pytest -v
-```
-
-### Using pip (Coming Soon)
-
-```bash
-pip install realitycheck
+SKIP_EMBEDDING_TESTS=1 uv run pytest -v
 ```
 
 ## Quick Start
 
-### Initialize a Knowledge Base
+### 1. Create Your Knowledge Base
 
 ```bash
-# Initialize database (creates data/realitycheck.lance/)
-uv run rc-db init
+# Create a new directory for your data
+mkdir my-research && cd my-research
+
+# Initialize a RealityCheck project (creates structure + database)
+uv run python /path/to/realitycheck/scripts/db.py init-project
+
+# This creates:
+#   .realitycheck.yaml    - Project config
+#   data/realitycheck.lance/  - Database
+#   analysis/sources/     - For analysis documents
+#   tracking/             - For prediction tracking
+#   inbox/                - For sources to process
+```
+
+### 2. Set Environment Variable
+
+```bash
+# Tell RealityCheck where your database is
+export ANALYSIS_DB_PATH="data/realitycheck.lance"
+
+# Add to your shell profile for persistence:
+echo 'export ANALYSIS_DB_PATH="data/realitycheck.lance"' >> ~/.bashrc
+```
+
+### 3. Add Your First Claim
+
+```bash
+# From your project directory:
+uv run python /path/to/realitycheck/scripts/db.py claim add \
+  --text "AI training costs double annually" \
+  --type "[F]" \
+  --domain "TECH" \
+  --evidence-level "E2" \
+  --credence 0.8
+
+# Output: Created claim: TECH-2026-001
+```
+
+### 4. Add a Source
+
+```bash
+uv run python /path/to/realitycheck/scripts/db.py source add \
+  --id "epoch-2024-training" \
+  --title "Training Compute Trends" \
+  --type "REPORT" \
+  --author "Epoch AI" \
+  --year 2024 \
+  --url "https://epochai.org/blog/training-compute-trends"
+```
+
+### 5. Search and Explore
+
+```bash
+# Semantic search
+uv run python /path/to/realitycheck/scripts/db.py search "AI costs"
+
+# List all claims
+uv run python /path/to/realitycheck/scripts/db.py claim list --format text
 
 # Check database stats
-uv run rc-db stats
+uv run python /path/to/realitycheck/scripts/db.py stats
 ```
 
-### Basic Operations
+## Using with Framework as Submodule
+
+For easier access to scripts, add the framework as a git submodule:
 
 ```bash
-# Search claims semantically
-uv run rc-db search "automation and labor"
+cd my-research
+git submodule add https://github.com/lhl/realitycheck.git .framework
 
-# Run validation
-uv run rc-validate
-
-# Export to YAML
-uv run rc-export yaml claims -o claims.yaml
-
-# Generate embeddings for semantic search
-uv run rc-embed generate
+# Now use shorter paths:
+.framework/scripts/db.py claim list --format text
+.framework/scripts/db.py search "AI"
 ```
 
-### Migrate from Legacy YAML
+## CLI Reference
+
+All commands require `ANALYSIS_DB_PATH` to be set, or run from a directory with `.realitycheck.yaml`.
 
 ```bash
-# Dry run first
-uv run rc-migrate /path/to/legacy/repo --dry-run -v
+# Database management
+db.py init                              # Initialize database tables
+db.py init-project [--path DIR]         # Create new project structure
+db.py stats                             # Show statistics
+db.py reset                             # Reset database (destructive!)
 
-# Run migration
-uv run rc-migrate /path/to/legacy/repo -v
-```
+# Claim operations
+db.py claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
+db.py claim add --id "TECH-2026-001" --text "..." ...  # With explicit ID
+db.py claim get <id>                    # Get single claim (JSON)
+db.py claim list [--domain D] [--type T] [--format json|text]
+db.py claim update <id> --credence 0.9 [--notes "..."]
 
-## Project Structure
+# Source operations
+db.py source add --id "..." --title "..." --type "PAPER" --author "..." --year 2024
+db.py source get <id>
+db.py source list [--type T] [--status S]
 
-```
-realitycheck/
-├── scripts/              # Core Python CLI tools
-│   ├── db.py             # LanceDB operations (rc-db)
-│   ├── validate.py       # Data integrity validation (rc-validate)
-│   ├── export.py         # Export to YAML/Markdown (rc-export)
-│   ├── migrate.py        # YAML → LanceDB migration (rc-migrate)
-│   └── embed.py          # Embedding generation (rc-embed)
-│
-├── tests/                # pytest test suite (108 tests)
-│
-├── plugin/               # Claude Code plugin
-│   ├── .claude-plugin/   # Plugin manifest
-│   └── commands/         # Slash command definitions
-│
-├── methodology/          # Analysis methodology
-│   ├── evidence-hierarchy.md
-│   ├── claim-taxonomy.md
-│   └── templates/        # source-analysis.md, claim-extraction.md, synthesis.md
-│
-└── docs/                 # Development documentation
-    ├── SCHEMA.md         # Database schema
-    ├── WORKFLOWS.md      # Usage workflows
-    ├── PLUGIN.md         # Plugin documentation
-    ├── PLAN-separation.md
-    └── IMPLEMENTATION.md
+# Chain operations (argument chains)
+db.py chain add --id "..." --name "..." --thesis "..." --claims "ID1,ID2,ID3"
+db.py chain get <id>
+db.py chain list
+
+# Prediction operations
+db.py prediction add --claim-id "..." --source-id "..." --status "[P→]"
+db.py prediction list [--status S]
+
+# Search and relationships
+db.py search "query" [--domain D] [--limit N]
+db.py related <claim-id>                # Find related claims
+
+# Import/Export
+db.py import <file.yaml> --type claims|sources|all
+validate.py                             # Check database integrity
+export.py yaml claims -o claims.yaml    # Export to YAML
 ```
 
 ## Claude Code Plugin
 
-RealityCheck includes a Claude Code plugin for workflow automation:
+[Claude Code](https://claude.ai/code) is Anthropic's AI coding assistant. RealityCheck includes a plugin that adds slash commands for analysis workflows.
+
+### Install the Plugin
 
 ```bash
-# Install plugin (symlink for development)
+# From the realitycheck repo directory:
+make install-plugin
+
+# Or manually:
+mkdir -p ~/.claude/plugins/local
 ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
 ```
 
-Available commands:
-- `/analyze <source>` - Full 3-stage source analysis
-- `/extract <source>` - Quick claim extraction
-- `/search <query>` - Semantic search across claims
-- `/validate` - Check data integrity
-- `/export <format> <type>` - Export to YAML/Markdown
+Restart Claude Code to load the plugin.
+
+### Plugin Commands
+
+| Command | Description |
+|---------|-------------|
+| `/check <url>` | **Flagship** - Full analysis workflow (fetch → analyze → register → validate) |
+| `/realitycheck <url>` | Alias for `/check` |
+| `/analyze <source>` | Manual 3-stage analysis without auto-registration |
+| `/extract <source>` | Quick claim extraction |
+| `/search <query>` | Semantic search across claims |
+| `/validate` | Check database integrity |
+| `/export <format> <type>` | Export to YAML/Markdown |
+
+### Example Session
+
+```
+> /check https://arxiv.org/abs/2401.00001
+
+Claude will:
+1. Fetch the paper content
+2. Run 3-stage analysis (descriptive → evaluative → dialectical)
+3. Extract and classify claims
+4. Register source and claims in your database
+5. Validate data integrity
+6. Report summary with claim IDs
+```
 
 See `docs/PLUGIN.md` for full documentation.
 
-## Data Projects
+## Taxonomy Reference
 
-Your analysis data lives in a separate repository:
-
-```bash
-# Create your knowledge base
-mkdir realitycheck-data && cd realitycheck-data
-git init
-
-# Add framework as submodule (optional)
-git submodule add https://github.com/lhl/realitycheck.git .framework
-
-# Configure
-cat > .realitycheck.yaml << 'EOF'
-version: "1.0"
-database:
-  path: "data/realitycheck.lance"
-EOF
-
-# Initialize
-export ANALYSIS_DB_PATH="data/realitycheck.lance"
-python .framework/scripts/db.py init
-```
-
-## Evidence Hierarchy
-
-Claims are rated by strength of evidential support:
-
-| Level | Strength | Description |
-|-------|----------|-------------|
-| E1 | Strong Empirical | Replicated studies, verified data |
-| E2 | Moderate Empirical | Single studies, case studies |
-| E3 | Strong Theoretical | Logical from established principles |
-| E4 | Weak Theoretical | Plausible extrapolation |
-| E5 | Opinion/Forecast | Credentialed speculation |
-| E6 | Unsupported | Assertions without evidence |
-
-## Claim Types
+### Claim Types
 
 | Type | Symbol | Definition |
 |------|--------|------------|
-| Fact | `[F]` | Empirically verified |
-| Theory | `[T]` | Coherent framework with support |
-| Hypothesis | `[H]` | Testable proposition |
-| Prediction | `[P]` | Future-oriented with conditions |
-| Assumption | `[A]` | Underlying premise |
-| Speculation | `[S]` | Unfalsifiable claim |
+| Fact | `[F]` | Empirically verified, consensus reality |
+| Theory | `[T]` | Coherent framework with empirical support |
+| Hypothesis | `[H]` | Testable proposition, awaiting evidence |
+| Prediction | `[P]` | Future-oriented with specified conditions |
+| Assumption | `[A]` | Underlying premise (stated or unstated) |
+| Counterfactual | `[C]` | Alternative scenario for comparison |
+| Speculation | `[S]` | Unfalsifiable or untestable claim |
+| Contradiction | `[X]` | Identified logical inconsistency |
+
+### Evidence Hierarchy
+
+| Level | Strength | Description |
+|-------|----------|-------------|
+| E1 | Strong Empirical | Replicated studies, systematic reviews, meta-analyses |
+| E2 | Moderate Empirical | Single peer-reviewed study, official statistics |
+| E3 | Strong Theoretical | Expert consensus, working papers, preprints |
+| E4 | Weak Theoretical | Industry reports, credible journalism |
+| E5 | Opinion/Forecast | Personal observation, anecdote, expert opinion |
+| E6 | Unsupported | Pure speculation, unfalsifiable claims |
+
+### Domain Codes
+
+| Domain | Code | Description |
+|--------|------|-------------|
+| Technology | `TECH` | AI capabilities, tech trajectories |
+| Labor | `LABOR` | Employment, automation, work |
+| Economics | `ECON` | Value, pricing, distribution |
+| Governance | `GOV` | Policy, regulation, institutions |
+| Social | `SOC` | Social structures, culture, behavior |
+| Resource | `RESOURCE` | Scarcity, abundance, allocation |
+| Transition | `TRANS` | Transition dynamics, pathways |
+| Geopolitics | `GEO` | International relations, competition |
+| Institutional | `INST` | Organizations, coordination |
+| Risk | `RISK` | Risk assessment, failure modes |
+| Meta | `META` | Claims about the framework itself |
+
+## Project Structure
+
+```
+realitycheck/                 # Framework repo (this)
+├── scripts/                  # Python CLI tools
+│   ├── db.py                 # Database operations + CLI
+│   ├── validate.py           # Data integrity checks
+│   ├── export.py             # YAML/Markdown export
+│   └── migrate.py            # Legacy YAML migration
+├── plugin/                   # Claude Code plugin
+│   ├── commands/             # Slash command definitions
+│   └── scripts/              # Shell wrappers
+├── methodology/              # Analysis templates
+│   ├── evidence-hierarchy.md
+│   ├── claim-taxonomy.md
+│   └── templates/
+├── tests/                    # pytest suite (112 tests)
+└── docs/                     # Documentation
+
+my-research/                  # Your data repo (separate)
+├── .realitycheck.yaml        # Project config
+├── data/realitycheck.lance/  # LanceDB database
+├── analysis/sources/         # Analysis documents
+├── tracking/                 # Prediction tracking
+└── inbox/                    # Sources to process
+```
+
+## Why a Unified Knowledge Base?
+
+RealityCheck recommends **one knowledge base per user**, not per topic:
+
+- Claims build on each other across domains (AI claims inform economics claims)
+- Shared evidence hierarchy enables consistent evaluation
+- Cross-domain synthesis becomes possible
+- Semantic search works across your entire knowledge base
+
+Create separate databases only for: organizational boundaries, privacy requirements, or team collaboration.
 
 ## Development
 
 ```bash
-# Run tests (91 pass, 17 skipped for embeddings)
+# Run tests (skip slow embedding tests)
+SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+
+# Run all tests including embeddings
 uv run pytest -v
 
 # Run with coverage
 uv run pytest --cov=scripts --cov-report=term-missing
-
-# Skip embedding tests (faster, no torch download)
-SKIP_EMBEDDING_TESTS=1 uv run pytest -v
-
-# Run specific test file
-uv run pytest tests/test_db.py
 ```
 
-See [CLAUDE.md](CLAUDE.md) for development workflow and conventions.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+See [CLAUDE.md](CLAUDE.md) for development workflow and contribution guidelines.
 
 ## Documentation
 
-- [SCHEMA.md](docs/SCHEMA.md) - Database schema reference
-- [WORKFLOWS.md](docs/WORKFLOWS.md) - Common usage workflows
-- [PLUGIN.md](docs/PLUGIN.md) - Claude Code plugin guide
+- [docs/PLUGIN.md](docs/PLUGIN.md) - Claude Code plugin guide
+- [docs/SCHEMA.md](docs/SCHEMA.md) - Database schema reference
+- [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - Common usage workflows
 - [methodology/](methodology/) - Analysis methodology and templates
 
 ## License

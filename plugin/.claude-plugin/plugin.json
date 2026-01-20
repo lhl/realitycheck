@@ -7,6 +7,16 @@
   "homepage": "https://github.com/lhl/realitycheck",
   "commands": [
     {
+      "name": "check",
+      "description": "Full analysis workflow: fetch, analyze, extract, register, validate",
+      "file": "commands/check.md"
+    },
+    {
+      "name": "realitycheck",
+      "description": "Alias for /check - full analysis workflow",
+      "file": "commands/realitycheck.md"
+    },
+    {
       "name": "analyze",
       "description": "Perform 3-stage analysis of a source",
       "file": "commands/analyze.md"

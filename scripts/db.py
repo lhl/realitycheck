@@ -663,6 +663,89 @@ def get_stats(db: Optional[lancedb.DBConnection] = None) -> dict:
 
 
 # =============================================================================
+# CLI Helpers
+# =============================================================================
+
+def _generate_claim_id(domain: str, db: Optional["lancedb.DBConnection"] = None) -> str:
+    """Generate the next claim ID for a domain."""
+    from datetime import date
+    if db is None:
+        db = get_db()
+
+    year = date.today().year
+    existing = list_claims(domain=domain, limit=10000, db=db)
+
+    # Find highest counter for this domain/year
+    max_counter = 0
+    prefix = f"{domain}-{year}-"
+    for claim in existing:
+        if claim["id"].startswith(prefix):
+            try:
+                counter = int(claim["id"].split("-")[-1])
+                max_counter = max(max_counter, counter)
+            except ValueError:
+                pass
+
+    return f"{domain}-{year}-{max_counter + 1:03d}"
+
+
+def _format_record_text(record: dict, record_type: str = "claim") -> str:
+    """Format a record for human-readable text output."""
+    lines = []
+    if record_type == "claim":
+        lines.append(f"[{record['id']}] {record['text'][:80]}{'...' if len(record.get('text', '')) > 80 else ''}")
+        lines.append(f"  Type: {record['type']} | Domain: {record['domain']} | Evidence: {record['evidence_level']} | Credence: {record.get('credence', 'N/A')}")
+        if record.get("notes"):
+            lines.append(f"  Notes: {record['notes']}")
+    elif record_type == "source":
+        authors = record.get("author", [])
+        author_str = ", ".join(authors) if isinstance(authors, list) else str(authors)
+        lines.append(f"[{record['id']}] {record['title']}")
+        lines.append(f"  Type: {record['type']} | Author: {author_str} | Year: {record['year']}")
+        if record.get("url"):
+            lines.append(f"  URL: {record['url']}")
+    elif record_type == "chain":
+        lines.append(f"[{record['id']}] {record['name']}")
+        lines.append(f"  Thesis: {record['thesis'][:80]}{'...' if len(record.get('thesis', '')) > 80 else ''}")
+        lines.append(f"  Credence: {record.get('credence', 'N/A')} | Claims: {len(record.get('claims', []))}")
+    elif record_type == "prediction":
+        lines.append(f"[{record['claim_id']}] Status: {record['status']}")
+        lines.append(f"  Source: {record['source_id']} | Target: {record.get('target_date', 'N/A')}")
+    return "\n".join(lines)
+
+
+def _output_result(data: Any, format_type: str = "json", record_type: str = "claim") -> None:
+    """Output data in requested format."""
+    import json
+
+    # Clean data for JSON serialization
+    def clean_for_json(obj):
+        if hasattr(obj, 'tolist'):  # numpy array
+            return obj.tolist()
+        elif hasattr(obj, 'to_pylist'):  # pyarrow array
+            return obj.to_pylist()
+        elif isinstance(obj, (list, tuple)):
+            return [clean_for_json(v) for v in obj]
+        elif isinstance(obj, dict):
+            return {k: clean_for_json(v) for k, v in obj.items()}
+        elif hasattr(obj, 'as_py'):  # pyarrow scalar
+            return obj.as_py()
+        return obj
+
+    data = clean_for_json(data)
+
+    if format_type == "json":
+        print(json.dumps(data, indent=2, default=str))
+    else:
+        if isinstance(data, list):
+            for item in data:
+                print(_format_record_text(item, record_type))
+                print()
+        else:
+            print(_format_record_text(data, record_type))
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 
@@ -670,27 +753,198 @@ def main():
     """CLI entry point."""
     import argparse
     import json
+    import sys
+    import yaml
 
-    parser = argparse.ArgumentParser(description="RealityCheck Database CLI")
+    parser = argparse.ArgumentParser(
+        description="RealityCheck Database CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  rc-db init                              Initialize database
+  rc-db claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
+  rc-db claim get TECH-2026-001           Get claim by ID
+  rc-db claim list --domain TECH          List claims filtered by domain
+  rc-db search "AI automation"            Semantic search for claims
+  rc-db import data.yaml --type claims    Import claims from YAML
+        """
+    )
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
-    # init command
+    # -------------------------------------------------------------------------
+    # Basic commands
+    # -------------------------------------------------------------------------
     subparsers.add_parser("init", help="Initialize database tables")
-
-    # stats command
     subparsers.add_parser("stats", help="Show database statistics")
-
-    # reset command
     subparsers.add_parser("reset", help="Drop all tables and reinitialize")
+
+    # init-project command
+    init_project_parser = subparsers.add_parser(
+        "init-project",
+        help="Initialize a new RealityCheck data project"
+    )
+    init_project_parser.add_argument(
+        "--path", default=".",
+        help="Path to create project (default: current directory)"
+    )
+    init_project_parser.add_argument(
+        "--db-path", default="data/realitycheck.lance",
+        help="Database path relative to project root"
+    )
+    init_project_parser.add_argument(
+        "--no-git", action="store_true",
+        help="Skip git initialization"
+    )
 
     # search command
     search_parser = subparsers.add_parser("search", help="Search claims semantically")
     search_parser.add_argument("query", help="Search query text")
     search_parser.add_argument("--limit", type=int, default=10, help="Max results")
     search_parser.add_argument("--domain", help="Filter by domain")
+    search_parser.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
 
+    # -------------------------------------------------------------------------
+    # Claim commands
+    # -------------------------------------------------------------------------
+    claim_parser = subparsers.add_parser("claim", help="Claim operations")
+    claim_subparsers = claim_parser.add_subparsers(dest="claim_command")
+
+    # claim add
+    claim_add = claim_subparsers.add_parser("add", help="Add a new claim")
+    claim_add.add_argument("--id", help="Claim ID (auto-generated if not provided)")
+    claim_add.add_argument("--text", required=True, help="Claim text")
+    claim_add.add_argument("--type", required=True, help="Claim type ([F]/[T]/[H]/[P]/[A]/[C]/[S]/[X])")
+    claim_add.add_argument("--domain", required=True, help="Domain (TECH/LABOR/ECON/etc.)")
+    claim_add.add_argument("--evidence-level", required=True, help="Evidence level (E1-E6)")
+    claim_add.add_argument("--credence", type=float, default=0.5, help="Credence (0.0-1.0)")
+    claim_add.add_argument("--source-ids", help="Comma-separated source IDs")
+    claim_add.add_argument("--supports", help="Comma-separated claim IDs this supports")
+    claim_add.add_argument("--contradicts", help="Comma-separated claim IDs this contradicts")
+    claim_add.add_argument("--depends-on", help="Comma-separated claim IDs this depends on")
+    claim_add.add_argument("--notes", help="Additional notes")
+    claim_add.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
+
+    # claim get
+    claim_get = claim_subparsers.add_parser("get", help="Get a claim by ID")
+    claim_get.add_argument("claim_id", help="Claim ID")
+    claim_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # claim list
+    claim_list = claim_subparsers.add_parser("list", help="List claims")
+    claim_list.add_argument("--domain", help="Filter by domain")
+    claim_list.add_argument("--type", help="Filter by type")
+    claim_list.add_argument("--limit", type=int, default=100, help="Max results")
+    claim_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # claim update
+    claim_update = claim_subparsers.add_parser("update", help="Update a claim")
+    claim_update.add_argument("claim_id", help="Claim ID to update")
+    claim_update.add_argument("--credence", type=float, help="New credence value")
+    claim_update.add_argument("--evidence-level", help="New evidence level")
+    claim_update.add_argument("--notes", help="New notes")
+    claim_update.add_argument("--text", help="New text (triggers re-embedding)")
+
+    # -------------------------------------------------------------------------
+    # Source commands
+    # -------------------------------------------------------------------------
+    source_parser = subparsers.add_parser("source", help="Source operations")
+    source_subparsers = source_parser.add_subparsers(dest="source_command")
+
+    # source add
+    source_add = source_subparsers.add_parser("add", help="Add a new source")
+    source_add.add_argument("--id", required=True, help="Source ID")
+    source_add.add_argument("--title", required=True, help="Source title")
+    source_add.add_argument("--type", required=True, help="Source type (PAPER/BOOK/REPORT/ARTICLE/BLOG/SOCIAL/CONVO/KNOWLEDGE)")
+    source_add.add_argument("--author", required=True, help="Author(s) - comma-separated for multiple")
+    source_add.add_argument("--year", required=True, type=int, help="Publication year")
+    source_add.add_argument("--url", help="URL")
+    source_add.add_argument("--doi", help="DOI")
+    source_add.add_argument("--reliability", type=float, help="Reliability score (0.0-1.0)")
+    source_add.add_argument("--bias-notes", help="Bias notes")
+    source_add.add_argument("--status", default="cataloged", help="Status (cataloged/analyzed)")
+    source_add.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
+
+    # source get
+    source_get = source_subparsers.add_parser("get", help="Get a source by ID")
+    source_get.add_argument("source_id", help="Source ID")
+    source_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # source list
+    source_list = source_subparsers.add_parser("list", help="List sources")
+    source_list.add_argument("--type", help="Filter by type")
+    source_list.add_argument("--status", help="Filter by status")
+    source_list.add_argument("--limit", type=int, default=100, help="Max results")
+    source_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # -------------------------------------------------------------------------
+    # Chain commands
+    # -------------------------------------------------------------------------
+    chain_parser = subparsers.add_parser("chain", help="Chain operations")
+    chain_subparsers = chain_parser.add_subparsers(dest="chain_command")
+
+    # chain add
+    chain_add = chain_subparsers.add_parser("add", help="Add a new argument chain")
+    chain_add.add_argument("--id", required=True, help="Chain ID")
+    chain_add.add_argument("--name", required=True, help="Chain name")
+    chain_add.add_argument("--thesis", required=True, help="Chain thesis")
+    chain_add.add_argument("--claims", required=True, help="Comma-separated claim IDs")
+    chain_add.add_argument("--credence", type=float, help="Chain credence (defaults to MIN of claims)")
+    chain_add.add_argument("--scoring-method", default="MIN", help="Scoring method (MIN/RANGE/CUSTOM)")
+    chain_add.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
+
+    # chain get
+    chain_get = chain_subparsers.add_parser("get", help="Get a chain by ID")
+    chain_get.add_argument("chain_id", help="Chain ID")
+    chain_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # chain list
+    chain_list = chain_subparsers.add_parser("list", help="List chains")
+    chain_list.add_argument("--limit", type=int, default=100, help="Max results")
+    chain_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # -------------------------------------------------------------------------
+    # Prediction commands
+    # -------------------------------------------------------------------------
+    prediction_parser = subparsers.add_parser("prediction", help="Prediction operations")
+    prediction_subparsers = prediction_parser.add_subparsers(dest="prediction_command")
+
+    # prediction add
+    prediction_add = prediction_subparsers.add_parser("add", help="Add a prediction")
+    prediction_add.add_argument("--claim-id", required=True, help="Associated claim ID")
+    prediction_add.add_argument("--source-id", required=True, help="Source of prediction")
+    prediction_add.add_argument("--status", required=True, help="Status ([P+]/[P~]/[P→]/[P?]/[P←]/[P!]/[P-]/[P∅])")
+    prediction_add.add_argument("--date-made", help="Date prediction was made")
+    prediction_add.add_argument("--target-date", help="Target date for prediction")
+    prediction_add.add_argument("--falsification-criteria", help="Criteria for falsification")
+    prediction_add.add_argument("--verification-criteria", help="Criteria for verification")
+
+    # prediction list
+    prediction_list = prediction_subparsers.add_parser("list", help="List predictions")
+    prediction_list.add_argument("--status", help="Filter by status")
+    prediction_list.add_argument("--limit", type=int, default=100, help="Max results")
+    prediction_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # -------------------------------------------------------------------------
+    # Related command
+    # -------------------------------------------------------------------------
+    related_parser = subparsers.add_parser("related", help="Find claims related to a given claim")
+    related_parser.add_argument("claim_id", help="Claim ID to find relationships for")
+    related_parser.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # -------------------------------------------------------------------------
+    # Import command
+    # -------------------------------------------------------------------------
+    import_parser = subparsers.add_parser("import", help="Import data from YAML file")
+    import_parser.add_argument("file", help="YAML file to import")
+    import_parser.add_argument("--type", choices=["claims", "sources", "all"], default="all", help="Type of data to import")
+    import_parser.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
+
+    # -------------------------------------------------------------------------
+    # Parse and execute
+    # -------------------------------------------------------------------------
     args = parser.parse_args()
 
+    # Basic commands
     if args.command == "init":
         db = get_db()
         tables = init_tables(db)
@@ -710,12 +964,408 @@ def main():
         tables = init_tables(db)
         print(f"Reset complete. Initialized {len(tables)} tables.")
 
+    elif args.command == "init-project":
+        import subprocess
+
+        project_path = Path(args.path).resolve()
+        db_path = args.db_path
+
+        print(f"Initializing RealityCheck project at: {project_path}")
+
+        # Create directory structure
+        directories = [
+            "data",
+            "analysis/sources",
+            "analysis/syntheses",
+            "tracking/updates",
+            "inbox/to-catalog",
+            "inbox/to-analyze",
+        ]
+
+        for dir_name in directories:
+            dir_path = project_path / dir_name
+            dir_path.mkdir(parents=True, exist_ok=True)
+            print(f"  Created: {dir_name}/")
+
+        # Create .realitycheck.yaml config
+        config_path = project_path / ".realitycheck.yaml"
+        if not config_path.exists():
+            config_content = f'''# RealityCheck Project Configuration
+version: "1.0"
+db_path: "{db_path}"
+
+# Optional settings
+# embedding_model: "all-MiniLM-L6-v2"
+# default_domain: "TECH"
+'''
+            with open(config_path, "w") as f:
+                f.write(config_content)
+            print(f"  Created: .realitycheck.yaml")
+        else:
+            print(f"  Skipped: .realitycheck.yaml (already exists)")
+
+        # Create .gitignore
+        gitignore_path = project_path / ".gitignore"
+        if not gitignore_path.exists():
+            gitignore_content = '''# RealityCheck
+*.pyc
+__pycache__/
+.pytest_cache/
+*.egg-info/
+
+# Environment
+.env
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+'''
+            with open(gitignore_path, "w") as f:
+                f.write(gitignore_content)
+            print(f"  Created: .gitignore")
+
+        # Create .gitattributes for LFS
+        gitattributes_path = project_path / ".gitattributes"
+        if not gitattributes_path.exists():
+            gitattributes_content = '''# LanceDB files (large binary)
+*.lance filter=lfs diff=lfs merge=lfs -text
+data/**/*.lance filter=lfs diff=lfs merge=lfs -text
+'''
+            with open(gitattributes_path, "w") as f:
+                f.write(gitattributes_content)
+            print(f"  Created: .gitattributes (git-lfs for .lance files)")
+
+        # Create README.md
+        readme_path = project_path / "README.md"
+        if not readme_path.exists():
+            readme_content = '''# My RealityCheck Knowledge Base
+
+A unified knowledge base for rigorous claim analysis.
+
+## Quick Start
+
+```bash
+# Set database path
+export ANALYSIS_DB_PATH="data/realitycheck.lance"
+
+# Add claims
+rc-db claim add --text "Your claim" --type "[F]" --domain "TECH" --evidence-level "E3"
+
+# Search
+rc-db search "query"
+
+# Validate
+rc-validate
+```
+
+## Structure
+
+- `data/` - LanceDB database
+- `analysis/sources/` - Source analysis documents
+- `analysis/syntheses/` - Cross-source syntheses
+- `tracking/` - Prediction tracking and updates
+- `inbox/` - Sources to process
+
+## Research Questions
+
+[Add your key research questions here]
+'''
+            with open(readme_path, "w") as f:
+                f.write(readme_content)
+            print(f"  Created: README.md")
+
+        # Create tracking/predictions.md
+        predictions_path = project_path / "tracking" / "predictions.md"
+        if not predictions_path.exists():
+            predictions_content = '''# Prediction Tracking
+
+## Active Predictions
+
+| Claim ID | Status | Target Date | Last Evaluated |
+|----------|--------|-------------|----------------|
+
+## Resolved Predictions
+
+| Claim ID | Status | Resolution Date | Notes |
+|----------|--------|-----------------|-------|
+'''
+            with open(predictions_path, "w") as f:
+                f.write(predictions_content)
+            print(f"  Created: tracking/predictions.md")
+
+        # Initialize git if requested
+        if not args.no_git:
+            git_dir = project_path / ".git"
+            if not git_dir.exists():
+                try:
+                    subprocess.run(["git", "init"], cwd=project_path, check=True, capture_output=True)
+                    print(f"  Initialized: git repository")
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    print(f"  Skipped: git init (git not available)")
+
+        # Initialize database
+        full_db_path = project_path / db_path
+        os.environ["ANALYSIS_DB_PATH"] = str(full_db_path)
+        db = get_db(full_db_path)
+        tables = init_tables(db)
+        print(f"  Initialized: database with {len(tables)} tables")
+
+        print(f"\nProject ready! Next steps:")
+        print(f"  cd {project_path}")
+        print(f"  export ANALYSIS_DB_PATH=\"{db_path}\"")
+        print(f"  rc-db claim add --text \"...\" --type \"[F]\" --domain \"TECH\" --evidence-level \"E3\"")
+
     elif args.command == "search":
         results = search_claims(args.query, limit=args.limit, domain=args.domain)
-        for i, result in enumerate(results, 1):
-            print(f"{i}. [{result['id']}] {result['text'][:80]}...")
-            print(f"   Type: {result['type']} | Domain: {result['domain']} | Credence: {result['credence']}")
-            print()
+        if args.format == "json":
+            _output_result(results, "json", "claim")
+        else:
+            for i, result in enumerate(results, 1):
+                print(f"{i}. [{result['id']}] {result['text'][:80]}...")
+                print(f"   Type: {result['type']} | Domain: {result['domain']} | Credence: {result['credence']}")
+                print()
+
+    # Claim commands
+    elif args.command == "claim":
+        db = get_db()
+
+        if args.claim_command == "add":
+            claim_id = args.id or _generate_claim_id(args.domain, db)
+            claim = {
+                "id": claim_id,
+                "text": args.text,
+                "type": args.type,
+                "domain": args.domain,
+                "evidence_level": args.evidence_level,
+                "credence": args.credence,
+                "source_ids": args.source_ids.split(",") if args.source_ids else [],
+                "supports": args.supports.split(",") if args.supports else [],
+                "contradicts": args.contradicts.split(",") if args.contradicts else [],
+                "depends_on": args.depends_on.split(",") if args.depends_on else [],
+                "modified_by": [],
+                "first_extracted": str(date.today()),
+                "extracted_by": "cli",
+                "version": 1,
+                "last_updated": str(date.today()),
+                "notes": args.notes,
+            }
+            result_id = add_claim(claim, db, generate_embedding=not args.no_embedding)
+            print(f"Created claim: {result_id}")
+
+        elif args.claim_command == "get":
+            result = get_claim(args.claim_id, db)
+            if result:
+                _output_result(result, args.format, "claim")
+            else:
+                print(f"Claim not found: {args.claim_id}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.claim_command == "list":
+            results = list_claims(domain=args.domain, claim_type=args.type, limit=args.limit, db=db)
+            _output_result(results, args.format, "claim")
+
+        elif args.claim_command == "update":
+            updates = {}
+            if args.credence is not None:
+                updates["credence"] = args.credence
+            if args.evidence_level:
+                updates["evidence_level"] = args.evidence_level
+            if args.notes:
+                updates["notes"] = args.notes
+            if args.text:
+                updates["text"] = args.text
+
+            if not updates:
+                print("No updates provided", file=sys.stderr)
+                sys.exit(1)
+
+            success = update_claim(args.claim_id, updates, db)
+            if success:
+                print(f"Updated claim: {args.claim_id}")
+            else:
+                print(f"Claim not found: {args.claim_id}", file=sys.stderr)
+                sys.exit(1)
+
+        else:
+            claim_parser.print_help()
+
+    # Source commands
+    elif args.command == "source":
+        db = get_db()
+
+        if args.source_command == "add":
+            source = {
+                "id": args.id,
+                "title": args.title,
+                "type": args.type,
+                "author": [a.strip() for a in args.author.split(",")],
+                "year": args.year,
+                "url": args.url,
+                "doi": args.doi,
+                "accessed": str(date.today()),
+                "reliability": args.reliability,
+                "bias_notes": args.bias_notes,
+                "claims_extracted": [],
+                "analysis_file": None,
+                "topics": [],
+                "domains": [],
+                "status": args.status,
+            }
+            result_id = add_source(source, db, generate_embedding=not args.no_embedding)
+            print(f"Created source: {result_id}")
+
+        elif args.source_command == "get":
+            result = get_source(args.source_id, db)
+            if result:
+                _output_result(result, args.format, "source")
+            else:
+                print(f"Source not found: {args.source_id}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.source_command == "list":
+            results = list_sources(source_type=args.type, status=args.status, limit=args.limit, db=db)
+            _output_result(results, args.format, "source")
+
+        else:
+            source_parser.print_help()
+
+    # Chain commands
+    elif args.command == "chain":
+        db = get_db()
+
+        if args.chain_command == "add":
+            claims_list = [c.strip() for c in args.claims.split(",")]
+            chain = {
+                "id": args.id,
+                "name": args.name,
+                "thesis": args.thesis,
+                "claims": claims_list,
+                "credence": args.credence if args.credence is not None else 0.5,
+                "analysis_file": None,
+                "weakest_link": None,
+                "scoring_method": args.scoring_method,
+            }
+            result_id = add_chain(chain, db, generate_embedding=not args.no_embedding)
+            print(f"Created chain: {result_id}")
+
+        elif args.chain_command == "get":
+            result = get_chain(args.chain_id, db)
+            if result:
+                _output_result(result, args.format, "chain")
+            else:
+                print(f"Chain not found: {args.chain_id}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.chain_command == "list":
+            results = list_chains(limit=args.limit, db=db)
+            _output_result(results, args.format, "chain")
+
+        else:
+            chain_parser.print_help()
+
+    # Prediction commands
+    elif args.command == "prediction":
+        db = get_db()
+
+        if args.prediction_command == "add":
+            prediction = {
+                "claim_id": args.claim_id,
+                "source_id": args.source_id,
+                "status": args.status,
+                "date_made": args.date_made or str(date.today()),
+                "target_date": args.target_date,
+                "falsification_criteria": args.falsification_criteria,
+                "verification_criteria": args.verification_criteria,
+                "last_evaluated": str(date.today()),
+                "evidence_updates": None,
+            }
+            result_id = add_prediction(prediction, db)
+            print(f"Created prediction for: {result_id}")
+
+        elif args.prediction_command == "list":
+            results = list_predictions(status=args.status, limit=args.limit, db=db)
+            _output_result(results, args.format, "prediction")
+
+        else:
+            prediction_parser.print_help()
+
+    # Related command
+    elif args.command == "related":
+        db = get_db()
+        result = get_related_claims(args.claim_id, db)
+        if not result:
+            print(f"Claim not found: {args.claim_id}", file=sys.stderr)
+            sys.exit(1)
+        _output_result(result, args.format, "claim")
+
+    # Import command
+    elif args.command == "import":
+        db = get_db()
+
+        if not Path(args.file).exists():
+            print(f"Error: File not found: {args.file}", file=sys.stderr)
+            sys.exit(1)
+
+        with open(args.file, "r") as f:
+            data = yaml.safe_load(f)
+
+        imported_claims = 0
+        imported_sources = 0
+
+        # Import claims
+        if args.type in ["claims", "all"] and "claims" in data:
+            claims_data = data["claims"]
+            # Handle both list and dict formats
+            if isinstance(claims_data, dict):
+                claims_list = [{"id": k, **v} for k, v in claims_data.items()]
+            else:
+                claims_list = claims_data
+
+            for claim in claims_list:
+                # Normalize field names
+                if "confidence" in claim and "credence" not in claim:
+                    claim["credence"] = claim.pop("confidence")
+
+                # Set defaults for required fields
+                claim.setdefault("source_ids", [])
+                claim.setdefault("first_extracted", str(date.today()))
+                claim.setdefault("extracted_by", "import")
+                claim.setdefault("version", 1)
+                claim.setdefault("last_updated", str(date.today()))
+                claim.setdefault("credence", 0.5)
+
+                add_claim(claim, db, generate_embedding=not args.no_embedding)
+                imported_claims += 1
+
+        # Import sources
+        if args.type in ["sources", "all"] and "sources" in data:
+            sources_data = data["sources"]
+            # Handle both list and dict formats
+            if isinstance(sources_data, dict):
+                sources_list = [{"id": k, **v} for k, v in sources_data.items()]
+            else:
+                sources_list = sources_data
+
+            for source in sources_list:
+                # Ensure author is a list
+                if isinstance(source.get("author"), str):
+                    source["author"] = [source["author"]]
+
+                # Set defaults
+                source.setdefault("claims_extracted", [])
+                source.setdefault("topics", [])
+                source.setdefault("domains", [])
+
+                add_source(source, db, generate_embedding=not args.no_embedding)
+                imported_sources += 1
+
+        print(f"Imported {imported_claims} claims, {imported_sources} sources")
 
     else:
         parser.print_help()

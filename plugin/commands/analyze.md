@@ -46,10 +46,31 @@ The analysis will:
 2. Help extract and classify claims with unique IDs
 3. Generate an analysis document in `analysis/sources/`
 
-**Phase 2** will add automatic:
-- Source record creation in database
-- Claim registration and cross-references
-- Embedding generation
+## Database Registration
+
+After analysis, register sources and claims using the CLI:
+
+```bash
+# Register source
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" source add \
+  --id "author-year-slug" \
+  --title "Title" \
+  --type "PAPER" \
+  --author "Author Name" \
+  --year 2026 \
+  --url "https://..."
+
+# Register claims
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" claim add \
+  --text "Claim text" \
+  --type "[F]" \
+  --domain "TECH" \
+  --evidence-level "E3" \
+  --credence 0.7 \
+  --source-ids "source-id"
+```
+
+For fully automated analysis + registration, use `/check` instead.
 
 ## Template
 

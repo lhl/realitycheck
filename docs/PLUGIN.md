@@ -1,129 +1,165 @@
 # RealityCheck Claude Code Plugin
 
-Integrate RealityCheck methodology into your Claude Code sessions.
+Integrate RealityCheck methodology and database operations into Claude Code sessions.
 
-## Current Status (v0.1.0-alpha)
+## Status: v0.1.0-beta
 
-The plugin currently provides:
-- **Command definitions** (`plugin/commands/*.md`) - Methodology templates for analysis workflows
-- **Plugin manifest** (`plugin/.claude-plugin/plugin.json`) - Plugin registration
-
-**Not yet implemented** (planned for Phase 2):
-- Shell wrapper scripts (`plugin/scripts/`)
-- Bundled Python scripts (`plugin/lib/`)
-- Lifecycle hooks (`plugin/hooks/`)
-
-The current plugin is **methodology-only**: it provides templates and guidance for analysis but does not directly execute database operations. Use the CLI tools (`rc-db`, `rc-validate`, etc.) for actual data manipulation.
+The plugin provides:
+- **Command definitions** - 7 slash commands for analysis workflows
+- **Shell wrappers** - CLI integration via `plugin/scripts/`
+- **Full workflow automation** - `/check` command for end-to-end analysis
 
 ## Installation
 
-### Local Development
-
-For development and testing, symlink the plugin:
+### Option 1: Makefile (Recommended)
 
 ```bash
+cd /path/to/realitycheck
+make install-plugin
+```
+
+### Option 2: Manual Symlink
+
+```bash
+mkdir -p ~/.claude/plugins/local
 ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
 ```
 
-### From Package (Coming Soon)
+### Option 3: Copy (Standalone)
 
 ```bash
-pip install realitycheck
-# Plugin auto-registers with Claude Code
+cp -r /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
 ```
+
+### Verify Installation
+
+```bash
+ls -la ~/.claude/plugins/local/realitycheck
+# Should show: realitycheck -> /path/to/realitycheck/plugin
+```
+
+Restart Claude Code to load the plugin.
 
 ## Commands
 
-### /analyze - Source Analysis
+### /check - Full Analysis Workflow (Flagship)
 
-Full 3-stage analysis of a source. Provides the methodology template.
+The primary command for end-to-end source analysis.
+
+```
+/check <url>
+/check <url> --domain TECH --quick
+```
+
+**Workflow:**
+1. Fetch source content (WebFetch)
+2. Extract source metadata
+3. Run 3-stage analysis (descriptive → evaluative → dialectical)
+4. Extract and classify claims
+5. Register source and claims in database
+6. Validate data integrity
+7. Generate summary report
+
+**Options:**
+- `--domain`: Primary domain hint (TECH/LABOR/ECON/etc.)
+- `--quick`: Skip Stage 3 (dialectical analysis)
+- `--no-register`: Analyze without database registration
+
+### /realitycheck - Alias
+
+Alias for `/check`. Identical functionality.
+
+### /analyze - Manual Analysis
+
+3-stage analysis without automatic database registration.
 
 ```
 /analyze <url_or_source_id>
 ```
 
-**Process** (methodology-guided):
-1. Stage 1: Descriptive (summarize, extract claims, identify assumptions)
-2. Stage 2: Evaluative (assess coherence, rate evidence, find disconfirming evidence)
-3. Stage 3: Dialectical (steelman, counterarguments, synthesis)
+Use when you want to:
+- Analyze without committing to database
+- Re-analyze an existing source
+- Have more control over the process
 
-**Note**: After analysis, use `rc-db` commands or Python API to persist results.
+After analysis, register manually:
+```bash
+uv run python scripts/db.py source add --id "..." --title "..." ...
+uv run python scripts/db.py claim add --text "..." --type "[F]" ...
+```
 
-### /extract - Claim Extraction
+### /extract - Quick Extraction
 
-Quick claim extraction without full analysis.
+Fast claim extraction without full 3-stage analysis.
 
 ```
 /extract <source>
 ```
 
-**Process**:
-1. Parse source content
-2. Identify claims
-3. Classify by type and domain
-4. Assign evidence level and credence
-
-**Note**: Use Python API to register claims in database.
+Good for:
+- Quick scanning of sources
+- Extracting obvious claims
+- Processing multiple sources rapidly
 
 ### /search - Semantic Search
 
-Search claims and sources using natural language.
+Search claims using natural language.
 
 ```
-/search <query> [--domain DOMAIN] [--limit N]
+/search <query> [--domain DOMAIN] [--limit N] [--format json|text]
 ```
 
-**Options**:
-- `--domain`: Filter by domain (LABOR, ECON, GOV, TECH, etc.)
-- `--limit`: Max results (default: 10)
+**Examples:**
+```
+/search "AI automation labor displacement"
+/search "training costs" --domain TECH --limit 5
+```
 
-**Backend (Phase 2)**: Will run `rc-db search` command.
+**Backend:** Runs `uv run python scripts/db.py search "..."`.
 
 ### /validate - Data Integrity
 
-Check database integrity.
+Check database for errors and inconsistencies.
 
 ```
 /validate [--strict] [--json]
 ```
 
-**Options**:
-- `--strict`: Treat warnings as errors
-- `--json`: Output as JSON
+**Checks:**
+- Schema validation (ID formats, valid types, credence range)
+- Referential integrity (source/claim links)
+- Logical consistency (domain matching, chain credence)
 
-**Backend (Phase 2)**: Will run `rc-validate` command.
+**Backend:** Runs `uv run python scripts/validate.py`.
 
 ### /export - Data Export
 
-Export to Markdown or YAML.
+Export data to YAML or Markdown.
 
-```
-/export <format> <type> [--id ID] [-o OUTPUT]
-```
-
-**YAML Export** (legacy format):
 ```
 /export yaml claims -o registry.yaml
 /export yaml sources -o sources.yaml
-```
-
-**Markdown Export**:
-```
 /export md claim --id TECH-2026-001
 /export md predictions -o predictions.md
 ```
 
-**Backend (Phase 2)**: Will run `rc-export` command.
+**Backend:** Runs `uv run python scripts/export.py ...`.
 
-## Methodology Templates
+## Shell Wrappers
 
-The plugin references methodology from:
+The plugin includes shell wrappers in `plugin/scripts/`:
 
-- `methodology/evidence-hierarchy.md` - E1-E6 rating scale
-- `methodology/claim-taxonomy.md` - Claim types and domains
-- `methodology/templates/source-analysis.md` - 3-stage analysis
-- `methodology/templates/claim-extraction.md` - Quick extraction
-- `methodology/templates/synthesis.md` - Cross-source synthesis
+| Script | Purpose |
+|--------|---------|
+| `resolve-project.sh` | Find project root, set ANALYSIS_DB_PATH |
+| `run-db.sh` | Wrapper for db.py |
+| `run-validate.sh` | Wrapper for validate.py |
+| `run-export.sh` | Wrapper for export.py |
+
+These scripts:
+1. Detect project context (via `.realitycheck.yaml` or `data/*.lance`)
+2. Set environment variables
+3. Invoke Python scripts with `uv run` (development) or installed commands
 
 ## Configuration
 
@@ -135,8 +171,9 @@ The plugin references methodology from:
 {
   "name": "realitycheck",
   "version": "0.1.0",
-  "description": "Rigorous claim analysis framework",
   "commands": [
+    {"name": "check", "file": "commands/check.md"},
+    {"name": "realitycheck", "file": "commands/realitycheck.md"},
     {"name": "analyze", "file": "commands/analyze.md"},
     {"name": "extract", "file": "commands/extract.md"},
     {"name": "validate", "file": "commands/validate.md"},
@@ -146,74 +183,145 @@ The plugin references methodology from:
 }
 ```
 
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ANALYSIS_DB_PATH` | `data/realitycheck.lance` | Path to LanceDB database |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence transformer model |
+
 ## Dependencies
 
 The plugin requires:
 
-1. **Python scripts** installed (`uv sync` in realitycheck repo)
-2. **LanceDB database** initialized (`rc-db init`)
-3. **Embeddings** generated for search (`rc-embed generate`)
+1. **Python 3.11+** with dependencies installed (`uv sync`)
+2. **LanceDB database** initialized (`uv run python scripts/db.py init`)
+3. **Embeddings** for search (generated automatically on first claim)
 
 ## Troubleshooting
 
 ### Commands not appearing
 
-1. Verify symlink exists: `ls -la ~/.claude/plugins/local/`
-2. Restart Claude Code session
-3. Check plugin.json syntax
+1. Verify symlink: `ls -la ~/.claude/plugins/local/`
+2. Check plugin.json syntax: `cat ~/.claude/plugins/local/realitycheck/.claude-plugin/plugin.json`
+3. Restart Claude Code session
 
 ### Database errors
 
-1. Initialize database: `uv run rc-db init`
-2. Check path: `echo $ANALYSIS_DB_PATH`
-3. Verify permissions on data directory
+```bash
+# Initialize database
+uv run python scripts/db.py init
+
+# Check database location
+echo $ANALYSIS_DB_PATH
+
+# Verify data directory
+ls -la data/
+```
 
 ### Search returns no results
 
-1. Generate embeddings: `uv run rc-embed generate`
-2. Verify data exists: `uv run rc-db stats`
-3. Try broader query
+```bash
+# Check if data exists
+uv run python scripts/db.py stats
+
+# Verify embeddings (claims need embeddings for search)
+uv run python scripts/db.py claim list --format text
+```
+
+### Shell wrapper issues
+
+```bash
+# Test wrapper directly
+./plugin/scripts/run-db.sh --help
+
+# Check if uv is available
+which uv
+
+# Verify Python scripts
+uv run python scripts/db.py --help
+```
 
 ## Development
 
 ### Testing Commands
 
 1. Make changes to `plugin/commands/*.md`
-2. Test in Claude Code session
-3. Commands reload on next invocation
+2. Commands reload on next invocation (no restart needed)
+3. Test in Claude Code session
 
 ### Adding New Commands
 
 1. Create `plugin/commands/newcommand.md`
 2. Add entry to `plugin/.claude-plugin/plugin.json`
+3. Restart Claude Code
+
+### Command Markdown Format
+
+```markdown
+# /commandname - Short Description
+
+Description of what the command does.
 
 ---
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)"]
+---
 
-## Planned Features (Phase 2)
+## Usage
 
-### Shell Wrappers
+\`\`\`
+/commandname <args> [--options]
+\`\`\`
 
-`plugin/scripts/` will contain shell wrappers that invoke CLI tools:
+## CLI Invocation
 
-```bash
-# plugin/scripts/validate.sh (planned)
-#!/bin/bash
-uv run rc-validate "$@"
+\`\`\`bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" subcommand args
+\`\`\`
+
+...
 ```
 
-### Bundled Scripts
+## Lifecycle Hooks
 
-`plugin/lib/` will contain bundled Python scripts for plugin-only installations (no separate `uv sync` required).
+The plugin includes lifecycle hooks that run automatically:
 
-### Lifecycle Hooks
-
-`plugin/hooks/hooks.json` will support:
+### hooks.json
 
 ```json
 {
-  "post-analyze": ["scripts/validate.sh"],
-  "post-extract": ["scripts/embed.sh"]
+  "hooks": {
+    "Stop": [...],           // Runs when session ends
+    "PostToolUse": [...]     // Runs after db.py commands
+  }
 }
 ```
 
-These hooks would automatically validate and embed after analysis operations.
+### Available Hooks
+
+| Hook | Script | Purpose |
+|------|--------|---------|
+| Stop | `on-stop.sh` | Runs validation when session ends, alerts on errors |
+| PostToolUse | `post-db-modify.sh` | Runs after database modifications (silent by default) |
+
+### How They Work
+
+**on-stop.sh**: When you end a Claude Code session, this hook automatically runs `validate.py` and alerts you if there are any database integrity errors. Warnings are suppressed to keep output clean.
+
+**post-db-modify.sh**: Runs after any Bash command matching `*db.py*`. Currently silent by default - the Stop hook handles validation. Can be enabled for per-operation reminders.
+
+### Customizing Hooks
+
+To disable hooks, rename or remove `plugin/hooks/hooks.json`.
+
+To modify behavior, edit the shell scripts in `plugin/hooks/`.
+
+## Methodology Templates
+
+The plugin references methodology from:
+
+- `methodology/evidence-hierarchy.md` - E1-E6 rating scale
+- `methodology/claim-taxonomy.md` - Claim types and domains
+- `methodology/templates/source-analysis.md` - 3-stage analysis
+- `methodology/templates/claim-extraction.md` - Quick extraction
+- `methodology/templates/synthesis.md` - Cross-source synthesis

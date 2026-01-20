@@ -2,16 +2,35 @@
 
 Check database integrity and referential consistency.
 
+---
+allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
+---
+
 ## Usage
 
 ```
 /validate [--strict] [--json]
 ```
 
+## CLI Invocation
+
+Run validation using the shell wrapper:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh" [OPTIONS]
+```
+
+Or directly via the Python script:
+
+```bash
+uv run python scripts/validate.py [OPTIONS]
+```
+
 ## Options
 
 - `--strict`: Treat warnings as errors
 - `--json`: Output results as JSON
+- `--yaml PATH`: Validate legacy YAML files instead of database
 
 ## Checks Performed
 
