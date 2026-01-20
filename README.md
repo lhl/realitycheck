@@ -45,6 +45,45 @@ uv sync
 SKIP_EMBEDDING_TESTS=1 uv run pytest -v
 ```
 
+### GPU Support (Optional)
+
+The default install uses CPU-only PyTorch. For GPU-accelerated embeddings:
+
+```bash
+# NVIDIA CUDA 12.8
+uv sync --extra-index-url https://download.pytorch.org/whl/cu128
+
+# AMD ROCm 6.4
+uv sync --extra-index-url https://download.pytorch.org/whl/rocm6.4
+```
+
+**AMD TheRock nightly (e.g., gfx1151 / Strix Halo):**
+
+TheRock nightlies provide support for newer AMD GPUs not yet in stable ROCm. Replace `gfx1151` with your GPU arch.
+
+> **Note:** TheRock support is experimental. Newer architectures (gfx1151/RDNA 3.5, gfx1200/RDNA 4) may require matching system ROCm kernel drivers. Memory allocation may work but kernel execution can fail if there's a version mismatch between pip ROCm userspace and system kernel module.
+
+```bash
+# 1. Install matching ROCm SDK (system-wide)
+pip install --index-url https://rocm.nightlies.amd.com/v2/gfx1151/ "rocm[libraries]" -U
+
+# 2. Create fresh venv with ROCm torch
+rm -rf .venv && uv venv --python 3.12
+VIRTUAL_ENV=$(pwd)/.venv uv pip install --index-url https://rocm.nightlies.amd.com/v2/gfx1151/ torch
+VIRTUAL_ENV=$(pwd)/.venv uv pip install sentence-transformers lancedb pyarrow pyyaml tabulate
+
+# 3. Set library path and verify
+export LD_LIBRARY_PATH="$(pip show rocm-sdk-core | grep Location | cut -d' ' -f2)/_rocm_sdk_devel/lib:$LD_LIBRARY_PATH"
+.venv/bin/python -c "import torch; print(torch.version.hip); print(torch.cuda.is_available())"
+```
+
+Or set `UV_EXTRA_INDEX_URL` in your shell profile for persistent configuration.
+
+**Note:** If switching GPU backends, force reinstall torch:
+```bash
+rm -rf .venv && uv sync --extra-index-url <your-index-url>
+```
+
 ## Quick Start
 
 ### 1. Create Your Knowledge Base
@@ -292,6 +331,19 @@ RealityCheck recommends **one knowledge base per user**, not per topic:
 - Semantic search works across your entire knowledge base
 
 Create separate databases only for: organizational boundaries, privacy requirements, or team collaboration.
+
+## Embedding Model
+
+RealityCheck uses `all-MiniLM-L6-v2` for semantic search embeddings. This model provides the best balance of performance and quality for CPU inference:
+
+| Model | Dim | Load Time | Throughput | Memory |
+|-------|-----|-----------|------------|--------|
+| **all-MiniLM-L6-v2** | 384 | 2.9s | 7.8 q/s | 1.2 GB |
+| all-mpnet-base-v2 | 768 | 3.0s | 3.3 q/s | 1.4 GB |
+| granite-embedding-278m | 768 | 6.0s | 3.4 q/s | 2.5 GB |
+| stella_en_400M_v5 | 1024 | 4.4s | 1.7 q/s | 2.7 GB |
+
+The 384-dimension vectors are stored in LanceDB and used for similarity search across claims.
 
 ## Development
 

@@ -59,5 +59,4 @@ data/
 credentials.json
 
 # uv
-.python-version
 uv.lock
