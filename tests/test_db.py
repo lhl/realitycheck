@@ -455,6 +455,17 @@ class TestClaimCLI:
         assert_cli_success(result)
         assert "TECH-" in result.stdout  # Auto-generated ID
 
+        # Verify claim is actually in the database
+        stats_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "stats"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(stats_result)
+        assert "claims: 1 rows" in stats_result.stdout
+
     def test_claim_add_with_explicit_id(self, temp_db_path: Path):
         """claim add with --id uses provided ID."""
         env = os.environ.copy()

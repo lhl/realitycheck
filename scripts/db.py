@@ -31,7 +31,10 @@ def get_embedder():
     global _embedder
     if _embedder is None:
         from sentence_transformers import SentenceTransformer
-        _embedder = SentenceTransformer(EMBEDDING_MODEL)
+        # Force CPU to avoid GPU driver crashes (especially with ROCm)
+        # Users can override with EMBEDDING_DEVICE env var
+        device = os.getenv("EMBEDDING_DEVICE", "cpu")
+        _embedder = SentenceTransformer(EMBEDDING_MODEL, device=device)
     return _embedder
 
 
