@@ -24,18 +24,26 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 - [x] Create README.md
 - [x] Copy PLAN-separation.md
 - [ ] Copy scripts/ from analysis-framework
+  - [ ] db.py, validate.py, export.py, migrate.py
+  - [ ] __init__.py (for package structure)
 - [ ] Copy tests/ from analysis-framework
+  - [ ] conftest.py, test_*.py files
+  - [ ] __init__.py
 - [ ] Create plugin/ directory structure
   - [ ] .claude-plugin/plugin.json
   - [ ] commands/*.md
   - [ ] scripts/*.sh (wrappers)
+  - [ ] lib/ (for bundled scripts)
 - [ ] Create methodology/ directory
   - [ ] Extract from CLAUDE.md
   - [ ] evidence-hierarchy.md
   - [ ] claim-taxonomy.md
-  - [ ] templates/
+  - [ ] templates/ (source-analysis.md, claim-extraction.md, synthesis.md)
 - [ ] Create pyproject.toml (uv-managed)
+- [ ] Create pytest.ini
 - [ ] Create .gitignore
+- [ ] Create .gitattributes
+- [x] Create .claude/settings.json
 - [ ] Verify tests pass (`uv run pytest`)
 - [ ] Tag as v0.1.0-alpha
 
@@ -60,6 +68,34 @@ Fixed 6 inconsistencies in PLAN-separation.md based on review feedback:
 4. **resolve-script**: `resolve-framework.sh` → `resolve-project.sh`
 5. **Script paths**: Updated wrapper example to use `lib/` fallback consistently
 6. **Plugin install**: Standardized syntax with TBD notes
+
+#### 2026-01-20: Pre-Implementation Review
+
+Reviewed ../analysis-framework/ and ../postsingularity-economic-theories/ for completeness.
+
+**analysis-framework contains:**
+- `scripts/`: db.py (726 lines), validate.py (464 lines), export.py (523 lines), migrate.py (487 lines), embed.py, __init__.py
+- `tests/`: conftest.py (288 lines), test_db.py, test_e2e.py, test_export.py, test_migrate.py, test_validate.py, __init__.py
+- `skills/analysis-framework/`: skill.md, templates/ (source-analysis.md, claim-extraction.md, synthesis.md)
+- CLAUDE.md with full methodology (328 lines)
+- pytest.ini, requirements.txt, .gitignore, .gitattributes
+
+**postsingularity-economic-theories contains (real data example):**
+- `claims/registry.yaml` - 85+ claims with relationships
+- `reference/sources.yaml` - 30+ sources
+- `analysis/sources/`, `analysis/syntheses/` - completed analyses
+- `tracking/predictions.md`, `tracking/dashboards/` - prediction tracking
+- `scenarios/` - scenario matrices
+- `inbox/` (workflow staging: to-catalog, to-analyze, in-progress, needs-update)
+- `.claude/settings.json` with comprehensive permissions
+
+**Gaps identified (updated punchlist):**
+- embed.py functions already in db.py - embed.py may be deprecated
+- skills/templates/ maps to methodology/templates/ (confirmed in PLAN)
+- __init__.py files needed for Python package structure
+- inbox/ workflow directory not in planned realitycheck-data structure (optional enhancement)
+
+**Created**: `.claude/settings.json` with permissions for uninterrupted work
 
 **Next**: Copy scripts/ and tests/ from analysis-framework
 
@@ -138,4 +174,4 @@ Fixed 6 inconsistencies in PLAN-separation.md based on review feedback:
 
 ---
 
-*Last updated: 2026-01-20 (PLAN consistency fixes, uv decision, PyPI publishing)*
+*Last updated: 2026-01-20 (pre-implementation review, .claude/settings.json)*
