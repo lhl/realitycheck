@@ -22,9 +22,11 @@ Quick claim extraction from a source without full 3-stage analysis.
    - Rate evidence level (E1-E6)
    - Assign credence (0.0-1.0)
    - Note operationalization, assumptions, falsifiers
-4. Register claims in database
-5. Generate embeddings for semantic search
-6. Update source backlinks
+
+**Phase 2** will add automatic:
+- Claim registration in database
+- Embedding generation for semantic search
+- Source backlink updates
 
 ## Claim Types
 

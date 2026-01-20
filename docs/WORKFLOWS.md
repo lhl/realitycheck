@@ -169,10 +169,10 @@ claim_data = {
     "version": 1,
     "last_updated": "2026-01-20",
 }
-add_claim(db, claim_data)
+add_claim(claim_data, db=db)
 
 # Search
-results = search_claims(db, "automation", limit=10)
+results = search_claims("automation", limit=10, db=db)
 ```
 
 ## Tips

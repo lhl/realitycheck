@@ -77,7 +77,7 @@ Search claims and sources using natural language.
 - `--domain`: Filter by domain (LABOR, ECON, GOV, TECH, etc.)
 - `--limit`: Max results (default: 10)
 
-**Backend**: Runs `rc-db search` command.
+**Backend (Phase 2)**: Will run `rc-db search` command.
 
 ### /validate - Data Integrity
 
@@ -91,7 +91,7 @@ Check database integrity.
 - `--strict`: Treat warnings as errors
 - `--json`: Output as JSON
 
-**Backend**: Runs `rc-validate` command.
+**Backend (Phase 2)**: Will run `rc-validate` command.
 
 ### /export - Data Export
 
@@ -113,7 +113,7 @@ Export to Markdown or YAML.
 /export md predictions -o predictions.md
 ```
 
-**Backend**: Runs `rc-export` command.
+**Backend (Phase 2)**: Will run `rc-export` command.
 
 ## Methodology Templates
 

@@ -160,7 +160,7 @@ Created framework documentation:
 
 **Deferred to Phase 2**: Plugin shell wrappers (scripts/*.sh) and bundled scripts (lib/)
 
-**Next**: Tag as v0.1.0-alpha
+**Tagged**: v0.1.0-alpha (`68bacb6`)
 
 ---
 

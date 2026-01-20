@@ -42,10 +42,14 @@ Perform a full 3-stage analysis of a source following the RealityCheck methodolo
 ## Output
 
 The analysis will:
-1. Create a source record in the database
-2. Extract and register claims with unique IDs
+1. Guide you through 3-stage methodology
+2. Help extract and classify claims with unique IDs
 3. Generate an analysis document in `analysis/sources/`
-4. Update cross-references between claims
+
+**Phase 2** will add automatic:
+- Source record creation in database
+- Claim registration and cross-references
+- Embedding generation
 
 ## Template
 
