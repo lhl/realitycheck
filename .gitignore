@@ -57,3 +57,7 @@ data/
 .env.local
 *.secret
 credentials.json
+
+# uv
+.python-version
+uv.lock

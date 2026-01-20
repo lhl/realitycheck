@@ -1,0 +1,90 @@
+[project]
+name = "realitycheck"
+version = "0.1.0"
+description = "Framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Leonard Lin", email = "lhl@lhl.org"}
+]
+keywords = [
+    "analysis",
+    "claims",
+    "epistemics",
+    "predictions",
+    "sources",
+    "lancedb",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+]
+
+dependencies = [
+    "lancedb>=0.18.0",
+    "pyarrow>=18.0.0",
+    "pyyaml>=6.0",
+    "sentence-transformers>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+rc-db = "scripts.db:main"
+rc-validate = "scripts.validate:main"
+rc-export = "scripts.export:main"
+rc-migrate = "scripts.migrate:main"
+rc-embed = "scripts.embed:main"
+
+[project.urls]
+Homepage = "https://github.com/lhl/realitycheck"
+Repository = "https://github.com/lhl/realitycheck"
+Documentation = "https://github.com/lhl/realitycheck/blob/main/README.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "requires_embedding: marks tests as requiring the embedding model (may be slow)",
+]
+
+[tool.coverage.run]
+source = ["scripts"]
+branch = true
+omit = ["*/__pycache__/*", "*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]

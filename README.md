@@ -2,6 +2,10 @@
 
 A framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains.
 
+## Status
+
+This repository is currently in scaffold/planning stage (docs-only). See `docs/IMPLEMENTATION.md` for the punchlist and progress log.
+
 ## Overview
 
 RealityCheck helps you build and maintain a **unified knowledge base** with:
@@ -26,17 +30,7 @@ Separate databases only for: org boundaries, privacy requirements, or collaborat
 
 ## Installation
 
-```bash
-# Clone the framework
-git clone https://github.com/lhl/realitycheck.git
-cd realitycheck
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run tests to verify setup
-pytest
-```
+Phase 1 ports scripts/tests from the legacy `analysis-framework` repo and moves dependency management to `pyproject.toml` (uv-managed). Until that lands, there is nothing runnable here yet.
 
 ## Quick Start
 
@@ -69,6 +63,8 @@ python scripts/export.py claims-yaml > claims/registry.yaml
 
 ## Project Structure
 
+Target structure (in progress):
+
 ```
 realitycheck/
 ├── scripts/              # Core Python CLI tools
@@ -95,7 +91,7 @@ realitycheck/
 
 ## Claude Code Plugin
 
-RealityCheck includes a Claude Code plugin for workflow automation:
+RealityCheck will include a Claude Code plugin for workflow automation:
 
 ```bash
 # Install plugin (symlink for development)

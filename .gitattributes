@@ -1,0 +1,22 @@
+# Git LFS tracking for large files
+*.lance filter=lfs diff=lfs merge=lfs -text
+*.parquet filter=lfs diff=lfs merge=lfs -text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# Ensure consistent line endings
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf

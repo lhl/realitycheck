@@ -5,7 +5,7 @@
 Separate the reusable analysis framework from specific analysis projects to enable:
 - Clean reuse of the framework across multiple analysis projects
 - Independent versioning of framework vs analysis data
-- Skill integration that works across projects
+- Plugin integration that works across projects
 - Clear distinction between "the tool" and "work done with the tool"
 
 ---
@@ -426,7 +426,7 @@ Current db.py CLI commands:
 
 ```bash
 # Claim operations
-db.py claim add --text "..." --type "[T]" --domain "TECH" --source-id "..."
+db.py claim add --text "..." --type "[T]" --domain "TECH" --source-id "..."   # auto-allocates ID (or accept --id)
 db.py claim get <claim-id>
 db.py claim list [--domain TECH] [--type "[P]"]
 db.py claim update <claim-id> --credence 0.7
@@ -439,6 +439,17 @@ db.py source list [--type PAPER]
 # Relationship operations
 db.py link <claim-id> supports <target-id>
 db.py link <claim-id> contradicts <target-id>
+db.py link <claim-id> depends_on <target-id>
+
+# Chain operations
+db.py chain add --name "..." --thesis "..." --claims TECH-2026-001 LABOR-2026-002 --analysis-file "analysis/syntheses/..."
+db.py chain get <chain-id>
+db.py chain list
+
+# Prediction operations
+db.py prediction add --claim-id LABOR-2026-002 --source-id "..." --target-date "2035-12-31"
+db.py prediction update LABOR-2026-002 --status "[P→]" --last-evaluated "2026-01-20"
+db.py prediction list [--domain LABOR]
 ```
 
 **Design decision**: Expand db.py with subcommands rather than separate CLI entrypoints.
@@ -459,6 +470,7 @@ The reusable methodology, scripts, plugin, and tests.
 ```
 realitycheck/
 ├── README.md                 # Framework overview, installation, usage
+├── AGENTS.md                 # Dev workflow for contributors
 ├── CLAUDE.md                 # Agent instructions (points to methodology/)
 ├── LICENSE
 │
@@ -567,18 +579,30 @@ realitycheck-data/                     # User's unified knowledge base (default)
 │   ├── primary/
 │   └── transcripts/
 │
+├── inbox/                    # Symlinks only (optional WIP workflow)
+│   ├── to-catalog/
+│   ├── to-analyze/
+│   ├── to-extract/
+│   └── in-progress/
+│
 ├── analysis/                 # Completed analyses
 │   ├── sources/
 │   ├── comparisons/
-│   └── syntheses/
+│   ├── syntheses/
+│   └── meta/
 │
 ├── tracking/                 # Predictions and dashboards
 │   ├── predictions.md
-│   └── dashboards/
+│   ├── dashboards/
+│   └── updates/
 │
 ├── scenarios/                # Scenario matrices
 │
 ├── frameworks/               # Project-specific taxonomies
+│
+├── scripts/                  # Project-local helpers (optional)
+│   └── hooks/
+│       └── pre-commit        # Run validation before commits
 │
 └── .realitycheck.yaml       # Framework config (see below)
 ```
@@ -797,7 +821,7 @@ Plugin still provides commands but defers to local scripts.
 
 ### Phase 1: Restructure Framework Repo
 
-Current repo already has scripts/, tests/. Need to:
+Legacy `analysis-framework` already has `scripts/` and `tests/`. `realitycheck` will copy/rename them, then:
 
 1. [ ] Create `plugin/` directory structure
    - [ ] `.claude-plugin/plugin.json`
@@ -811,7 +835,7 @@ Current repo already has scripts/, tests/. Need to:
 4. [ ] Create `docs/PLUGIN.md` with installation instructions
 5. [ ] Ensure scripts work as CLI tools (accept --db-path, etc.)
 6. [ ] Tests still pass
-7. [ ] Tag as v1.0-alpha
+7. [ ] Tag as v0.1.0-alpha
 
 ### Phase 2: Create Plugin Commands
 
@@ -824,7 +848,7 @@ Current repo already has scripts/, tests/. Need to:
 7. [ ] `/analysis-help` command - show methodology
 8. [ ] Shell wrapper scripts that resolve project context
 9. [ ] Test each command manually
-10. [ ] Tag as v1.0-beta
+10. [ ] Tag as v0.1.0-beta
 
 ### Phase 3: Separate Analysis Data
 
@@ -960,13 +984,13 @@ python .framework/scripts/db.py init
 # 6. Start analyzing (use plugin or scripts directly)
 ```
 
-### Using the Skill in Any Project
+### Using the Plugin in Any Project
 
 ```bash
-# With skill installed globally
+# With plugin installed globally
 cd ~/realitycheck-data
 
-# Skill auto-detects project context
+# Plugin auto-detects project context
 claude
 > /analyze https://ipcc.ch/report/ar6/
 
@@ -999,7 +1023,7 @@ python .framework/scripts/validate.py
 
 - [ ] Framework repo contains no analysis data
 - [ ] Analysis project works with framework as submodule
-- [ ] Skill functions correctly in multi-project setup
+- [ ] Plugin functions correctly in multi-project setup
 - [ ] New project can be initialized in < 5 minutes
 - [ ] Existing postsingularity analysis migrated successfully
 - [ ] Framework tests pass independently
@@ -1010,11 +1034,12 @@ python .framework/scripts/validate.py
 ## Timeline Estimate
 
 - Phase 1 (Framework Repo): 1-2 sessions
-- Phase 2 (Project Template): 1 session
-- Phase 3 (Migration): 1-2 sessions
-- Phase 4 (Skill Integration): 1-2 sessions
+- Phase 2 (Plugin Commands): 1 session
+- Phase 3 (Separate Analysis Data): 1-2 sessions
+- Phase 4 (Clean Up & Publish): 1-2 sessions
+- Phase 5 (Test Full Workflow): 1 session
 
-Total: 4-7 focused sessions
+Total: 5-8 focused sessions
 
 ---
 
