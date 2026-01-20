@@ -60,3 +60,8 @@ credentials.json
 
 # uv
 uv.lock
+
+# Dev/analysis scripts (not part of core)
+embedding_shootout.py
+shootout_*.json
+docs/ANALYSIS-*.md
