@@ -717,6 +717,7 @@ def _format_record_text(record: dict, record_type: str = "claim") -> str:
 def _output_result(data: Any, format_type: str = "json", record_type: str = "claim") -> None:
     """Output data in requested format."""
     import json
+    import sys
 
     # Clean data for JSON serialization
     def clean_for_json(obj):
@@ -743,6 +744,9 @@ def _output_result(data: Any, format_type: str = "json", record_type: str = "cla
                 print()
         else:
             print(_format_record_text(data, record_type))
+
+    # Flush stdout to ensure output is visible before lancedb GIL crash
+    sys.stdout.flush()
 
 
 # =============================================================================
@@ -958,18 +962,20 @@ Examples:
         print(f"Initialized {len(tables)} tables at {DB_PATH}")
         for name in tables:
             print(f"  - {name}")
+        sys.stdout.flush()
 
     elif args.command == "stats":
         stats = get_stats()
         print("Database Statistics:")
         for table, count in stats.items():
             print(f"  {table}: {count} rows")
+        sys.stdout.flush()
 
     elif args.command == "reset":
         db = get_db()
         drop_tables(db)
         tables = init_tables(db)
-        print(f"Reset complete. Initialized {len(tables)} tables.")
+        print(f"Reset complete. Initialized {len(tables)} tables.", flush=True)
 
     elif args.command == "init-project":
         import subprocess
@@ -1127,6 +1133,7 @@ rc-validate
         print(f"  cd {project_path}")
         print(f"  export ANALYSIS_DB_PATH=\"{db_path}\"")
         print(f"  rc-db claim add --text \"...\" --type \"[F]\" --domain \"TECH\" --evidence-level \"E3\"")
+        sys.stdout.flush()
 
     elif args.command == "search":
         results = search_claims(args.query, limit=args.limit, domain=args.domain)
@@ -1137,6 +1144,7 @@ rc-validate
                 print(f"{i}. [{result['id']}] {result['text'][:80]}...")
                 print(f"   Type: {result['type']} | Domain: {result['domain']} | Credence: {result['credence']}")
                 print()
+            sys.stdout.flush()
 
     # Claim commands
     elif args.command == "claim":
@@ -1163,7 +1171,7 @@ rc-validate
                 "notes": args.notes,
             }
             result_id = add_claim(claim, db, generate_embedding=should_generate_embedding(args))
-            print(f"Created claim: {result_id}")
+            print(f"Created claim: {result_id}", flush=True)
 
         elif args.claim_command == "get":
             result = get_claim(args.claim_id, db)
@@ -1194,7 +1202,7 @@ rc-validate
 
             success = update_claim(args.claim_id, updates, db)
             if success:
-                print(f"Updated claim: {args.claim_id}")
+                print(f"Updated claim: {args.claim_id}", flush=True)
             else:
                 print(f"Claim not found: {args.claim_id}", file=sys.stderr)
                 sys.exit(1)
@@ -1225,7 +1233,7 @@ rc-validate
                 "status": args.status,
             }
             result_id = add_source(source, db, generate_embedding=should_generate_embedding(args))
-            print(f"Created source: {result_id}")
+            print(f"Created source: {result_id}", flush=True)
 
         elif args.source_command == "get":
             result = get_source(args.source_id, db)
@@ -1272,7 +1280,7 @@ rc-validate
                 "scoring_method": args.scoring_method,
             }
             result_id = add_chain(chain, db, generate_embedding=should_generate_embedding(args))
-            print(f"Created chain: {result_id}")
+            print(f"Created chain: {result_id}", flush=True)
 
         elif args.chain_command == "get":
             result = get_chain(args.chain_id, db)
@@ -1306,7 +1314,7 @@ rc-validate
                 "evidence_updates": None,
             }
             result_id = add_prediction(prediction, db)
-            print(f"Created prediction for: {result_id}")
+            print(f"Created prediction for: {result_id}", flush=True)
 
         elif args.prediction_command == "list":
             results = list_predictions(status=args.status, limit=args.limit, db=db)
@@ -1385,7 +1393,7 @@ rc-validate
                 add_source(source, db, generate_embedding=should_generate_embedding(args))
                 imported_sources += 1
 
-        print(f"Imported {imported_claims} claims, {imported_sources} sources")
+        print(f"Imported {imported_claims} claims, {imported_sources} sources", flush=True)
 
     else:
         parser.print_help()
