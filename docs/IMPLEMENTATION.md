@@ -9,7 +9,7 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 
 ## Current Status
 
-**Phase**: 2 Complete (v0.1.0-beta)
+**Phase**: 3 Complete (realitycheck-data v0.1.0)
 **Started**: 2026-01-20
 
 ---
@@ -349,14 +349,65 @@ All tests pass: 129 passed
 
 ### Punchlist
 
-- [ ] Create `realitycheck-data` repo
-- [ ] Move data from postsingularity-economic-theories
-- [ ] Create .realitycheck.yaml config
-- [ ] Create/retain project workflow structure (inbox/, analysis/meta/, tracking/updates/)
-- [ ] Add optional pre-commit hook to run validation
-- [ ] Decide git-lfs policy for `data/realitycheck.lance/` and document it
-- [ ] Verify validation passes
-- [ ] Tag realitycheck-data as v0.1.0
+- [x] Create `realitycheck-data` repo
+- [x] Move data from postsingularity-economic-theories
+- [x] Create .realitycheck.yaml config
+- [x] Create/retain project workflow structure (inbox/, analysis/meta/, tracking/updates/)
+- [x] Add optional pre-commit hook to run validation
+- [x] Decide git-lfs policy for `data/realitycheck.lance/` and document it
+- [x] Verify validation passes
+- [x] Tag realitycheck-data as v0.1.0
+
+### Worklog
+
+#### 2026-01-21: Phase 3 Implementation
+
+Created realitycheck-data repo at `/home/lhl/github/lhl/realitycheck-data`:
+
+**Data Migration**
+- Copied all data from postsingularity-economic-theories (60 files)
+- Migrated YAML to LanceDB: 85 claims, 43 sources, 3 chains
+- Added 3 missing prediction records (ECON-2026-010, LABOR-2026-004, TRANS-2026-004)
+- Domain ID mappings applied: DIST→ECON, SOCIAL→SOC, VALUE→ECON
+
+**Structure Created**
+```
+realitycheck-data/
+├── .realitycheck.yaml      # Framework config
+├── .gitattributes          # LFS tracking for *.lance files
+├── README.md               # Analysis index with links
+├── data/realitycheck.lance/ # LanceDB database (git-lfs)
+├── claims/
+│   ├── README.md           # Auto-generated stats
+│   ├── registry.yaml       # Exported claims
+│   └── chains/             # Argument chain analyses
+├── reference/
+│   ├── README.md           # Source index
+│   ├── sources.yaml        # Exported sources
+│   └── primary/            # Source materials
+├── analysis/               # Completed analyses
+├── tracking/               # Prediction tracking
+├── scenarios/              # Scenario matrices
+└── scripts/hooks/pre-commit # Optional validation hook
+```
+
+**Git-LFS Policy**
+- All `*.lance` files tracked via git-lfs
+- Configured in `.gitattributes`: `*.lance filter=lfs diff=lfs merge=lfs -text`
+- Also tracks `*.parquet` files
+
+**Export Workflow**
+- `export.py yaml claims` → `claims/registry.yaml`
+- `export.py yaml sources` → `reference/sources.yaml`
+- `export.py md summary` → `claims/README.md`
+- `export.py md predictions` → `tracking/predictions.md`
+- READMEs provide GitHub-browsable views of the database
+
+**Validation**
+- Passes with 1 warning (chain credence float precision)
+- Pre-commit hook available: `git config core.hooksPath scripts/hooks`
+
+**Tagged**: v0.1.0 (`5845136`)
 
 ---
 
@@ -439,4 +490,4 @@ All tests pass: 129 passed
 
 ---
 
-*Last updated: 2026-01-21 (Phase 2 complete, v0.1.0-beta tagged)*
+*Last updated: 2026-01-21 (Phase 3 complete, realitycheck-data v0.1.0 tagged)*
