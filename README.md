@@ -4,7 +4,9 @@ A framework for rigorous, systematic analysis of claims, sources, predictions, a
 
 ## Status
 
-This repository is currently in scaffold/planning stage (docs-only). See `docs/IMPLEMENTATION.md` for the punchlist and progress log.
+**v0.1.0-alpha** - Core functionality implemented. Python scripts, tests, Claude Code plugin, and methodology templates are complete. Ready for testing.
+
+See `docs/IMPLEMENTATION.md` for detailed progress tracking.
 
 ## Overview
 
@@ -30,68 +32,95 @@ Separate databases only for: org boundaries, privacy requirements, or collaborat
 
 ## Installation
 
-Phase 1 ports scripts/tests from the legacy `analysis-framework` repo and moves dependency management to `pyproject.toml` (uv-managed). Until that lands, there is nothing runnable here yet.
+### Using uv (Recommended)
+
+```bash
+# Clone and install
+git clone https://github.com/lhl/realitycheck.git
+cd realitycheck
+uv sync
+
+# Verify installation
+uv run pytest -v
+```
+
+### Using pip (Coming Soon)
+
+```bash
+pip install realitycheck
+```
 
 ## Quick Start
 
 ### Initialize a Knowledge Base
 
 ```bash
-# Create data directory
-mkdir -p data
+# Initialize database (creates data/realitycheck.lance/)
+uv run rc-db init
 
-# Initialize database
-export ANALYSIS_DB_PATH="data/realitycheck.lance"
-python scripts/db.py init
+# Check database stats
+uv run rc-db stats
 ```
 
 ### Basic Operations
 
 ```bash
-# Check database stats
-python scripts/db.py stats
-
 # Search claims semantically
-python scripts/db.py search "automation and labor"
+uv run rc-db search "automation and labor"
 
 # Run validation
-python scripts/validate.py
+uv run rc-validate
 
 # Export to YAML
-python scripts/export.py claims-yaml > claims/registry.yaml
+uv run rc-export yaml claims -o claims.yaml
+
+# Generate embeddings for semantic search
+uv run rc-embed generate
+```
+
+### Migrate from Legacy YAML
+
+```bash
+# Dry run first
+uv run rc-migrate /path/to/legacy/repo --dry-run -v
+
+# Run migration
+uv run rc-migrate /path/to/legacy/repo -v
 ```
 
 ## Project Structure
 
-Target structure (in progress):
-
 ```
 realitycheck/
 ├── scripts/              # Core Python CLI tools
-│   ├── db.py             # LanceDB operations
-│   ├── validate.py       # Data integrity validation
-│   ├── export.py         # Export to YAML/Markdown
-│   └── migrate.py        # YAML → LanceDB migration
+│   ├── db.py             # LanceDB operations (rc-db)
+│   ├── validate.py       # Data integrity validation (rc-validate)
+│   ├── export.py         # Export to YAML/Markdown (rc-export)
+│   ├── migrate.py        # YAML → LanceDB migration (rc-migrate)
+│   └── embed.py          # Embedding generation (rc-embed)
 │
-├── tests/                # pytest test suite
+├── tests/                # pytest test suite (108 tests)
 │
 ├── plugin/               # Claude Code plugin
-│   ├── commands/         # Slash command definitions
-│   └── scripts/          # Shell wrappers
+│   ├── .claude-plugin/   # Plugin manifest
+│   └── commands/         # Slash command definitions
 │
 ├── methodology/          # Analysis methodology
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md
-│   └── templates/
+│   └── templates/        # source-analysis.md, claim-extraction.md, synthesis.md
 │
 └── docs/                 # Development documentation
+    ├── SCHEMA.md         # Database schema
+    ├── WORKFLOWS.md      # Usage workflows
+    ├── PLUGIN.md         # Plugin documentation
     ├── PLAN-separation.md
     └── IMPLEMENTATION.md
 ```
 
 ## Claude Code Plugin
 
-RealityCheck will include a Claude Code plugin for workflow automation:
+RealityCheck includes a Claude Code plugin for workflow automation:
 
 ```bash
 # Install plugin (symlink for development)
@@ -100,10 +129,12 @@ ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
 
 Available commands:
 - `/analyze <source>` - Full 3-stage source analysis
-- `/claim add|search` - Manage claims
+- `/extract <source>` - Quick claim extraction
+- `/search <query>` - Semantic search across claims
 - `/validate` - Check data integrity
-- `/export` - Export to YAML/Markdown
-- `/init` - Initialize new project
+- `/export <format> <type>` - Export to YAML/Markdown
+
+See `docs/PLUGIN.md` for full documentation.
 
 ## Data Projects
 
@@ -156,17 +187,28 @@ Claims are rated by strength of evidential support:
 ## Development
 
 ```bash
-# Run tests
-pytest -v
+# Run tests (91 pass, 17 skipped for embeddings)
+uv run pytest -v
 
 # Run with coverage
-pytest --cov=scripts
+uv run pytest --cov=scripts --cov-report=term-missing
 
-# Skip embedding tests (if torch issues)
-SKIP_EMBEDDING_TESTS=1 pytest
+# Skip embedding tests (faster, no torch download)
+SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+
+# Run specific test file
+uv run pytest tests/test_db.py
 ```
 
-See [AGENTS.md](AGENTS.md) for development workflow and conventions.
+See [CLAUDE.md](CLAUDE.md) for development workflow and conventions.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Documentation
+
+- [SCHEMA.md](docs/SCHEMA.md) - Database schema reference
+- [WORKFLOWS.md](docs/WORKFLOWS.md) - Common usage workflows
+- [PLUGIN.md](docs/PLUGIN.md) - Claude Code plugin guide
+- [methodology/](methodology/) - Analysis methodology and templates
 
 ## License
 

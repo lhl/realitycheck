@@ -1,0 +1,48 @@
+{
+  "name": "realitycheck",
+  "version": "0.1.0",
+  "description": "Framework for rigorous analysis of claims, sources, predictions, and argument chains",
+  "author": "Leonard Lin",
+  "license": "MIT",
+  "homepage": "https://github.com/lhl/realitycheck",
+  "commands": [
+    {
+      "name": "analyze",
+      "description": "Perform 3-stage analysis of a source",
+      "file": "commands/analyze.md"
+    },
+    {
+      "name": "extract",
+      "description": "Quick claim extraction from a source",
+      "file": "commands/extract.md"
+    },
+    {
+      "name": "validate",
+      "description": "Check data integrity",
+      "file": "commands/validate.md"
+    },
+    {
+      "name": "search",
+      "description": "Semantic search across claims and sources",
+      "file": "commands/search.md"
+    },
+    {
+      "name": "export",
+      "description": "Export data to Markdown or YAML",
+      "file": "commands/export.md"
+    }
+  ],
+  "dependencies": {
+    "python": ">=3.11",
+    "packages": [
+      "lancedb>=0.18.0",
+      "pyarrow>=18.0.0",
+      "pyyaml>=6.0",
+      "sentence-transformers>=3.0.0"
+    ]
+  },
+  "config": {
+    "db_path_env": "ANALYSIS_DB_PATH",
+    "default_db_path": "data/realitycheck.lance"
+  }
+}

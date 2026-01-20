@@ -29,23 +29,22 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 - [x] Copy tests/ from analysis-framework
   - [x] conftest.py, test_*.py files
   - [x] __init__.py
-- [ ] Create plugin/ directory structure
-  - [ ] .claude-plugin/plugin.json
-  - [ ] commands/*.md
-  - [ ] scripts/*.sh (wrappers)
-  - [ ] lib/ (for bundled scripts)
-- [ ] Create methodology/ directory
-  - [ ] Extract from CLAUDE.md
-  - [ ] evidence-hierarchy.md
-  - [ ] claim-taxonomy.md
-  - [ ] templates/ (source-analysis.md, claim-extraction.md, synthesis.md)
+- [x] Create plugin/ directory structure
+  - [x] .claude-plugin/plugin.json
+  - [x] commands/*.md (analyze, extract, validate, search, export)
+  - [ ] scripts/*.sh (wrappers) - deferred to Phase 2
+  - [ ] lib/ (for bundled scripts) - deferred to Phase 2
+- [x] Create methodology/ directory
+  - [x] evidence-hierarchy.md
+  - [x] claim-taxonomy.md
+  - [x] templates/ (source-analysis.md, claim-extraction.md, synthesis.md)
 - [x] Create pyproject.toml (uv-managed)
 - [x] Create pytest.ini
 - [x] Create .gitignore
 - [x] Create .gitattributes
 - [x] Create .claude/settings.json
 - [x] Add LICENSE (MIT)
-- [ ] Add framework docs (SCHEMA.md, WORKFLOWS.md, PLUGIN.md, CONTRIBUTING.md)
+- [x] Add framework docs (SCHEMA.md, WORKFLOWS.md, PLUGIN.md, CONTRIBUTING.md)
 - [ ] Decide CLAUDE.md vs AGENTS.md roles (remove symlink if needed)
 - [x] Update README to reflect scaffold status
 - [x] Verify tests pass (`uv run pytest`) - 91 passed, 17 skipped (embedding tests)
@@ -135,6 +134,33 @@ Ported complete Python implementation from analysis-framework:
 - All non-embedding tests pass
 
 **Next**: Create plugin/ and methodology/ directories
+
+#### 2026-01-20: Plugin and Methodology
+
+Created plugin/ directory structure:
+- plugin/.claude-plugin/plugin.json - Plugin manifest
+- plugin/commands/analyze.md - 3-stage source analysis
+- plugin/commands/extract.md - Quick claim extraction
+- plugin/commands/validate.md - Data integrity check
+- plugin/commands/search.md - Semantic search
+- plugin/commands/export.md - Data export
+
+Created methodology/ directory with extracted content from analysis-framework CLAUDE.md:
+- methodology/evidence-hierarchy.md - E1-E6 rating scale with calibration guidance
+- methodology/claim-taxonomy.md - Claim types, domains, prediction tracking
+- methodology/templates/source-analysis.md - Full 3-stage analysis template
+- methodology/templates/claim-extraction.md - Quick extraction template
+- methodology/templates/synthesis.md - Cross-source synthesis template
+
+Created framework documentation:
+- docs/SCHEMA.md - Database schema reference
+- docs/WORKFLOWS.md - Common workflow documentation
+- docs/PLUGIN.md - Claude Code plugin installation and usage
+- CONTRIBUTING.md - Contribution guidelines
+
+**Deferred to Phase 2**: Plugin shell wrappers (scripts/*.sh) and bundled scripts (lib/)
+
+**Next**: Tag as v0.1.0-alpha
 
 ---
 
@@ -228,7 +254,22 @@ Ported complete Python implementation from analysis-framework:
 | pytest.ini | Pytest configuration |
 | .gitattributes | Git LFS configuration |
 | LICENSE | MIT license |
+| plugin/.claude-plugin/plugin.json | Plugin manifest |
+| plugin/commands/analyze.md | Source analysis command |
+| plugin/commands/extract.md | Claim extraction command |
+| plugin/commands/validate.md | Validation command |
+| plugin/commands/search.md | Semantic search command |
+| plugin/commands/export.md | Export command |
+| methodology/evidence-hierarchy.md | E1-E6 rating scale |
+| methodology/claim-taxonomy.md | Claim types and domains |
+| methodology/templates/source-analysis.md | 3-stage analysis template |
+| methodology/templates/claim-extraction.md | Quick extraction template |
+| methodology/templates/synthesis.md | Cross-source synthesis template |
+| docs/SCHEMA.md | Database schema reference |
+| docs/WORKFLOWS.md | Workflow documentation |
+| docs/PLUGIN.md | Plugin installation/usage |
+| CONTRIBUTING.md | Contribution guidelines |
 
 ---
 
-*Last updated: 2026-01-20 (scripts, tests, and config complete)*
+*Last updated: 2026-01-20 (Phase 1 near-complete, ready for v0.1.0-alpha tag)*
