@@ -123,6 +123,8 @@ tests/
 - **Use conventional commits**: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - **Add files explicitly** - never use `git add .` or `git add -A`
 - **Atomic commits** - group related changes, separate unrelated ones
+- **Avoid chained git commands** - use separate `git add` then `git commit` calls
+  (chained commands like `git add && git commit` don't match permission patterns)
 - **Run validation** before pushing
 
 ### Commit Message Format
