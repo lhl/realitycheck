@@ -23,6 +23,34 @@ realitycheck/
 └── examples/         # Minimal example data
 ```
 
+## Development Philosophy: Spec → Plan → Test → Implement
+
+**This project is strictly spec/plan/test-driven.** The goal is a high-quality, maintainable framework that's easy to update and extend. Every feature follows this cycle:
+
+### The Cycle
+
+1. **Spec**: Define requirements clearly in `docs/` before writing any code
+2. **Plan**: Create implementation plan with affected files (tree diagram)
+3. **Test**: Write unit tests AND e2e tests BEFORE implementation
+4. **Implement**: Write minimal code to pass the tests
+5. **Validate**: Run full test suite - all tests must pass
+6. **Commit**: Atomic commits with passing tests only
+
+### Why Tests First?
+
+- **Clarifies requirements** - Writing tests forces you to think through edge cases
+- **Prevents scope creep** - You only implement what the tests require
+- **Enables refactoring** - Tests catch regressions when you improve code later
+- **Documents behavior** - Tests are executable specifications
+- **Catches bugs early** - Faster to fix issues before code is "done"
+
+### Test Coverage Requirements
+
+- **Unit tests**: Every public function in `scripts/*.py` must have tests
+- **E2E tests**: Every user workflow must have integration tests
+- **Edge cases**: Error paths, empty inputs, boundary conditions
+- **No skipping**: If a test fails, fix it before proceeding
+
 ## Documentation as Source of Truth
 
 - Treat `docs/` as the source of truth and always prioritize keeping them up to date
@@ -36,42 +64,37 @@ realitycheck/
 - Check git status/log for recent changes
 - Review open items in `docs/IMPLEMENTATION.md`
 - Confirm your plan aligns with documented approach
+- **Review existing tests** to understand expected behavior
 
 ### During Execution
+- **Write tests first** for the feature/fix you're implementing
 - Leave breadcrumbs in IMPLEMENTATION.md (commands run, decisions made)
-- Test incrementally as you go
+- Run tests incrementally as you go
 - Keep commits atomic and focused
 
 ### After Changes
 - Update IMPLEMENTATION.md (check items, add notes)
-- Run `pytest` and `python scripts/validate.py`
+- Run `uv run pytest` and `uv run python scripts/validate.py`
+- **All tests must pass** before committing
 - Commit with descriptive message
-
-## Test-Driven Development
-
-This project follows a spec/plan/test-driven cycle:
-
-1. **Spec**: Define requirements in docs/
-2. **Plan**: Create implementation plan with affected files
-3. **Test**: Write tests before or alongside code
-4. **Implement**: Write code to pass tests
-5. **Validate**: Run full test suite
-6. **Commit**: Atomic commits with passing tests
 
 ### Running Tests
 
 ```bash
-# Run all tests (skip embedding tests if torch issues)
-SKIP_EMBEDDING_TESTS=1 pytest -v
+# Run all tests
+uv run pytest -v
+
+# Skip embedding tests if torch issues
+SKIP_EMBEDDING_TESTS=1 uv run pytest -v
 
 # Run with coverage
-pytest --cov=scripts --cov-report=term-missing
+uv run pytest --cov=scripts --cov-report=term-missing
 
 # Run specific test file
-pytest tests/test_db.py
+uv run pytest tests/test_db.py
 
 # Run specific test class
-pytest tests/test_db.py::TestClaimsCRUD
+uv run pytest tests/test_db.py::TestClaimsCRUD
 ```
 
 ### Test Structure
@@ -88,8 +111,8 @@ tests/
 
 ### Pre-Commit Checklist
 
-- [ ] Tests pass: `pytest`
-- [ ] Validation passes: `python scripts/validate.py` (if data exists)
+- [ ] Tests pass: `uv run pytest`
+- [ ] Validation passes: `uv run python scripts/validate.py` (if data exists)
 - [ ] No untracked files in commit
 - [ ] Commit message is descriptive
 

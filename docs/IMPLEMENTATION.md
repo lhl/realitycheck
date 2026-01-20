@@ -34,9 +34,9 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
   - [ ] evidence-hierarchy.md
   - [ ] claim-taxonomy.md
   - [ ] templates/
-- [ ] Update requirements.txt
+- [ ] Create pyproject.toml (uv-managed)
 - [ ] Create .gitignore
-- [ ] Verify tests pass
+- [ ] Verify tests pass (`uv run pytest`)
 - [ ] Tag as v0.1.0-alpha
 
 ### Worklog
@@ -49,6 +49,17 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 - Created README.md with project overview
 - Copied PLAN-separation.md from analysis-framework
 - Created this IMPLEMENTATION.md
+
+#### 2026-01-20: PLAN Consistency Fixes
+
+Fixed 6 inconsistencies in PLAN-separation.md based on review feedback:
+
+1. **DB path**: Standardized to `data/realitycheck.lance` (was mixed with `analysis.lance`)
+2. **skill/ vs plugin/**: Changed Options A+D to use `plugin/` consistently
+3. **pip import**: `from analysis_framework` → `from realitycheck`
+4. **resolve-script**: `resolve-framework.sh` → `resolve-project.sh`
+5. **Script paths**: Updated wrapper example to use `lib/` fallback consistently
+6. **Plugin install**: Standardized syntax with TBD notes
 
 **Next**: Copy scripts/ and tests/ from analysis-framework
 
@@ -83,12 +94,21 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 
 ---
 
-## Phase 4: Clean Up
+## Phase 4: Clean Up & Publish
 
 ### Punchlist
 
 - [ ] Remove analysis data from framework repo
 - [ ] Update README with installation guide
+- [ ] Finalize pyproject.toml for PyPI
+  - [ ] Package metadata (name, version, description, author, license, URLs)
+  - [ ] Entry points for CLI (`realitycheck` command)
+  - [ ] Classifiers and keywords
+- [ ] Test with TestPyPI
+  - [ ] `uv publish --publish-url https://test.pypi.org/legacy/`
+  - [ ] Verify: `pip install -i https://test.pypi.org/simple/ realitycheck`
+- [ ] Publish to PyPI: `uv publish`
+- [ ] Verify: `pip install realitycheck` works
 - [ ] Tag realitycheck as v1.0.0
 - [ ] Archive analysis-framework repo
 
@@ -101,6 +121,8 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 | 2026-01-20 | Use ANALYSIS_DB_PATH env var | Matches existing db.py, simpler than --db-path flag |
 | 2026-01-20 | Bundle Python scripts in plugin/lib/ | Plugin-only mode needs to be self-contained |
 | 2026-01-20 | Single unified KB default | Epistemological advantage: cross-domain synthesis |
+| 2026-01-20 | Use `uv` for package management | Fast, modern, handles both deps and Python version; future-proof replacement for pip/venv/pyenv |
+| 2026-01-20 | Publish to PyPI as `realitycheck` | Name available; enables `pip install realitycheck` for easy adoption |
 
 ---
 
@@ -116,4 +138,4 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 
 ---
 
-*Last updated: 2026-01-20*
+*Last updated: 2026-01-20 (PLAN consistency fixes, uv decision, PyPI publishing)*

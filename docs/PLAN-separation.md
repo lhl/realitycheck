@@ -199,7 +199,7 @@ realitycheck/
 │   ├── hooks/
 │   │   └── hooks.json           # Optional: auto-validate on stop?
 │   └── scripts/
-│       ├── resolve-framework.sh # Find framework path
+│       ├── resolve-project.sh # Find framework path
 │       ├── run-db.sh            # Wrapper for db.py
 │       ├── run-validate.sh      # Wrapper for validate.py
 │       ├── run-export.sh        # Wrapper for export.py
@@ -245,7 +245,7 @@ You are performing a structured source analysis using the Analysis Framework.
 
 First, resolve the framework and project paths:
 ```!
-source "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-framework.sh"
+source "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-project.sh"
 ```
 
 ## Input
@@ -327,9 +327,12 @@ fi
 if [[ -d "$PROJECT_ROOT/.framework/scripts" ]]; then
     # Submodule mode: use local framework
     SCRIPTS_DIR="$PROJECT_ROOT/.framework/scripts"
+elif [[ -d "$(dirname "$0")/../lib" ]]; then
+    # Plugin mode: use bundled scripts
+    SCRIPTS_DIR="$(dirname "$0")/../lib"
 else
-    # Plugin mode: scripts are bundled with plugin (sibling to this script's parent)
-    SCRIPTS_DIR="$(dirname "$(dirname "$(realpath "$0")")")/scripts"
+    echo "Error: Cannot find realitycheck scripts" >&2
+    exit 1
 fi
 
 # Set env var for db.py and run
@@ -345,7 +348,8 @@ Additional commands like `add-claim` are planned (see CLI Expansion below).
 ```bash
 # Option 1: Install from GitHub (future: plugin marketplace)
 # Plugin installed to ~/.claude/plugins/cache/...
-claude plugin install github:lhl/realitycheck/plugin
+# NOTE: Exact syntax TBD - depends on Claude Code plugin marketplace updates
+claude plugin install github:lhl/realitycheck
 
 # Option 2: Local development (symlink)
 ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
@@ -384,7 +388,12 @@ realitycheck-plugin/
 ```bash
 # Copy Python scripts into plugin for distribution
 cp scripts/*.py plugin/lib/
-# Package plugin for distribution
+
+# Build and publish to PyPI
+uv build
+uv publish
+
+# Package plugin for Claude Code distribution (future)
 ```
 
 **Wrapper script resolution** (updated from earlier example):
@@ -512,9 +521,9 @@ realitycheck/
 │   ├── example-claim.yaml
 │   └── example-source.yaml
 │
-├── requirements.txt          # Python dependencies
-├── pytest.ini
-└── pyproject.toml            # For pip install (optional)
+├── pyproject.toml            # Project config & dependencies (uv-managed)
+├── uv.lock                   # Locked dependencies
+└── pytest.ini
 ```
 
 **Key characteristics:**
@@ -548,7 +557,7 @@ realitycheck-data/                     # User's unified knowledge base (default)
 ├── CLAUDE.md                 # Project-specific instructions (extends framework)
 │
 ├── data/
-│   └── analysis.lance/       # LanceDB database (git-lfs)
+│   └── realitycheck.lance/   # LanceDB database (git-lfs)
 │
 ├── claims/                   # Exported claim registry
 │   └── registry.yaml
@@ -597,7 +606,7 @@ git submodule add https://github.com/lhl/realitycheck.git .framework
 realitycheck-data/
 ├── .framework/              # Submodule → realitycheck repo
 │   ├── scripts/
-│   ├── skill/
+│   ├── plugin/
 │   └── ...
 ├── data/
 └── ...
@@ -619,34 +628,39 @@ echo "FRAMEWORK_PATH=~/.local/share/realitycheck" > .env
 **Pros:** Single framework install, easy updates
 **Cons:** Not self-contained, path management
 
-### Option C: pip Install (Future)
+### Option C: uv/pip Install from PyPI
 
 ```bash
+# Recommended: use uv for fast, reliable installs
+uv add realitycheck
+
+# Traditional pip also works
 pip install realitycheck
-# or
-pip install git+https://github.com/lhl/realitycheck.git
+
+# Or install from git for development/pre-release
+uv add git+https://github.com/lhl/realitycheck.git
 ```
 
 ```python
-from analysis_framework import db, validate, export
+from realitycheck import db, validate, export
 ```
 
-**Pros:** Standard Python packaging, clean imports
-**Cons:** More setup overhead, versioning complexity
+**Pros:** Standard Python packaging, clean imports, automatic updates via pip
+**Cons:** Requires Python environment setup
 
-### Option D: Skill-Only (Simplest)
+### Option D: Plugin-Only (Simplest)
 
-The framework lives as a Claude Code skill. Scripts are invoked through the skill or copied as needed.
+The framework lives as a Claude Code plugin. Scripts are invoked through the plugin or copied as needed.
 
 ```bash
-# Install skill globally
-cp -r realitycheck/skill ~/.claude/skills/realitycheck
+# Install plugin globally (symlink for development)
+ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
 ```
 
-Analysis projects just have data. The skill provides methodology + commands.
+Analysis projects just have data. The plugin provides methodology + commands.
 
 **Pros:** Simplest, no code duplication in projects
-**Cons:** Less explicit, skill must handle path resolution
+**Cons:** Less explicit, plugin must handle path resolution
 
 ---
 
@@ -677,7 +691,7 @@ framework:
 
 # Project-specific settings
 database:
-  path: "data/analysis.lance"
+  path: "data/realitycheck.lance"
 
 # Custom domains (extends framework defaults)
 domains:
@@ -740,7 +754,7 @@ find_project_root() {
 
 **Mode A: Plugin-only (Simplest)**
 ```bash
-# Install plugin globally
+# Install plugin globally (syntax TBD, see "Still Open" section)
 claude plugin install github:lhl/realitycheck
 
 # Create project
@@ -766,7 +780,7 @@ version: "1.0"
 framework:
   path: ".framework"
 database:
-  path: "data/analysis.lance"
+  path: "data/realitycheck.lance"
 EOF
 
 # Plugin detects .framework/ and uses local scripts
@@ -822,13 +836,21 @@ Current repo already has scripts/, tests/. Need to:
 6. [ ] Verify `/validate` passes
 7. [ ] Update any hardcoded paths
 
-### Phase 4: Clean Up Framework Repo
+### Phase 4: Clean Up & Publish
 
 1. [ ] Remove analysis data from framework repo
 2. [ ] Keep only: scripts/, tests/, plugin/, methodology/, docs/, examples/
 3. [ ] Update README with installation + quickstart
-4. [ ] Tag as v1.0
-5. [ ] Archive or rename old combined repo
+4. [ ] Finalize pyproject.toml for PyPI
+   - [ ] Package metadata (name, version, description, author, license)
+   - [ ] Entry points for CLI commands
+   - [ ] Dependencies with version constraints
+5. [ ] Test PyPI publishing with TestPyPI first
+   - [ ] `uv publish --publish-url https://test.pypi.org/legacy/`
+   - [ ] Verify install: `pip install -i https://test.pypi.org/simple/ realitycheck`
+6. [ ] Publish to PyPI: `uv publish`
+7. [ ] Tag as v1.0.0
+8. [ ] Archive or rename old combined repo
 
 ### Phase 5: Test Full Workflow
 
@@ -867,6 +889,12 @@ Current repo already has scripts/, tests/. Need to:
    - Semver (v1.0, v1.1, v2.0)
    - Projects pin via submodule commit or just use latest plugin
 
+5. **PyPI publishing**
+   - Package name: `realitycheck` (confirmed available)
+   - Managed with `uv` (pyproject.toml + uv.lock)
+   - Published via `uv publish` or GitHub Actions
+   - Users install with `pip install realitycheck` or `uv add realitycheck`
+
 ### Still Open
 
 1. **Plugin marketplace mechanics**
@@ -892,7 +920,7 @@ Current repo already has scripts/, tests/. Need to:
    - See "Plugin Distribution: Scripts Bundling" section above
 
 6. **LFS for LanceDB**
-   - Should analysis.lance/ be in git-lfs?
+   - Should realitycheck.lance/ be in git-lfs?
    - Or .gitignore and backup separately?
    - Trade-offs: LFS adds complexity, but keeps data versioned
 
@@ -992,4 +1020,4 @@ Total: 4-7 focused sessions
 
 *Plan created: 2026-01-20*
 *Last updated: 2026-01-20*
-*Status: Draft - reviewed for consistency, ready for implementation*
+*Status: Draft - consistency fixes applied, uv for package management, ready for implementation*
