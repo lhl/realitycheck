@@ -1,0 +1,80 @@
+| model                               | device   | dim   | max_seq   | load_s   | rss_peak   | gpu_peak_alloc   | gpu_peak_resv   | short_q/s   | short_d/s   | chunk_q/s   | chunk_d/s   |
+|-------------------------------------|----------|-------|-----------|----------|------------|------------------|-----------------|-------------|-------------|-------------|-------------|
+| all-MiniLM-L6-v2                    | cpu      | 384   | 256       | 3.036    | 890.0 MB   | -                | -               | 1479.6      | 1271.4      | 116.9       | 123.6       |
+| embeddinggemma-300m                 | cpu      | 768   | 2048      | 4.478    | 1491.9 MB  | -                | -               | 139.4       | 146.1       | 12.2        | 12.4        |
+| granite-embedding-278m-multilingual | cpu      | 768   | 512       | 5.178    | 2356.8 MB  | -                | -               | 286.7       | 262.7       | 14.2        | 14.8        |
+| all-mpnet-base-v2                   | cpu      | 768   | 384       | 2.989    | 1306.9 MB  | -                | -               | 250.4       | 246.1       | 13.5        | 14.4        |
+| stella_en_400M_v5                   | cpu      | 1024  | 512       | 4.525    | 2572.3 MB  | -                | -               | 52.8        | 58.4        | 3.4         | 3.0         |
+| gte-multilingual-base               | cpu      | -     | -         | -        | -          | -                | -               | -           | -           | -           | -           |
+
+
+https://huggingface.co/spaces/mteb/leaderboard
+- embeddinggemma-300m best? (but slow)
+- gte-multilingual-base is good (but doesn't run for us)?
+
+🐟 ❯ python embedding_shootout.py --offline --debug --devices 'cpu'
+[debug] torch info:
+{
+  "cuda": {
+    "available": true,
+    "current_device": 0,
+    "device_count": 1,
+    "devices": [
+      {
+        "index": 0,
+        "name": "Radeon 8060S Graphics"
+      }
+    ]
+  },
+  "cuda_build": null,
+  "hip_build": "7.2.53150-7b886380f9",
+  "mps_available": false,
+  "ok": true,
+  "torch_version": "2.9.1+rocm7.11.0a20260120",
+  "xpu": {
+    "available": false
+  }
+}
+[debug] requested devices: ['cpu']
+[debug] run model=sentence-transformers/all-MiniLM-L6-v2 device=cpu
+[debug] done model=sentence-transformers/all-MiniLM-L6-v2 device=cpu ok=True elapsed_s=38.87 returncode=0
+[debug] run model=google/embeddinggemma-300m device=cpu
+[debug] done model=google/embeddinggemma-300m device=cpu ok=True elapsed_s=288.83 returncode=0
+[debug] run model=Alibaba-NLP/gte-multilingual-base device=cpu
+[debug] done model=Alibaba-NLP/gte-multilingual-base device=cpu ok=True elapsed_s=108.91 returncode=0
+| model                 | device   |   dim |   max_seq |   load_s | rss_peak   | gpu_peak_alloc   | gpu_peak_resv   |   short_q/s |   short_d/s |   chunk_q/s |   chunk_d/s |
+|-----------------------|----------|-------|-----------|----------|------------|------------------|-----------------|-------------|-------------|-------------|-------------|
+| all-MiniLM-L6-v2      | cpu      |   384 |       256 |    3.132 | 1262.8 MB  | -                | -               |         8.2 |         8.3 |         2.1 |         1.9 |
+| embeddinggemma-300m   | cpu      |   768 |      2048 |    4.531 | 1877.3 MB  | -                | -               |         1.3 |         1.3 |         0.2 |         0.2 |
+| gte-multilingual-base | cpu      |   768 |      8192 |    5.896 | 2839.7 MB  | -                | -               |         3.2 |         3.3 |         0.6 |         0.6 |
+
+lhl in 🌐 strixhalo in realitycheck/_dev on  main [!?⇡] via 🐍 v3.11.10 via  base on   (ap-northeast-1) on ☁️  lhl@shisa.ai took 7m17s
+🐟 ❯ uv run python embedding_shootout.py --offline --debug --devices 'cpu'
+[debug] torch info:
+{
+  "cuda": {
+    "available": false
+  },
+  "cuda_build": "12.8",
+  "hip_build": null,
+  "mps_available": false,
+  "ok": true,
+  "torch_version": "2.9.1+cu128",
+  "xpu": {
+    "available": false
+  }
+}
+[debug] requested devices: ['cpu']
+[debug] run model=sentence-transformers/all-MiniLM-L6-v2 device=cpu
+[debug] done model=sentence-transformers/all-MiniLM-L6-v2 device=cpu ok=True elapsed_s=5.91 returncode=0
+[debug] run model=google/embeddinggemma-300m device=cpu
+[debug] done model=google/embeddinggemma-300m device=cpu ok=True elapsed_s=11.93 returncode=0
+[debug] run model=Alibaba-NLP/gte-multilingual-base device=cpu
+[debug] done model=Alibaba-NLP/gte-multilingual-base device=cpu ok=True elapsed_s=10.99 returncode=0
+| model                 | device   |   dim |   max_seq |   load_s | rss_peak   | gpu_peak_alloc   | gpu_peak_resv   |   short_q/s |   short_d/s |   chunk_q/s |   chunk_d/s |
+|-----------------------|----------|-------|-----------|----------|------------|------------------|-----------------|-------------|-------------|-------------|-------------|
+| all-MiniLM-L6-v2      | cpu      |   384 |       256 |    2.827 | 881.1 MB   | -                | -               |      1286.9 |      1427.8 |       111.7 |       116.2 |
+| embeddinggemma-300m   | cpu      |   768 |      2048 |    4.865 | 1492.3 MB  | -                | -               |       141.4 |       130.6 |         9.5 |          11 |
+| gte-multilingual-base | cpu      |   768 |      8192 |    4.358 | 2549.3 MB  | -                | -               |       181.3 |       173.3 |        10.9 |        11.5 |
+
+

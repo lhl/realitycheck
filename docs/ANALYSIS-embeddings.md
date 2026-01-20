@@ -167,26 +167,35 @@ The intent of this table is **speed intuition**, not exact benchmarking.
 
 ### Measured CPU throughput (this machine)
 
-These numbers are for **relative intuition only** (CPU-only, no CUDA; `sentence-transformers==5.2.0`, `transformers==4.57.6`; batch sizes: 16 for “short”, 4 for “chunk”). Reproduce locally with `uv run python embedding_shootout.py`.
+These numbers are for **relative intuition only** (CPU-only; batch sizes: 16 for “short”, 4 for “chunk”; `short_n=64`, `chunk_n=16`, `chunk_sentences=40`). Raw runs are captured in `_dev/perf.txt`.
 
-| Model | Case | N | Seconds | Items / sec |
-|------:|------|---:|--------:|------------:|
-| `all-MiniLM-L6-v2` | short | 64 | 0.049 | 1310.7 |
-| `all-mpnet-base-v2` | short | 64 | 0.238 | 268.8 |
-| `granite-embedding-278m-multilingual` | short | 64 | 0.232 | 275.5 |
-| `embeddinggemma-300m` | short | 64 | 0.403 | 158.6 |
-| `embeddinggemma-300m (truncate_dim=256)` | short | 64 | 0.324 | 197.2 |
-| `stella_en_400M_v5` | short | 64 | 1.017 | 62.9 |
-| `all-MiniLM-L6-v2` | chunk | 16 | 0.141 | 113.7 |
-| `all-mpnet-base-v2` | chunk | 16 | 1.025 | 15.6 |
-| `granite-embedding-278m-multilingual` | chunk | 16 | 1.036 | 15.4 |
-| `embeddinggemma-300m` | chunk | 16 | 1.276 | 12.5 |
-| `embeddinggemma-300m (truncate_dim=256)` | chunk | 16 | 1.338 | 12.0 |
-| `stella_en_400M_v5` | chunk | 16 | 4.589 | 3.5 |
+Reproduce with:
+
+```bash
+uv run python _dev/embedding_shootout.py --offline --devices cpu --tablefmt github
+```
+
+Important environment note (this machine / Strix Halo):
+
+- Running via system `python` with a **ROCm** Torch build produced **~100× slower CPU embeddings** at default thread settings (e.g., MiniLM short ~`8 q/s` vs `~1300 q/s` under `uv run`).
+- If you must use ROCm Torch for CPU, set `OMP_NUM_THREADS=4` or `8` (values like `32` can collapse performance).
+
+CPU summary (from `_dev/perf.txt`, `uv run`, RSS is process peak):
+
+| Model | Dim | Max seq | RSS peak | Short q/s | Chunk q/s |
+|------:|----:|--------:|---------:|----------:|----------:|
+| `all-MiniLM-L6-v2` | 384 | 256 | 890 MB | 1479.6 | 116.9 |
+| `all-mpnet-base-v2` | 768 | 384 | 1307 MB | 250.4 | 13.5 |
+| `granite-embedding-278m-multilingual` | 768 | 512 | 2357 MB | 286.7 | 14.2 |
+| `embeddinggemma-300m` | 768 | 2048 | 1492 MB | 139.4 | 12.2 |
+| `gte-multilingual-base` | 768 | 8192 | 2549 MB | 181.3 | 10.9 |
+| `stella_en_400M_v5` | 1024 | 512 | 2572 MB | 52.8 | 3.4 |
 
 Interpretation:
-- For claim-sized text, `embeddinggemma-300m` is slower than MiniLM but not unusably slow on CPU; `stella_en_400M_v5` is much slower.
-- For “chunk” texts, **max sequence length dominates**: MiniLM appears fast largely because it truncates aggressively (256 tokens).
+- `all-MiniLM-L6-v2` is in a different speed class on CPU and is the only one listed that is drop-in for the current `vector[384]` schema.
+- “Chunk” throughput clusters around ~`10–15 q/s` for the 768-dim models here; if you index lots of long text on CPU, model choice will materially change wall-clock time.
+- Max sequence length and truncation dominate perceived speed: MiniLM looks especially fast because it truncates at `256` tokens; long-doc search still needs chunking regardless.
+- `stella_en_400M_v5` looks CPU-hostile (slow + high RSS); treat it as “GPU-first” unless proven otherwise.
 
 ## How These Models Fit Reality Check’s Use Cases
 
