@@ -332,6 +332,17 @@ Fixed test failures caused by lancedb/pyarrow GIL cleanup crash during Python sh
 
 All tests pass with workaround: 112 passed, 17 skipped
 
+#### 2026-01-21: GPU Crash Fix for Embeddings
+
+Fixed SIGSEGV crashes when running CLI from directories without local venv:
+
+- Root cause: `uv run` from `/tmp` or project dirs would use system Python with ROCm torch
+- ROCm torch has unstable GPU drivers that crash during embedding generation
+- Fix: Default `EMBEDDING_DEVICE` to "cpu", users can override with env var
+- Added verification that claims are actually persisted in database (test gap)
+
+All tests pass: 129 passed
+
 ---
 
 ## Phase 3: Separate Analysis Data
