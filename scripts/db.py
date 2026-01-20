@@ -944,6 +944,13 @@ Examples:
     # -------------------------------------------------------------------------
     args = parser.parse_args()
 
+    # Helper to determine if embeddings should be generated
+    # Respects both --no-embedding flag and SKIP_EMBEDDING_TESTS env var
+    def should_generate_embedding(args_obj, attr_name="no_embedding"):
+        if os.environ.get("SKIP_EMBEDDING_TESTS") == "1":
+            return False
+        return not getattr(args_obj, attr_name, False)
+
     # Basic commands
     if args.command == "init":
         db = get_db()
@@ -1155,7 +1162,7 @@ rc-validate
                 "last_updated": str(date.today()),
                 "notes": args.notes,
             }
-            result_id = add_claim(claim, db, generate_embedding=not args.no_embedding)
+            result_id = add_claim(claim, db, generate_embedding=should_generate_embedding(args))
             print(f"Created claim: {result_id}")
 
         elif args.claim_command == "get":
@@ -1217,7 +1224,7 @@ rc-validate
                 "domains": [],
                 "status": args.status,
             }
-            result_id = add_source(source, db, generate_embedding=not args.no_embedding)
+            result_id = add_source(source, db, generate_embedding=should_generate_embedding(args))
             print(f"Created source: {result_id}")
 
         elif args.source_command == "get":
@@ -1241,17 +1248,30 @@ rc-validate
 
         if args.chain_command == "add":
             claims_list = [c.strip() for c in args.claims.split(",")]
+
+            # Compute credence: use provided value or MIN of claims
+            if args.credence is not None:
+                chain_credence = args.credence
+            else:
+                # Look up each claim and compute min credence
+                claim_credences = []
+                for claim_id in claims_list:
+                    claim = get_claim(claim_id, db)
+                    if claim and claim.get("credence") is not None:
+                        claim_credences.append(claim["credence"])
+                chain_credence = min(claim_credences) if claim_credences else 0.5
+
             chain = {
                 "id": args.id,
                 "name": args.name,
                 "thesis": args.thesis,
                 "claims": claims_list,
-                "credence": args.credence if args.credence is not None else 0.5,
+                "credence": chain_credence,
                 "analysis_file": None,
                 "weakest_link": None,
                 "scoring_method": args.scoring_method,
             }
-            result_id = add_chain(chain, db, generate_embedding=not args.no_embedding)
+            result_id = add_chain(chain, db, generate_embedding=should_generate_embedding(args))
             print(f"Created chain: {result_id}")
 
         elif args.chain_command == "get":
@@ -1340,7 +1360,7 @@ rc-validate
                 claim.setdefault("last_updated", str(date.today()))
                 claim.setdefault("credence", 0.5)
 
-                add_claim(claim, db, generate_embedding=not args.no_embedding)
+                add_claim(claim, db, generate_embedding=should_generate_embedding(args))
                 imported_claims += 1
 
         # Import sources
@@ -1362,7 +1382,7 @@ rc-validate
                 source.setdefault("topics", [])
                 source.setdefault("domains", [])
 
-                add_source(source, db, generate_embedding=not args.no_embedding)
+                add_source(source, db, generate_embedding=should_generate_embedding(args))
                 imported_sources += 1
 
         print(f"Imported {imported_claims} claims, {imported_sources} sources")

@@ -312,8 +312,8 @@ PROJECT_ROOT="$(find_project_root)"
 
 # Read database path from config, or use default
 if [[ -f "$PROJECT_ROOT/.realitycheck.yaml" ]]; then
-    # Extract database.path from YAML (simple grep, could use yq for robustness)
-    DB_PATH=$(grep -A1 "^database:" "$PROJECT_ROOT/.realitycheck.yaml" | grep "path:" | sed 's/.*path:\s*["]*\([^"]*\)["]*$/\1/' || echo "data/realitycheck.lance")
+    # Extract db_path from YAML (simple grep, could use yq for robustness)
+    DB_PATH=$(grep "^db_path:" "$PROJECT_ROOT/.realitycheck.yaml" | sed 's/.*db_path:\s*["]*\([^"]*\)["]*$/\1/' || echo "data/realitycheck.lance")
 else
     DB_PATH="data/realitycheck.lance"
 fi
@@ -713,9 +713,8 @@ version: "1.0"
 framework:
   path: ".framework"           # Submodule path, or "global" for installed plugin
 
-# Project-specific settings
-database:
-  path: "data/realitycheck.lance"
+# Database location
+db_path: "data/realitycheck.lance"
 
 # Custom domains (extends framework defaults)
 domains:
@@ -801,10 +800,8 @@ git submodule add https://github.com/lhl/realitycheck.git .framework
 # Config points to local framework
 cat > .realitycheck.yaml << EOF
 version: "1.0"
-framework:
-  path: ".framework"
-database:
-  path: "data/realitycheck.lance"
+framework_path: ".framework"
+db_path: "data/realitycheck.lance"
 EOF
 
 # Plugin detects .framework/ and uses local scripts
@@ -968,10 +965,8 @@ mkdir -p data claims reference/primary analysis/sources tracking scenarios
 # 4. Configure
 cat > .realitycheck.yaml << 'EOF'
 version: "1.0"
-framework:
-  path: ".framework"
-database:
-  path: "data/realitycheck.lance"
+framework_path: ".framework"
+db_path: "data/realitycheck.lance"
 export:
   claims_yaml: "claims/registry.yaml"
   sources_yaml: "reference/sources.yaml"

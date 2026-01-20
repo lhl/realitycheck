@@ -28,11 +28,9 @@ if [[ -f "$FRAMEWORK_ROOT/scripts/validate.py" ]]; then
 # Second: Check bundled scripts in plugin/lib/
 elif [[ -f "$PLUGIN_ROOT/lib/validate.py" ]]; then
     VALIDATE_PY="$PLUGIN_ROOT/lib/validate.py"
-# Third: Use installed package
+# Third: Use installed package (via pip install realitycheck)
 elif command -v rc-validate &> /dev/null; then
     exec rc-validate "$@"
-elif python -c "import realitycheck" &> /dev/null; then
-    exec python -m realitycheck.validate "$@"
 fi
 
 if [[ -z "$VALIDATE_PY" ]]; then

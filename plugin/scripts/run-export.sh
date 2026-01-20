@@ -28,11 +28,9 @@ if [[ -f "$FRAMEWORK_ROOT/scripts/export.py" ]]; then
 # Second: Check bundled scripts in plugin/lib/
 elif [[ -f "$PLUGIN_ROOT/lib/export.py" ]]; then
     EXPORT_PY="$PLUGIN_ROOT/lib/export.py"
-# Third: Use installed package
+# Third: Use installed package (via pip install realitycheck)
 elif command -v rc-export &> /dev/null; then
     exec rc-export "$@"
-elif python -c "import realitycheck" &> /dev/null; then
-    exec python -m realitycheck.export "$@"
 fi
 
 if [[ -z "$EXPORT_PY" ]]; then

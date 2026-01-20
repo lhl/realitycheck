@@ -2,48 +2,184 @@
 
 Common workflows for using the RealityCheck framework.
 
-## Current CLI Commands (v0.1.0-alpha)
+## CLI Commands (v0.1.0-beta)
 
-The following commands are implemented:
+The `db.py` script (or `rc-db` if installed via pip) provides all database operations:
 
-| Command | Subcommands | Description |
-|---------|-------------|-------------|
-| `rc-db` | `init`, `stats`, `reset`, `search` | Database operations |
-| `rc-validate` | (none) | Data integrity validation |
-| `rc-export` | `yaml`, `md` | Export to YAML/Markdown |
-| `rc-migrate` | (none) | Migrate from legacy YAML |
-| `rc-embed` | `status`, `generate`, `regenerate` | Embedding management |
+| Command | Description |
+|---------|-------------|
+| `db.py init` | Initialize database tables |
+| `db.py init-project [--path DIR]` | Create new project with config + database |
+| `db.py stats` | Show database statistics |
+| `db.py reset` | Reset database (destructive!) |
+| `db.py search "query"` | Semantic search across claims |
+| `db.py claim add/get/list/update` | Claim CRUD operations |
+| `db.py source add/get/list` | Source CRUD operations |
+| `db.py chain add/get/list` | Chain CRUD operations |
+| `db.py prediction add/list` | Prediction operations |
+| `db.py related <claim-id>` | Find related claims |
+| `db.py import <file>` | Bulk import from YAML |
 
-## Quick Start
+Other scripts:
+- `validate.py` - Data integrity validation
+- `export.py` - Export to YAML/Markdown
+- `migrate.py` - Migrate from legacy YAML
 
-### Initialize Database
+## Project Setup
+
+### Create a New Project
 
 ```bash
-# Create empty database
-uv run rc-db init
+# From the realitycheck repo directory:
+uv run python scripts/db.py init-project --path ~/my-research
 
-# Verify
-uv run rc-validate
+# Or if you're in the target directory:
+cd ~/my-research
+uv run python /path/to/realitycheck/scripts/db.py init-project
 ```
 
-### Check Database Status
+This creates:
+- `.realitycheck.yaml` - Project configuration
+- `data/realitycheck.lance/` - Database
+- `analysis/sources/` - Analysis documents
+- `tracking/` - Prediction tracking
+- `inbox/` - Sources to process
+
+### Set Environment Variable
 
 ```bash
-# Show table counts and stats
-uv run rc-db stats
+export ANALYSIS_DB_PATH="data/realitycheck.lance"
+
+# Or in your project directory:
+cd ~/my-research
+export ANALYSIS_DB_PATH="$(pwd)/data/realitycheck.lance"
 ```
 
-### Migrate from Legacy YAML
+## Claim Workflows
+
+### Add a Claim
 
 ```bash
-# Dry run to see what will be migrated
-uv run rc-migrate /path/to/legacy/repo --dry-run -v
+# With auto-generated ID (DOMAIN-YYYY-NNN)
+uv run python scripts/db.py claim add \
+  --text "AI training compute doubles every 6 months" \
+  --type "[T]" \
+  --domain "TECH" \
+  --evidence-level "E2" \
+  --credence 0.75 \
+  --source-ids "epoch-2024-training"
 
-# Run migration
-uv run rc-migrate /path/to/legacy/repo -v
+# With explicit ID
+uv run python scripts/db.py claim add \
+  --id "TECH-2026-001" \
+  --text "AI training compute doubles every 6 months" \
+  --type "[T]" \
+  --domain "TECH" \
+  --evidence-level "E2"
+```
 
-# Validate result
-uv run rc-validate
+### Get a Claim
+
+```bash
+# JSON output (default)
+uv run python scripts/db.py claim get TECH-2026-001
+
+# Human-readable text
+uv run python scripts/db.py claim get TECH-2026-001 --format text
+```
+
+### List Claims
+
+```bash
+# All claims (JSON)
+uv run python scripts/db.py claim list
+
+# Filter by domain
+uv run python scripts/db.py claim list --domain TECH
+
+# Filter by type
+uv run python scripts/db.py claim list --type "[P]"
+
+# Human-readable format
+uv run python scripts/db.py claim list --format text
+```
+
+### Update a Claim
+
+```bash
+# Update credence
+uv run python scripts/db.py claim update TECH-2026-001 --credence 0.85
+
+# Add notes
+uv run python scripts/db.py claim update TECH-2026-001 --notes "Updated based on 2026 data"
+```
+
+## Source Workflows
+
+### Add a Source
+
+```bash
+uv run python scripts/db.py source add \
+  --id "epoch-2024-training" \
+  --title "Training Compute Trends" \
+  --type "REPORT" \
+  --author "Epoch AI" \
+  --year 2024 \
+  --url "https://epochai.org/blog/training-compute-trends"
+```
+
+### List Sources
+
+```bash
+# All sources
+uv run python scripts/db.py source list
+
+# Filter by type
+uv run python scripts/db.py source list --type PAPER
+
+# Filter by analysis status
+uv run python scripts/db.py source list --status ANALYZED
+```
+
+## Chain Workflows
+
+### Add an Argument Chain
+
+```bash
+uv run python scripts/db.py chain add \
+  --id "CHAIN-2026-001" \
+  --name "AI Cost Deflation" \
+  --thesis "Compute costs will decline faster than wages" \
+  --claims "TECH-2026-001,TECH-2026-002,ECON-2026-001"
+```
+
+Note: If `--credence` is not specified, it defaults to MIN of the claims' credences.
+
+### List Chains
+
+```bash
+uv run python scripts/db.py chain list --format text
+```
+
+## Prediction Workflows
+
+### Add a Prediction
+
+```bash
+uv run python scripts/db.py prediction add \
+  --claim-id "TECH-2026-003" \
+  --source-id "epoch-2024-training" \
+  --status "[P->]"
+```
+
+### List Predictions
+
+```bash
+# All predictions
+uv run python scripts/db.py prediction list
+
+# Filter by status
+uv run python scripts/db.py prediction list --status "[P+]"
 ```
 
 ## Search Workflow
@@ -51,60 +187,26 @@ uv run rc-validate
 ### Semantic Search
 
 ```bash
-# Search claims by natural language query
-uv run rc-db search "AI automation labor displacement"
+# Search claims by natural language
+uv run python scripts/db.py search "AI automation labor displacement"
 
-# Search returns ranked results with similarity scores
+# Limit results
+uv run python scripts/db.py search "compute costs" --limit 5
 ```
 
-## Embedding Workflow
+## Bulk Import
 
-### Check Embedding Status
-
-```bash
-# See how many records have embeddings
-uv run rc-embed status
-```
-
-### Generate Embeddings
+### Import from YAML
 
 ```bash
-# Generate embeddings for records missing them
-uv run rc-embed generate
+# Import claims
+uv run python scripts/db.py import claims.yaml --type claims
 
-# Regenerate ALL embeddings (useful after model change)
-uv run rc-embed regenerate
-```
+# Import sources
+uv run python scripts/db.py import sources.yaml --type sources
 
-## Export Workflow
-
-### Export to YAML (Legacy Format)
-
-```bash
-# Export claims
-uv run rc-export yaml claims -o claims.yaml
-
-# Export sources
-uv run rc-export yaml sources -o sources.yaml
-
-# Export all
-uv run rc-export yaml all -o data/
-```
-
-### Export to Markdown
-
-```bash
-# Single claim
-uv run rc-export md claim --id TECH-2026-001
-
-# Argument chain
-uv run rc-export md chain --id CHAIN-2026-001
-
-# All predictions
-uv run rc-export md predictions -o predictions.md
-
-# Dashboard summary
-uv run rc-export md summary -o dashboard.md
+# Import everything
+uv run python scripts/db.py import data.yaml --type all
 ```
 
 ## Validation Workflow
@@ -113,13 +215,16 @@ uv run rc-export md summary -o dashboard.md
 
 ```bash
 # Standard validation
-uv run rc-validate
+uv run python scripts/validate.py
 
 # Strict mode (warnings = errors)
-uv run rc-validate --strict
+uv run python scripts/validate.py --strict
 
 # JSON output for automation
-uv run rc-validate --json
+uv run python scripts/validate.py --json
+
+# Validate legacy YAML files
+uv run python scripts/validate.py --mode yaml --repo-root /path/to/data
 ```
 
 ### What Gets Checked
@@ -129,11 +234,73 @@ uv run rc-validate --json
 3. **Logical Consistency**: Chain credences, prediction links
 4. **Data Quality**: No empty text, embeddings present (warning)
 
-## Database Reset
+## Export Workflow
+
+### Export to YAML
 
 ```bash
-# Drop all tables and reinitialize (destructive!)
-uv run rc-db reset
+# Export claims
+uv run python scripts/export.py yaml claims -o claims.yaml
+
+# Export sources
+uv run python scripts/export.py yaml sources -o sources.yaml
+
+# Export all
+uv run python scripts/export.py yaml all -o data/
+```
+
+### Export to Markdown
+
+```bash
+# Single claim
+uv run python scripts/export.py md claim --id TECH-2026-001
+
+# Argument chain
+uv run python scripts/export.py md chain --id CHAIN-2026-001
+
+# Dashboard summary
+uv run python scripts/export.py md summary -o dashboard.md
+```
+
+## Migration Workflow
+
+### Migrate from Legacy YAML
+
+```bash
+# Dry run
+uv run python scripts/migrate.py /path/to/legacy/repo --dry-run -v
+
+# Run migration
+uv run python scripts/migrate.py /path/to/legacy/repo -v
+
+# Validate result
+uv run python scripts/validate.py
+```
+
+## Claude Code Plugin
+
+If using the RealityCheck plugin with Claude Code:
+
+### Full Analysis Workflow
+
+```
+> /check https://arxiv.org/abs/2401.00001
+```
+
+This runs:
+1. Fetch source content
+2. 3-stage analysis (descriptive -> evaluative -> dialectical)
+3. Extract and classify claims
+4. Register source and claims
+5. Validate integrity
+6. Report summary
+
+### Quick Operations
+
+```
+> /search AI costs
+> /validate
+> /export yaml claims
 ```
 
 ## Environment Variables
@@ -144,43 +311,12 @@ uv run rc-db reset
 | `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer model |
 | `SKIP_EMBEDDING_TESTS` | unset | Skip embedding tests in pytest |
 
-## Programmatic Access
-
-For operations not exposed via CLI, use Python directly:
-
-```python
-from scripts.db import get_db, init_tables, add_claim, get_claim, search_claims
-
-# Connect to database
-db = get_db()
-tables = init_tables(db)
-
-# Add a claim (see scripts/db.py for full API)
-claim_data = {
-    "id": "TECH-2026-001",
-    "text": "Example claim text",
-    "type": "[T]",
-    "domain": "TECH",
-    "evidence_level": "E3",
-    "credence": 0.65,
-    "source_ids": ["source-001"],
-    "first_extracted": "2026-01-20",
-    "extracted_by": "manual",
-    "version": 1,
-    "last_updated": "2026-01-20",
-}
-add_claim(claim_data, db=db)
-
-# Search
-results = search_claims("automation", limit=10, db=db)
-```
-
 ## Tips
 
 ### Credence Calibration
 - Avoid clustering everything at 0.7-0.8
 - Use the full range based on evidence
-- Chain credence is always ≤ weakest link
+- Chain credence is always <= weakest link
 
 ### Claim Hygiene
 - Always specify operationalization
@@ -191,18 +327,3 @@ results = search_claims("automation", limit=10, db=db)
 - Generate embeddings before searching
 - Semantic search finds conceptually related claims
 - Use validation to catch data issues early
-
----
-
-## Planned Features (Phase 2)
-
-The following CLI commands are planned but not yet implemented:
-
-- `rc-db add claim|source|chain|prediction` - Add records via CLI
-- `rc-db get <id>` - Retrieve single record
-- `rc-db list claims|sources|chains` - List records with filters
-- `rc-db update <id>` - Update existing record
-- `rc-db related <claim-id>` - Find related claims
-- `rc-db import <file>` - Bulk import from YAML
-
-Until these are implemented, use programmatic access (see above) or the migration tool for bulk operations.

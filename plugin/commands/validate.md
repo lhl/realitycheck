@@ -30,7 +30,9 @@ uv run python scripts/validate.py [OPTIONS]
 
 - `--strict`: Treat warnings as errors
 - `--json`: Output results as JSON
-- `--yaml PATH`: Validate legacy YAML files instead of database
+- `--mode {db,yaml}`: Validation mode (default: db)
+- `--db-path PATH`: Database path (for db mode)
+- `--repo-root PATH`: Repository root (for yaml mode)
 
 ## Checks Performed
 
@@ -76,4 +78,5 @@ WARN [CHAIN_CREDENCE_EXCEEDS_MIN] CHAIN-2026-001: Chain credence 0.8 > min claim
 /validate
 /validate --strict
 /validate --json
+/validate --mode yaml --repo-root /path/to/data-repo
 ```

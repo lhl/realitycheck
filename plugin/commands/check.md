@@ -2,6 +2,10 @@
 
 The flagship RealityCheck command for rigorous source analysis.
 
+---
+allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
+---
+
 ## Usage
 
 ```

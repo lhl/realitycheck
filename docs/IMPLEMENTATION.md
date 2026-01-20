@@ -300,9 +300,26 @@ Updated to include CLI integration:
 | plugin/commands/analyze.md | UPDATE | Registration examples |
 | plugin/commands/extract.md | UPDATE | Registration examples |
 
-**Next Steps**
-- Tag as v0.1.0-beta after final review
-- Optional: Add plugin/hooks/hooks.json for lifecycle hooks
+#### 2026-01-21: Phase 2 Review Fixes
+
+Addressed feedback from docs/REVIEW-phase2.md:
+
+**P0 - Fixed:**
+- Added `should_generate_embedding()` helper to respect SKIP_EMBEDDING_TESTS env var
+- Fixed .realitycheck.yaml schema drift in PLAN-separation.md (database.path → db_path)
+
+**P1 - Fixed:**
+- Aligned validate.md docs with actual validate.py flags (--mode, --repo-root)
+- Fixed chain credence default to actually compute MIN of claims when not specified
+- Updated docs/WORKFLOWS.md with complete Phase 2 CLI documentation
+
+**P2 - Fixed:**
+- Removed non-working `python -m realitycheck.*` fallback from shell wrappers
+- Added allowed-tools directive to /check command for automation
+
+All tests pass: 112 passed, 17 skipped (embedding tests)
+
+**Ready for v0.1.0-beta tag**
 
 ---
 
@@ -400,4 +417,4 @@ Updated to include CLI integration:
 
 ---
 
-*Last updated: 2026-01-21 (Phase 2 complete, ready for v0.1.0-beta tag)*
+*Last updated: 2026-01-21 (Phase 2 review fixes complete, ready for v0.1.0-beta tag)*
