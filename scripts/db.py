@@ -1339,7 +1339,31 @@ rc-validate
         if not result:
             print(f"Claim not found: {args.claim_id}", file=sys.stderr)
             sys.exit(1)
-        _output_result(result, args.format, "claim")
+        if args.format == "json":
+            import json
+            # Clean the nested claims for JSON
+            def clean_for_json(obj):
+                if hasattr(obj, 'tolist'):
+                    return obj.tolist()
+                elif isinstance(obj, dict):
+                    return {k: clean_for_json(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [clean_for_json(v) for v in obj]
+                elif hasattr(obj, 'as_py'):
+                    return obj.as_py()
+                return obj
+            print(json.dumps(clean_for_json(result), indent=2, default=str), flush=True)
+        else:
+            print(f"Related claims for {args.claim_id}:", flush=True)
+            for rel_type, claims in result.items():
+                if claims:
+                    print(f"\n  {rel_type}:")
+                    for claim in claims:
+                        credence = claim.get('credence')
+                        credence_str = f"{credence:.2f}" if credence is not None else "N/A"
+                        print(f"    [{claim['id']}] {claim['text'][:60]}...")
+                        print(f"      Type: {claim['type']} | Credence: {credence_str}")
+            sys.stdout.flush()
 
     # Import command
     elif args.command == "import":

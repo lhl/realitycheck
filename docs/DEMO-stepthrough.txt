@@ -1,0 +1,454 @@
+================================================================================
+Reality Check - Demo Walkthrough
+================================================================================
+
+This document walks through all CLI commands from scratch using /tmp/test-realitycheck
+as the test project directory.
+
+Date: 2026-01-21
+Framework: /home/lhl/github/lhl/realitycheck
+
+================================================================================
+STEP 1: Initialize Project
+================================================================================
+
+$ rm -rf /tmp/test-realitycheck
+$ mkdir -p /tmp/test-realitycheck
+$ cd /tmp/test-realitycheck
+$ uv run python /path/to/realitycheck/scripts/db.py init-project
+
+Output:
+  Initializing Reality Check project at: /tmp/test-realitycheck
+    Created: data/
+    Created: analysis/sources/
+    Created: analysis/syntheses/
+    Created: tracking/updates/
+    Created: inbox/to-catalog/
+    Created: inbox/to-analyze/
+    Created: .realitycheck.yaml
+    Created: .gitignore
+    Created: .gitattributes (git-lfs for .lance files)
+    Created: README.md
+    Created: tracking/predictions.md
+    Initialized: git repository
+    Initialized: database with 6 tables
+
+  Project ready! Next steps:
+    cd /tmp/test-realitycheck
+    export ANALYSIS_DB_PATH="data/realitycheck.lance"
+    rc-db claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
+
+================================================================================
+STEP 2: Check Initial Stats
+================================================================================
+
+$ export ANALYSIS_DB_PATH="data/realitycheck.lance"
+$ uv run python scripts/db.py stats
+
+Output:
+  Database Statistics:
+    claims: 0 rows
+    sources: 0 rows
+    chains: 0 rows
+    predictions: 0 rows
+    contradictions: 0 rows
+    definitions: 0 rows
+
+================================================================================
+STEP 3: Add Claims
+================================================================================
+
+--- Adding first claim (Fact) ---
+$ uv run python scripts/db.py claim add \
+    --text "AI capabilities are growing exponentially" \
+    --type "[F]" \
+    --domain "TECH" \
+    --evidence-level "E2" \
+    --credence 0.85
+
+Output: Created claim: TECH-2026-001
+
+--- Adding second claim (Theory) ---
+$ uv run python scripts/db.py claim add \
+    --text "Economic disruption will accelerate as AI improves" \
+    --type "[T]" \
+    --domain "ECON" \
+    --evidence-level "E4" \
+    --credence 0.7
+
+Output: Created claim: ECON-2026-001
+
+--- Adding third claim (Prediction) ---
+$ uv run python scripts/db.py claim add \
+    --text "50% of jobs will be automatable by 2030" \
+    --type "[P]" \
+    --domain "LABOR" \
+    --evidence-level "E5" \
+    --credence 0.4
+
+Output: Created claim: LABOR-2026-001
+
+--- Adding fourth claim with explicit ID and relationship ---
+$ uv run python scripts/db.py claim add \
+    --id "META-2026-001" \
+    --text "Claims about AI are often overconfident" \
+    --type "[T]" \
+    --domain "META" \
+    --evidence-level "E4" \
+    --credence 0.75 \
+    --contradicts "TECH-2026-001"
+
+Output: Created claim: META-2026-001
+
+================================================================================
+STEP 4: List Claims
+================================================================================
+
+--- All claims (text format) ---
+$ uv run python scripts/db.py claim list --format text
+
+Output:
+  [TECH-2026-001] AI capabilities are growing exponentially
+    Type: [F] | Domain: TECH | Evidence: E2 | Credence: 0.85
+
+  [ECON-2026-001] Economic disruption will accelerate as AI improves
+    Type: [T] | Domain: ECON | Evidence: E4 | Credence: 0.70
+
+  [LABOR-2026-001] 50% of jobs will be automatable by 2030
+    Type: [P] | Domain: LABOR | Evidence: E5 | Credence: 0.40
+
+  [META-2026-001] Claims about AI are often overconfident
+    Type: [T] | Domain: META | Evidence: E4 | Credence: 0.75
+
+--- Filter by domain (TECH) ---
+$ uv run python scripts/db.py claim list --domain TECH --format text
+
+Output:
+  [TECH-2026-001] AI capabilities are growing exponentially
+    Type: [F] | Domain: TECH | Evidence: E2 | Credence: 0.85
+
+--- Filter by type ([T] Theory) ---
+$ uv run python scripts/db.py claim list --type "[T]" --format text
+
+Output:
+  [ECON-2026-001] Economic disruption will accelerate as AI improves
+    Type: [T] | Domain: ECON | Evidence: E4 | Credence: 0.70
+
+  [META-2026-001] Claims about AI are often overconfident
+    Type: [T] | Domain: META | Evidence: E4 | Credence: 0.75
+
+================================================================================
+STEP 5: Get Single Claim
+================================================================================
+
+$ uv run python scripts/db.py claim get TECH-2026-001
+
+Output (JSON):
+  {
+    "id": "TECH-2026-001",
+    "text": "AI capabilities are growing exponentially",
+    "type": "[F]",
+    "domain": "TECH",
+    "evidence_level": "E2",
+    "credence": 0.85,
+    ...
+    "embedding": [0.001, -0.099, ...]  // 384-dim vector
+  }
+
+================================================================================
+STEP 6: Update Claim
+================================================================================
+
+$ uv run python scripts/db.py claim update TECH-2026-001 \
+    --credence 0.9 \
+    --notes "Updated after reviewing 2026 benchmarks"
+
+Output: Updated claim: TECH-2026-001
+
+--- Verify update ---
+$ uv run python scripts/db.py claim get TECH-2026-001 --format text
+
+Output:
+  [TECH-2026-001] AI capabilities are growing exponentially
+    Type: [F] | Domain: TECH | Evidence: E2 | Credence: 0.90
+    Notes: Updated after reviewing 2026 benchmarks
+
+================================================================================
+STEP 7: Add Sources
+================================================================================
+
+--- Adding first source (Paper) ---
+$ uv run python scripts/db.py source add \
+    --id "epoch-2024-compute" \
+    --title "Training Compute Trends" \
+    --type "PAPER" \
+    --author "Epoch AI" \
+    --year 2024 \
+    --url "https://epochai.org/blog/training-compute-trends"
+
+Output: Created source: epoch-2024-compute
+
+--- Adding second source (Report) ---
+$ uv run python scripts/db.py source add \
+    --id "mckinsey-2024-automation" \
+    --title "Automation and the Future of Work" \
+    --type "REPORT" \
+    --author "McKinsey Global Institute" \
+    --year 2024
+
+Output: Created source: mckinsey-2024-automation
+
+================================================================================
+STEP 8: List Sources
+================================================================================
+
+$ uv run python scripts/db.py source list --format text
+
+Output:
+  [epoch-2024-compute] Training Compute Trends
+    Type: PAPER | Author: Epoch AI | Year: 2024
+    URL: https://epochai.org/blog/training-compute-trends
+
+  [mckinsey-2024-automation] Automation and the Future of Work
+    Type: REPORT | Author: McKinsey Global Institute | Year: 2024
+
+--- Filter by type (PAPER) ---
+$ uv run python scripts/db.py source list --type PAPER --format text
+
+Output:
+  [epoch-2024-compute] Training Compute Trends
+    Type: PAPER | Author: Epoch AI | Year: 2024
+    URL: https://epochai.org/blog/training-compute-trends
+
+================================================================================
+STEP 9: Get Source
+================================================================================
+
+$ uv run python scripts/db.py source get epoch-2024-compute --format text
+
+Output:
+  [epoch-2024-compute] Training Compute Trends
+    Type: PAPER | Author: Epoch AI | Year: 2024
+    URL: https://epochai.org/blog/training-compute-trends
+
+================================================================================
+STEP 10: Add Chain (Argument Chain)
+================================================================================
+
+$ uv run python scripts/db.py chain add \
+    --id "CHAIN-AI-ECON-001" \
+    --name "AI Economic Impact Chain" \
+    --thesis "AI will cause significant economic disruption" \
+    --claims "TECH-2026-001,ECON-2026-001,LABOR-2026-001"
+
+Output: Created chain: CHAIN-AI-ECON-001
+
+Note: Chain credence is automatically computed as MIN of claim credences.
+      With claims at 0.90, 0.70, 0.40 -> chain credence = 0.40
+
+================================================================================
+STEP 11: List Chains
+================================================================================
+
+$ uv run python scripts/db.py chain list --format text
+
+Output:
+  [CHAIN-AI-ECON-001] AI Economic Impact Chain
+    Thesis: AI will cause significant economic disruption
+    Credence: 0.40 | Claims: 3
+
+================================================================================
+STEP 12: Get Chain
+================================================================================
+
+$ uv run python scripts/db.py chain get CHAIN-AI-ECON-001 --format text
+
+Output:
+  [CHAIN-AI-ECON-001] AI Economic Impact Chain
+    Thesis: AI will cause significant economic disruption
+    Credence: 0.40 | Claims: 3
+
+================================================================================
+STEP 13: Add Prediction
+================================================================================
+
+$ uv run python scripts/db.py prediction add \
+    --claim-id "LABOR-2026-001" \
+    --source-id "mckinsey-2024-automation" \
+    --status "[P→]" \
+    --target-date "2030-01-01" \
+    --verification-criteria "BLS employment statistics show 50%+ job loss"
+
+Output: Created prediction for: LABOR-2026-001
+
+================================================================================
+STEP 14: List Predictions
+================================================================================
+
+$ uv run python scripts/db.py prediction list --format text
+
+Output:
+  [LABOR-2026-001] Status: [P→]
+    Source: mckinsey-2024-automation | Target: 2030-01-01
+
+================================================================================
+STEP 15: Semantic Search
+================================================================================
+
+--- Search for 'AI capabilities' ---
+$ uv run python scripts/db.py search "AI capabilities"
+
+Output (JSON by default - shows claims ranked by semantic similarity):
+  [
+    {
+      "id": "TECH-2026-001",
+      "text": "AI capabilities are growing exponentially",
+      "_distance": 0.42  // lower = more similar
+    },
+    ...
+  ]
+
+--- Search for 'jobs automation' ---
+$ uv run python scripts/db.py search "jobs automation"
+
+Output shows LABOR-2026-001 ranked highest (most relevant).
+
+================================================================================
+STEP 16: Related Claims
+================================================================================
+
+$ uv run python scripts/db.py related META-2026-001 --format text
+
+Output:
+  Related claims for META-2026-001:
+
+    contradicts:
+      [TECH-2026-001] AI capabilities are growing exponentially...
+        Type: [F] | Credence: 0.90
+
+================================================================================
+STEP 17: Import from YAML
+================================================================================
+
+--- Create sample YAML file ---
+$ cat > /tmp/import-test.yaml << 'EOF'
+claims:
+  - id: IMPORT-2026-001
+    text: "Imported claim from YAML file"
+    type: "[H]"
+    domain: "TEST"
+    evidence_level: "E5"
+    credence: 0.5
+  - id: IMPORT-2026-002
+    text: "Second imported claim"
+    type: "[F]"
+    domain: "TEST"
+    evidence_level: "E3"
+    credence: 0.8
+sources:
+  - id: "import-source-001"
+    title: "Imported Source"
+    type: "PAPER"
+    author: "Import Author"
+    year: 2026
+EOF
+
+--- Import the YAML ---
+$ uv run python scripts/db.py import /tmp/import-test.yaml --type all
+
+Output: Imported 2 claims, 1 sources
+
+================================================================================
+STEP 18: Final Stats
+================================================================================
+
+$ uv run python scripts/db.py stats
+
+Output:
+  Database Statistics:
+    claims: 6 rows
+    sources: 3 rows
+    chains: 1 rows
+    predictions: 1 rows
+    contradictions: 0 rows
+    definitions: 0 rows
+
+================================================================================
+STEP 19: List All Claims
+================================================================================
+
+$ uv run python scripts/db.py claim list --format text
+
+Output:
+  [TECH-2026-001] AI capabilities are growing exponentially
+    Type: [F] | Domain: TECH | Evidence: E2 | Credence: 0.90
+    Notes: Updated after reviewing 2026 benchmarks
+
+  [ECON-2026-001] Economic disruption will accelerate as AI improves
+    Type: [T] | Domain: ECON | Evidence: E4 | Credence: 0.70
+
+  [LABOR-2026-001] 50% of jobs will be automatable by 2030
+    Type: [P] | Domain: LABOR | Evidence: E5 | Credence: 0.40
+
+  [META-2026-001] Claims about AI are often overconfident
+    Type: [T] | Domain: META | Evidence: E4 | Credence: 0.75
+
+  [IMPORT-2026-001] Imported claim from YAML file
+    Type: [H] | Domain: TEST | Evidence: E5 | Credence: 0.50
+
+  [IMPORT-2026-002] Second imported claim
+    Type: [F] | Domain: TEST | Evidence: E3 | Credence: 0.80
+
+================================================================================
+CLAIM TYPES REFERENCE
+================================================================================
+
+  [F] Fact        - Empirically verified, consensus reality
+  [T] Theory      - Coherent framework with empirical support
+  [H] Hypothesis  - Testable proposition, awaiting evidence
+  [P] Prediction  - Future-oriented with specified conditions
+  [A] Assumption  - Underlying premise (stated or unstated)
+  [C] Counterfactual - Alternative scenario for comparison
+  [S] Speculation - Unfalsifiable or untestable claim
+  [X] Contradiction - Identified logical inconsistency
+
+================================================================================
+EVIDENCE LEVELS REFERENCE
+================================================================================
+
+  E1 - Strong Empirical    (Replicated studies, meta-analyses)
+  E2 - Moderate Empirical  (Single peer-reviewed study)
+  E3 - Strong Theoretical  (Expert consensus, preprints)
+  E4 - Weak Theoretical    (Industry reports, journalism)
+  E5 - Opinion/Forecast    (Expert opinion, anecdote)
+  E6 - Unsupported         (Pure speculation)
+
+================================================================================
+PREDICTION STATUSES REFERENCE
+================================================================================
+
+  [P→] Pending     - Awaiting resolution
+  [P✓] Verified    - Prediction confirmed
+  [P✗] Falsified   - Prediction proven wrong
+  [P~] Ambiguous   - Unclear resolution
+  [P⊘] Obsolete    - No longer relevant
+
+================================================================================
+DOMAIN CODES REFERENCE
+================================================================================
+
+  TECH     - Technology, AI capabilities
+  LABOR    - Employment, automation, work
+  ECON     - Value, pricing, distribution
+  GOV      - Policy, regulation, institutions
+  SOC      - Social structures, culture
+  RESOURCE - Scarcity, abundance, allocation
+  TRANS    - Transition dynamics, pathways
+  GEO      - International relations
+  INST     - Organizations, coordination
+  RISK     - Risk assessment, failure modes
+  META     - Claims about the framework itself
+
+================================================================================
+END OF DEMO
+================================================================================
