@@ -9,5 +9,14 @@
   "license": "Apache-2.0",
   "homepage": "https://github.com/lhl/realitycheck",
   "repository": "https://github.com/lhl/realitycheck",
-  "keywords": ["analysis", "claims", "epistemics", "predictions", "sources"]
+  "keywords": ["analysis", "claims", "epistemics", "predictions", "sources"],
+  "commands": [
+    {"name": "check", "file": "commands/check.md"},
+    {"name": "analyze", "file": "commands/analyze.md"},
+    {"name": "extract", "file": "commands/extract.md"},
+    {"name": "search", "file": "commands/search.md"},
+    {"name": "validate", "file": "commands/validate.md"},
+    {"name": "export", "file": "commands/export.md"},
+    {"name": "stats", "file": "commands/stats.md"}
+  ]
 }
