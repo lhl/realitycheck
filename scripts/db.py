@@ -433,11 +433,21 @@ def drop_tables(db: Optional[lancedb.DBConnection] = None) -> None:
 # =============================================================================
 
 def add_claim(claim: dict, db: Optional[lancedb.DBConnection] = None, generate_embedding: bool = True) -> str:
-    """Add a claim to the database. Returns the claim ID."""
+    """Add a claim to the database. Returns the claim ID.
+
+    Raises ValueError if a claim with the same ID already exists.
+    """
     if db is None:
         db = get_db()
 
     table = db.open_table("claims")
+
+    # Check for duplicate ID
+    claim_id = claim.get("id")
+    if claim_id:
+        existing = table.search().where(f"id = '{claim_id}'", prefilter=True).limit(1).to_list()
+        if existing:
+            raise ValueError(f"Claim with ID '{claim_id}' already exists. Use update_claim() to modify or delete first.")
 
     # Generate embedding if requested and not provided
     if generate_embedding and claim.get("embedding") is None:
@@ -1059,6 +1069,11 @@ Examples:
     claim_update.add_argument("--notes", help="New notes")
     claim_update.add_argument("--text", help="New text (triggers re-embedding)")
 
+    # claim delete
+    claim_delete = claim_subparsers.add_parser("delete", help="Delete a claim by ID")
+    claim_delete.add_argument("claim_id", help="Claim ID to delete")
+    claim_delete.add_argument("--force", action="store_true", help="Skip confirmation")
+
     # -------------------------------------------------------------------------
     # Source commands
     # -------------------------------------------------------------------------
@@ -1383,8 +1398,12 @@ rc-validate
                 "last_updated": str(date.today()),
                 "notes": args.notes,
             }
-            result_id = add_claim(claim, db, generate_embedding=should_generate_embedding(args))
-            print(f"Created claim: {result_id}", flush=True)
+            try:
+                result_id = add_claim(claim, db, generate_embedding=should_generate_embedding(args))
+                print(f"Created claim: {result_id}", flush=True)
+            except ValueError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                sys.exit(1)
 
         elif args.claim_command == "get":
             result = get_claim(args.claim_id, db)
@@ -1419,6 +1438,24 @@ rc-validate
             else:
                 print(f"Claim not found: {args.claim_id}", file=sys.stderr)
                 sys.exit(1)
+
+        elif args.claim_command == "delete":
+            # Check if claim exists first
+            existing = get_claim(args.claim_id, db)
+            if not existing:
+                print(f"Claim not found: {args.claim_id}", file=sys.stderr)
+                sys.exit(1)
+
+            if not args.force:
+                print(f"About to delete claim: {args.claim_id}")
+                print(f"  Text: {existing.get('text', '')[:80]}...")
+                confirm = input("Type 'yes' to confirm: ")
+                if confirm.lower() != 'yes':
+                    print("Cancelled")
+                    sys.exit(0)
+
+            delete_claim(args.claim_id, db)
+            print(f"Deleted claim: {args.claim_id}", flush=True)
 
         else:
             claim_parser.print_help()
