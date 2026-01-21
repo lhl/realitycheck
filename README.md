@@ -332,6 +332,10 @@ Reality Check recommends **one knowledge base per user**, not per topic:
 
 Create separate databases only for: organizational boundaries, privacy requirements, or team collaboration.
 
+### Example Knowledge Base
+
+See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public example knowledge base built with Reality Check, tracking claims across technology, economics, labor, and governance domains.
+
 ## Embedding Model
 
 Reality Check uses `all-MiniLM-L6-v2` for semantic search embeddings. This model provides the best balance of performance and quality for CPU inference:
