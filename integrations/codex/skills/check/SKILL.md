@@ -37,6 +37,18 @@ If `REALITYCHECK_DATA` is not set, prompt the user to either:
 - Export it in their shell, or
 - Use `$realitycheck data <path>` to set it for the current session
 
+## Data Sources (Important)
+
+**LanceDB is the source of truth**, not YAML files.
+
+- To find a source: `rc-db source get <source-id>` or `rc-db source list`
+- To find claims: `rc-db claim get <claim-id>` or `rc-db claim list`
+- To search: `rc-db search "query"`
+
+**Ignore YAML files** like `claims/registry.yaml` or `reference/sources.yaml` - these are exports/legacy, not the live registry. Always query via `rc-db`.
+
+**Analysis files may not exist** for every source in the database. If you need to analyze a source and no `analysis/sources/<id>.md` exists, create one.
+
 ## Project Root + Analysis Files
 
 **IMPORTANT**: Always write to the DATA repository, never to the framework repository. The framework repo (`realitycheck`) contains only code and methodology - no analysis data.

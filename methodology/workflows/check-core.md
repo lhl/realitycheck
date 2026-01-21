@@ -13,6 +13,18 @@ The `REALITYCHECK_DATA` environment variable points to your data repo's database
 
 **Red flags you're in the wrong repo**: If you see `scripts/`, `tests/`, `integrations/`, `methodology/` directories, you're in the framework repo. Stop and check `REALITYCHECK_DATA`.
 
+## Data Sources
+
+**LanceDB is the source of truth**, not YAML files.
+
+- Query sources: `rc-db source get <id>` or `rc-db source list`
+- Query claims: `rc-db claim get <id>` or `rc-db claim list`
+- Search: `rc-db search "query"`
+
+**Ignore YAML files** like `claims/registry.yaml` or `reference/sources.yaml` - these are exports/legacy format, not the live registry.
+
+**Analysis files may not exist** for every source. If `analysis/sources/<id>.md` doesn't exist, create it.
+
 ---
 
 ## Overview
