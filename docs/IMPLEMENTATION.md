@@ -9,7 +9,7 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 
 ## Current Status
 
-**Phase**: 3 Complete (realitycheck-data v0.1.0)
+**Phase**: 4 Complete (realitycheck v0.1.0 on PyPI)
 **Started**: 2026-01-20
 
 ---
@@ -431,7 +431,7 @@ realitycheck-data/
 - [x] Test with TestPyPI (skipped - TestPyPI registration issues)
 - [x] Publish to PyPI: `uv tool run twine upload dist/*`
 - [x] Verify: `pip install realitycheck` works
-- [ ] Tag realitycheck as v1.0.0
+- [x] Tag realitycheck as v0.1.0
 - [ ] Archive analysis-framework repo
 
 ### Worklog
@@ -442,7 +442,9 @@ realitycheck-data/
 - Published to PyPI: `uv tool run twine upload dist/*` (using ~/.pypirc)
 - Verified install in fresh venv: `uv pip install realitycheck && rc-db --help`
 - Updated README with pip install as primary installation method
+- Added Quick Reference (claim types + evidence hierarchy) to analysis templates
 - Package available at: https://pypi.org/project/realitycheck/0.1.0/
+- Tagged v0.1.0 (`1ccb505`)
 
 ---
 
