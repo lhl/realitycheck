@@ -160,7 +160,26 @@ Run validation to ensure data integrity:
 "${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh"
 ```
 
-### Step 7: Summary Report
+### Step 7: Update Data Project README
+
+After completing the analysis, update the data project's `README.md` analysis index:
+
+1. **Add to Source Analyses table** (sorted by date, newest first):
+
+```markdown
+| Date | Document | Status | Summary |
+|------|----------|--------|---------|
+| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |
+```
+
+**Status values:**
+- `[REVIEWED]` - Analysis complete, claims extracted and registered
+- `[DRAFT]` - In progress
+- `[PENDING]` - Awaiting analysis
+
+2. **Stats are auto-generated**: The counts table at the top is updated automatically by the PostToolUse hook.
+
+### Step 8: Summary Report
 
 Generate a summary report:
 
@@ -186,6 +205,7 @@ Generate a summary report:
 ✓ All claims registered
 ✓ Source linked
 ✓ Embeddings generated
+✓ README index updated
 ```
 
 ## Requirements

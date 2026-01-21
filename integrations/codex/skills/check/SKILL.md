@@ -98,6 +98,30 @@ If those aren’t on `PATH`, fall back to running from the framework repo:
 - `uv run python scripts/db.py ...`
 - `uv run python scripts/validate.py ...`
 
+## Updating the Data Project README
+
+After completing an analysis, update the data project's `README.md` analysis index:
+
+1. **Add to Source Analyses table**: Insert a row in the "Source Analyses" section (sorted by date, newest first):
+
+```markdown
+| Date | Document | Status | Summary |
+|------|----------|--------|---------|
+| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |
+```
+
+**Status values:**
+- `[REVIEWED]` - Analysis complete, claims extracted and registered
+- `[DRAFT]` - In progress
+- `[PENDING]` - Awaiting analysis
+
+**Example row:**
+```
+| 2026-01-21 | [Stross "The pivot"](analysis/sources/stross-2025-the-pivot-1.md) | `[REVIEWED]` | 2025 inflection-point thesis |
+```
+
+2. **Stats are auto-generated**: The counts table at the top is updated by `update-readme-stats.sh` (see below).
+
 ## Data Repo Version Control (Codex)
 
 Codex skills do not support Claude Code-style hooks. After successful registration (any `rc-db` write operation), explicitly handle version control for the data project:
@@ -105,7 +129,7 @@ Codex skills do not support Claude Code-style hooks. After successful registrati
 1. If `PROJECT_ROOT/.git` exists and there are changes under `data/`, `analysis/`, `tracking/`, or `README.md`:
    - If you can locate the framework repo (common when using these skills), update README stats (optional but recommended):
      - `bash <framework-root>/integrations/claude/plugin/scripts/update-readme-stats.sh "$PROJECT_ROOT"`
-     - If you can’t find it, skip this step.
+     - If you can't find it, skip this step.
    - Commit (default behavior mirrors the Claude plugin: commit is on, push is off):
      - If `REALITYCHECK_AUTO_COMMIT` is unset or `true`, run:
        - `git add data/ analysis/ tracking/ README.md`

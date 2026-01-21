@@ -136,7 +136,26 @@ Run validation to ensure data integrity:
 uv run python scripts/validate.py
 ```
 
-### Step 7: Summary Report
+### Step 7: Update Data Project README
+
+After completing the analysis, update the data project's `README.md` analysis index:
+
+1. **Add to Source Analyses table** (sorted by date, newest first):
+
+```markdown
+| Date | Document | Status | Summary |
+|------|----------|--------|---------|
+| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |
+```
+
+**Status values:**
+- `[REVIEWED]` - Analysis complete, claims extracted and registered
+- `[DRAFT]` - In progress
+- `[PENDING]` - Awaiting analysis
+
+2. **Stats are auto-generated**: The counts table at the top will be updated by the auto-commit hook (if running in plugin mode) or manually via `update-readme-stats.sh`.
+
+### Step 8: Summary Report
 
 Generate a summary report:
 
@@ -159,9 +178,10 @@ Generate a summary report:
 - [Relationship to existing claims]
 
 ### Validation Status
-- All claims registered
-- Source linked
-- Embeddings generated
+✓ All claims registered
+✓ Source linked
+✓ Embeddings generated
+✓ README index updated
 ```
 
 ## Requirements
