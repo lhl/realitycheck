@@ -33,24 +33,29 @@ if [[ ! -f "$README_PATH" ]]; then
     exit 1
 fi
 
-# Get stats from database
+# Get stats from database.
+#
+# Prefer importing the local checkout (development mode) if available; otherwise fall back
+# to the installed `realitycheck` package (which ships the `scripts.*` modules).
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
-FRAMEWORK_ROOT="$(dirname "$PLUGIN_ROOT")"
+# In a dev checkout the plugin lives at: integrations/claude/plugin/
+# The framework repo root is three levels up from PLUGIN_ROOT.
+FRAMEWORK_ROOT="$(cd "$PLUGIN_ROOT/../../.." && pwd)"
 
-if [[ -f "$FRAMEWORK_ROOT/scripts/db.py" ]]; then
-    DB_PY="$FRAMEWORK_ROOT/scripts/db.py"
-elif [[ -f "$PLUGIN_ROOT/lib/db.py" ]]; then
-    DB_PY="$PLUGIN_ROOT/lib/db.py"
-else
-    echo "Error: Cannot find db.py" >&2
-    exit 1
+PYTHON_RUNNER=("python3")
+if command -v uv &> /dev/null && [[ -f "$FRAMEWORK_ROOT/pyproject.toml" ]]; then
+    PYTHON_RUNNER=("uv" "run" "python")
 fi
 
-# Get counts using Python
-STATS=$(cd "$FRAMEWORK_ROOT" && uv run python -c "
-import sys
-sys.path.insert(0, 'scripts')
-from db import get_db, get_stats
+PYTHON_CWD=""
+if [[ -f "$FRAMEWORK_ROOT/scripts/db.py" ]]; then
+    PYTHON_CWD="$FRAMEWORK_ROOT"
+fi
+
+# Get counts using Python.
+if [[ -n "$PYTHON_CWD" ]]; then
+    STATS=$(cd "$PYTHON_CWD" && "${PYTHON_RUNNER[@]}" -c "
+from scripts.db import get_db, get_stats
 
 db = get_db()
 stats = get_stats(db)
@@ -71,6 +76,28 @@ print(f'PREDICTIONS={stats[\"predictions\"]}')
 for domain in ['TECH', 'LABOR', 'ECON', 'GOV', 'SOC', 'TRANS', 'RESOURCE', 'GEO', 'META']:
     print(f'DOMAIN_{domain}={domain_counts.get(domain, 0)}')
 " 2>/dev/null)
+else
+    STATS=$("${PYTHON_RUNNER[@]}" -c "
+from scripts.db import get_db, get_stats
+
+db = get_db()
+stats = get_stats(db)
+
+claims_table = db.open_table('claims')
+all_claims = claims_table.search().limit(1000).to_list()
+
+from collections import Counter
+domain_counts = Counter(c.get('domain', 'UNKNOWN') for c in all_claims)
+
+print(f'CLAIMS={stats[\"claims\"]}')
+print(f'SOURCES={stats[\"sources\"]}')
+print(f'CHAINS={stats[\"chains\"]}')
+print(f'PREDICTIONS={stats[\"predictions\"]}')
+
+for domain in ['TECH', 'LABOR', 'ECON', 'GOV', 'SOC', 'TRANS', 'RESOURCE', 'GEO', 'META']:
+    print(f'DOMAIN_{domain}={domain_counts.get(domain, 0)}')
+" 2>/dev/null)
+fi
 
 if [[ -z "$STATS" ]]; then
     echo "Error: Failed to get database stats" >&2

@@ -15,7 +15,9 @@ set -e
 # Get the directory containing this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
-FRAMEWORK_ROOT="$(dirname "$PLUGIN_ROOT")"
+# In a dev checkout the plugin lives at: integrations/claude/plugin/
+# The framework repo root is three levels up from PLUGIN_ROOT.
+FRAMEWORK_ROOT="$(cd "$PLUGIN_ROOT/../../.." && pwd)"
 
 # Source project context
 source "$SCRIPT_DIR/resolve-project.sh"

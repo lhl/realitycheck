@@ -21,11 +21,24 @@ if [[ -z "$REALITYCHECK_DATA" ]] || [[ ! -d "$REALITYCHECK_DATA" ]]; then
     exit 0
 fi
 
-# Run validation quietly - only output if there are errors
-FRAMEWORK_ROOT="$(dirname "$PLUGIN_ROOT")"
+# Run validation quietly - only output if there are errors.
+#
+# Prefer local checkout (development mode) if available; otherwise fall back to installed
+# `rc-validate` (packaged console entry point).
+FRAMEWORK_ROOT="$(cd "$PLUGIN_ROOT/../../.." && pwd)"
 
+RESULT=""
 if [[ -f "$FRAMEWORK_ROOT/scripts/validate.py" ]]; then
-    RESULT=$(cd "$FRAMEWORK_ROOT" && uv run python scripts/validate.py 2>&1) || true
+    if command -v uv &> /dev/null && [[ -f "$FRAMEWORK_ROOT/pyproject.toml" ]]; then
+        RESULT=$(cd "$FRAMEWORK_ROOT" && uv run python scripts/validate.py 2>&1) || true
+    else
+        RESULT=$(cd "$FRAMEWORK_ROOT" && python3 scripts/validate.py 2>&1) || true
+    fi
+elif command -v rc-validate &> /dev/null; then
+    RESULT=$(rc-validate 2>&1) || true
+fi
+
+if [[ -n "$RESULT" ]]; then
 
     # Check if there are errors (not just warnings)
     if echo "$RESULT" | grep -q "ERROR"; then
