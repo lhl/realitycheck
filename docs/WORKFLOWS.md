@@ -320,7 +320,7 @@ This runs:
 | `REALITYCHECK_EMBED_THREADS` | `4` | CPU thread clamp for local embeddings (sets `OMP_NUM_THREADS`, etc) |
 | `REALITYCHECK_EMBED_API_BASE` | unset | OpenAI-compatible API base URL (e.g. `https://api.openai.com/v1`) |
 | `REALITYCHECK_EMBED_API_KEY` | unset | API key for `openai` provider (or use `OPENAI_API_KEY`) |
-| `REALITYCHECK_EMBED_SKIP` | unset | Skip embedding tests / embedding generation |
+| `REALITYCHECK_EMBED_SKIP` | unset | Skip embedding generation (intended for CI/tests or intentional deferral; leave unset by default) |
 
 ## Data Persistence
 

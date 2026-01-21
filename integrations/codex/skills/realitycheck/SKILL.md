@@ -60,6 +60,12 @@ Pass through to `rc-export`. Common patterns:
 
 Print a concise help message listing the supported subcommands and examples.
 
+### `embed ...`
+
+Pass through to `rc-embed`. Common patterns:
+- `rc-embed status`
+- `rc-embed generate --batch-size 32 -v`
+
 ## Execution rules
 
 - Prefer installed entry points (`rc-*`) over `uv run python scripts/*.py`.

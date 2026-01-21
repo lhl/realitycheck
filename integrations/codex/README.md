@@ -39,6 +39,8 @@ bash integrations/codex/uninstall.sh
 
 If Codex doesn’t auto-trigger the skill, explicitly invoke it with `$check` or `$realitycheck`.
 
+**Embeddings:** By default, Reality Check generates embeddings when you register sources/claims. Only use `--no-embedding` (or `REALITYCHECK_EMBED_SKIP=1`) when you explicitly want to defer embeddings (e.g., offline without a cached model).
+
 Examples:
 
 ```text
@@ -47,4 +49,5 @@ $realitycheck data ~/my-realitycheck-data/data/realitycheck.lance
 $realitycheck stats
 $realitycheck search "automation wages" --domain LABOR --limit 5 --format text
 $realitycheck validate --strict
+$realitycheck embed status
 ```

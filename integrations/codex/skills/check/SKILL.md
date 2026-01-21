@@ -24,6 +24,27 @@ If `REALITYCHECK_DATA` is not set, ask the user to either:
 - Export it in their shell, or
 - Use `$realitycheck data <path>` (see the `realitycheck` Codex skill) to set it for the current Codex session.
 
+## Project Root + Analysis Files
+
+Treat `REALITYCHECK_DATA` as the source of truth for where the data project lives:
+
+- Let `DB_PATH = REALITYCHECK_DATA` (resolve to an absolute path).
+- If `DB_PATH` ends with `.lance/` (typical), assume the data project root is `DB_PATH.parent.parent`.
+- Otherwise, assume the data project root is `DB_PATH.parent`.
+
+Store (and continue) analysis markdown files under:
+- `PROJECT_ROOT/analysis/sources/<source-id>.md`
+
+## Embeddings Policy (Important)
+
+By default, **do not skip embeddings**.
+
+- When registering sources/claims with `rc-db`, **do not** add `--no-embedding` unless:
+  - The user explicitly asks to skip embeddings, or
+  - Embedding generation fails (e.g., missing local model / offline) and the user confirms they want to proceed anyway.
+- If embeddings are skipped, note it in the analysis log and suggest running `rc-embed generate` later.
+- If `REALITYCHECK_EMBED_SKIP` is set in the environment, treat that as an explicit instruction to skip embeddings.
+
 ## Continuation Mode
 
 When `--continue` is specified (or when the user asks to continue an existing analysis):
@@ -44,17 +65,22 @@ When `--continue` is specified (or when the user asks to continue an existing an
 1. **Preflight**
    - Confirm `rc-db` and `rc-validate` are available.
    - Confirm `REALITYCHECK_DATA` is set (or prompt to set it).
+   - Determine `PROJECT_ROOT` from `REALITYCHECK_DATA` and ensure `analysis/sources/` exists.
 2. **Fetch the source**
    - Prefer `curl -L <url>` and save the raw content to a temporary file.
    - If the URL is a PDF, download it and extract text (e.g., via `pdftotext` if available).
-3. **Three-stage analysis**
+3. **Decide analysis target**
+   - If this is a new analysis, generate a stable `source-id` and create `analysis/sources/<source-id>.md`.
+   - If `--continue` is set, locate the existing `analysis/sources/<source-id>.md` (or pick the most recent) and append.
+4. **Three-stage analysis**
    - Stage 1: descriptive (summary, key claims, predictions, assumptions, terms)
    - Stage 2: evaluative (coherence, evidence quality, disconfirmation, rhetoric)
    - Stage 3: dialectical (steelman, counterarguments, synthesis) unless `--quick`
-4. **Extract claims**
+5. **Extract claims**
    - Produce a YAML block of claims (type/domain/evidence_level/credence/operationalization).
-5. **Register (optional)**
+6. **Register (optional)**
    - If not `--no-register`: add the source + claims via `rc-db`, then run `rc-validate`.
+   - Generate embeddings by default (see Embeddings Policy).
 
 ## Commands (preferred)
 
