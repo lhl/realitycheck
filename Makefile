@@ -1,12 +1,14 @@
 # Reality Check Makefile
 
-.PHONY: help install-plugin uninstall-plugin install-codex-skills uninstall-codex-skills test test-all init clean
+.PHONY: help install-plugin uninstall-plugin install-skills uninstall-skills install-codex-skills uninstall-codex-skills test test-all init clean
 
 help:
 	@echo "Reality Check - Available targets:"
 	@echo ""
-	@echo "  install-plugin    Install Claude Code plugin (symlink)"
+	@echo "  install-plugin    Install Claude Code plugin (symlink to ~/.claude/plugins/local/)"
 	@echo "  uninstall-plugin  Remove Claude Code plugin"
+	@echo "  install-skills    Install Claude Code skills (symlink to ~/.claude/skills/)"
+	@echo "  uninstall-skills  Remove Claude Code skills"
 	@echo "  install-codex-skills    Install Codex skills (symlink)"
 	@echo "  uninstall-codex-skills  Remove Codex skills"
 	@echo "  test              Run tests (skip embedding tests)"
@@ -44,6 +46,34 @@ uninstall-plugin:
 	else \
 		echo "Plugin symlink not found at $(PLUGIN_DIR)/$(PLUGIN_NAME)"; \
 	fi
+
+# Claude Code skills installation (global skills)
+SKILLS_DIR := $(HOME)/.claude/skills
+SKILLS := check analyze extract search validate export stats realitycheck
+
+install-skills:
+	@echo "Installing Reality Check skills to Claude Code..."
+	@mkdir -p $(SKILLS_DIR)
+	@for skill in $(SKILLS); do \
+		if [ -L "$(SKILLS_DIR)/$$skill" ]; then \
+			rm "$(SKILLS_DIR)/$$skill"; \
+		fi; \
+		ln -s "$(CURDIR)/plugin/skills/$$skill" "$(SKILLS_DIR)/$$skill"; \
+		echo "  Installed: $$skill"; \
+	done
+	@echo ""
+	@echo "Skills installed to $(SKILLS_DIR)"
+	@echo "Restart Claude Code and use /skills to see available skills."
+
+uninstall-skills:
+	@echo "Removing Reality Check skills..."
+	@for skill in $(SKILLS); do \
+		if [ -L "$(SKILLS_DIR)/$$skill" ]; then \
+			rm "$(SKILLS_DIR)/$$skill"; \
+			echo "  Removed: $$skill"; \
+		fi; \
+	done
+	@echo "Skills removed."
 
 # Codex skills installation
 install-codex-skills:
