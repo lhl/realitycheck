@@ -67,8 +67,14 @@ case "$COMMAND" in
         ;;
 esac
 
-# Stage and commit data changes
+# Update README.md stats before committing
+if [[ -x "$SCRIPT_DIR/../scripts/update-readme-stats.sh" ]]; then
+    "$SCRIPT_DIR/../scripts/update-readme-stats.sh" "$PROJECT_ROOT" 2>/dev/null || true
+fi
+
+# Stage and commit data changes (including updated README.md)
 git add data/
+git add README.md 2>/dev/null || true
 git commit -m "$COMMIT_MSG" --no-verify 2>/dev/null || true
 
 # Optionally push (controlled by env var)
