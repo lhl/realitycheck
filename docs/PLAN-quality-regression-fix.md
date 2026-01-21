@@ -294,6 +294,52 @@ If context size becomes a problem, we can later move to Option B or D.
 - [ ] Add "Required Sections Checklist" to Output Contract
 - [ ] Test with a new analysis to verify quality
 
+## Analyses Requiring Reprocessing
+
+After restoring the full methodology, the following analyses should be reprocessed with `--continue` to add missing sections.
+
+### Quality Audit Results
+
+| Analysis | Key Claims | Crux? | Counterevidence | Tensions | Persuasion | Confidence | Status |
+|----------|:----------:|:-----:|:---------------:|:--------:|:----------:|:----------:|--------|
+| doctorow-2026-reverse-centaur | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| teortaxes-2026-greenland-endgame | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| perera-2026-chinas-trillion-dollar-illusion | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| ronacher-2026-agent-psychosis | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| carney-2026-davos-wef-speech | ✓ | ✓ | ✓ | ✓ | ✓ | - | **OK** |
+| openai-value-intelligence | ✓ | - | - | - | - | ✓ | Partial |
+| jre-2404-elon-musk-2025-ai-woke-mind-virus | ✓ | - | - | - | ✓ | - | Partial |
+| stross-2025-the-pivot-1 | - | - | - | - | - | - | **REPROCESS** |
+| chatterjee-2024-anz-copilot-study | ✓ | - | - | - | - | - | Quick/OK |
+| peng-2023-copilot-productivity | ✓ | - | - | - | - | - | Quick/OK |
+
+### Reprocessing Queue
+
+**Priority 1 - Missing most templates (full reprocess)**:
+- [ ] `stross-2025-the-pivot-1` - Missing all Stage 2 evaluation tables
+
+**Priority 2 - Missing some templates (continuation pass)**:
+- [ ] `openai-value-intelligence` - Add Stage 2 tables (Crux?, Counterevidence, Tensions, Persuasion)
+- [ ] `jre-2404-elon-musk-2025-ai-woke-mind-virus` - Add Stage 2 tables (Crux?, Counterevidence, Tensions), add Confidence
+
+**No action needed**:
+- `chatterjee-2024-anz-copilot-study` - Intentionally abbreviated (quick extraction for cross-reference)
+- `peng-2023-copilot-productivity` - Intentionally abbreviated (quick extraction for cross-reference)
+
+### Reprocessing Commands
+
+After methodology is restored:
+
+```bash
+# Full reprocess
+/check stross-2025-the-pivot-1 --continue
+
+# Continuation passes
+/check openai-value-intelligence --continue
+/check jre-2404-elon-musk-2025-ai-woke-mind-virus --continue
+```
+
 ## Version History
 
 - 2026-01-22: Initial analysis and documentation
+- 2026-01-22: Added reprocessing queue based on quality audit
