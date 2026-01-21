@@ -17,7 +17,11 @@ Reality Check is a framework for rigorous, systematic analysis of claims, source
 realitycheck/
 ├── scripts/          # Core Python CLI tools (db.py, validate.py, export.py, migrate.py)
 ├── tests/            # pytest test suite
-├── plugin/           # Claude Code plugin (commands/, hooks/, scripts/)
+├── integrations/     # Tool-specific integrations
+│   ├── claude/       # Claude Code plugin and skills
+│   │   ├── plugin/   # Plugin (commands/, hooks/, scripts/)
+│   │   └── skills/   # Global skills (alternative to plugin)
+│   └── codex/        # OpenAI Codex skills
 ├── methodology/      # Analysis methodology docs (extracted from framework)
 ├── docs/             # Development docs (PLAN-*.md, IMPLEMENTATION.md)
 └── examples/         # Minimal example data
@@ -180,11 +184,11 @@ def sample_claim():
 
 ## Plugin Development
 
-The Claude Code plugin lives in `plugin/` and provides slash commands that inject methodology + call scripts.
+The Claude Code plugin lives in `integrations/claude/plugin/` and provides slash commands that inject methodology + call scripts.
 
 ### Plugin Structure
 ```
-plugin/
+integrations/claude/plugin/
 ├── .claude-plugin/plugin.json    # Metadata
 ├── commands/*.md                  # Slash command definitions
 ├── hooks/hooks.json               # Lifecycle hooks
@@ -193,12 +197,25 @@ plugin/
 ```
 
 ### Testing Commands
-For local development, symlink the plugin:
+Use the `--plugin-dir` flag (local plugin discovery is currently broken):
 ```bash
-ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
+claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
 ```
 
-Then test commands in a new Claude Code session.
+### Keeping Hooks and Skills in Sync
+
+The Claude plugin includes lifecycle hooks that automate tasks like auto-commit after database operations. Codex (and other integrations) don't support hooks, so skills must document equivalent manual steps.
+
+**Source of truth:** `integrations/claude/plugin/hooks/` scripts define the canonical behavior.
+
+When modifying hook behavior:
+1. Update the hook script (e.g., `auto-commit-data.sh`)
+2. Update corresponding skill docs to describe the manual equivalent
+3. Update `docs/WORKFLOWS.md` to note any cross-tool differences
+
+Key sync points:
+- **Auto-commit:** `hooks/post-db-modify.sh` → Codex skill "Data Repo Version Control" section
+- **README stats:** `scripts/update-readme-stats.sh` → Codex skill optional step
 
 ## Handling Blockers
 

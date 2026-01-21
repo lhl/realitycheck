@@ -355,7 +355,7 @@ export REALITYCHECK_AUTO_COMMIT=false
 export REALITYCHECK_AUTO_PUSH=true
 ```
 
-**Codex note:** Codex skills do not support Claude Code-style hooks. If you are using `$check` in Codex, you need to commit/push the data repo manually (or run the same scripts the plugin hooks call). To keep integrations in sync, treat `plugin/hooks/auto-commit-data.sh` as the source of truth for auto-commit behavior.
+**Codex note:** Codex skills do not support Claude Code-style hooks. If you are using `$check` in Codex, you need to commit/push the data repo manually (or run the same scripts the plugin hooks call). To keep integrations in sync, treat `integrations/claude/plugin/hooks/auto-commit-data.sh` as the source of truth for auto-commit behavior.
 
 ### Separate Data Repository
 

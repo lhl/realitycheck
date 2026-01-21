@@ -27,34 +27,25 @@ Based on the [Claude Code plugin documentation](https://code.claude.com/docs/en/
 ### Directory Structure
 
 ```
-plugin/
+integrations/claude/plugin/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin manifest (metadata only)
-├── skills/                   # Skill definitions (model-invoked)
-│   ├── check/
-│   │   └── SKILL.md
-│   ├── rc-stats/
-│   │   └── SKILL.md
-│   ├── rc-search/
-│   │   └── SKILL.md
-│   ├── rc-validate/
-│   │   └── SKILL.md
-│   ├── rc-export/
-│   │   └── SKILL.md
-│   ├── rc-analyze/
-│   │   └── SKILL.md
-│   └── rc-extract/
-│       └── SKILL.md
-├── commands/                 # Legacy command files (deprecated)
+├── commands/                 # Slash command definitions (used with --plugin-dir)
 │   └── *.md
 ├── hooks/
-│   └── hooks.json           # Event handlers
+│   └── hooks.json           # Event handlers (auto-commit, validation)
 └── scripts/                 # Shell wrappers
     ├── resolve-project.sh
     ├── run-db.sh
     ├── run-validate.sh
     └── run-export.sh
+
+integrations/claude/skills/   # Global skills (alternative to plugin)
+└── <skill-name>/
+    └── SKILL.md
 ```
+
+**Note:** The plugin currently uses `commands/*.md` files with the `--plugin-dir` flag (local plugin discovery from `~/.claude/plugins/local/` is broken). Global skills can be installed to `~/.claude/skills/` as an alternative.
 
 ### Skill Frontmatter
 
@@ -99,7 +90,7 @@ To keep commands short, we use:
 Use `--plugin-dir` flag to load plugin without installation:
 
 ```bash
-claude --plugin-dir /home/lhl/github/lhl/realitycheck/plugin
+claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
 ```
 
 ### User Installation
@@ -205,11 +196,11 @@ allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh stats)"]
 
 ```bash
 # Start Claude Code with plugin loaded
-claude --plugin-dir /home/lhl/github/lhl/realitycheck/plugin
+claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
 
 # Test commands
-/realitycheck:rc-stats
-/realitycheck:check https://example.com/article
+/reality:stats
+/reality:check https://example.com/article
 ```
 
 ### Verification Checklist

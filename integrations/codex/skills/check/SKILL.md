@@ -104,7 +104,7 @@ Codex skills do not support Claude Code-style hooks. After successful registrati
 
 1. If `PROJECT_ROOT/.git` exists and there are changes under `data/`, `analysis/`, `tracking/`, or `README.md`:
    - If you can locate the framework repo (common when using these skills), update README stats (optional but recommended):
-     - `bash <framework-root>/plugin/scripts/update-readme-stats.sh "$PROJECT_ROOT"`
+     - `bash <framework-root>/integrations/claude/plugin/scripts/update-readme-stats.sh "$PROJECT_ROOT"`
      - If you can’t find it, skip this step.
    - Commit (default behavior mirrors the Claude plugin: commit is on, push is off):
      - If `REALITYCHECK_AUTO_COMMIT` is unset or `true`, run:
