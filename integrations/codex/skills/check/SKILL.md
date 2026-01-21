@@ -102,12 +102,13 @@ If those aren’t on `PATH`, fall back to running from the framework repo:
 
 After completing an analysis, update the data project's `README.md` analysis index:
 
-1. **Add to Source Analyses table**: Insert a row in the "Source Analyses" section (sorted by date, newest first):
+1. **Add to Source Analyses table**: Insert a new row **at the top** of the "Source Analyses" table (reverse chronological order - newest first):
 
 ```markdown
 | Date | Document | Status | Summary |
 |------|----------|--------|---------|
-| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |
+| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |  ← INSERT HERE (top of table)
+| ... existing rows below ... |
 ```
 
 **Status values:**

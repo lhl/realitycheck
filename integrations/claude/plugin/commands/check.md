@@ -164,12 +164,13 @@ Run validation to ensure data integrity:
 
 After completing the analysis, update the data project's `README.md` analysis index:
 
-1. **Add to Source Analyses table** (sorted by date, newest first):
+1. **Add to Source Analyses table**: Insert a new row **at the top** of the table (reverse chronological order - newest first):
 
 ```markdown
 | Date | Document | Status | Summary |
 |------|----------|--------|---------|
-| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |
+| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |  ← INSERT HERE (top of table)
+| ... existing rows below ... |
 ```
 
 **Status values:**
