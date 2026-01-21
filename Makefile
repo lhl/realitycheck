@@ -22,9 +22,13 @@ help:
 	@echo "    clean                    Remove generated files"
 	@echo ""
 
+# Paths
+CLAUDE_PLUGIN_SRC := $(CURDIR)/integrations/claude/plugin
+CLAUDE_SKILLS_SRC := $(CURDIR)/integrations/claude/skills
+
 # Claude Code plugin installation
 # Note: Local plugin discovery from ~/.claude/plugins/local/ is currently broken.
-# Use --plugin-dir flag instead: claude --plugin-dir /path/to/realitycheck/plugin
+# Use --plugin-dir flag instead: claude --plugin-dir /path/to/integrations/claude/plugin
 PLUGIN_DIR := $(HOME)/.claude/plugins/local
 PLUGIN_NAME := reality
 
@@ -39,13 +43,13 @@ install-claude-plugin:
 		echo "Remove it manually if you want to use symlink install"; \
 		exit 1; \
 	fi
-	@ln -s "$(CURDIR)/plugin" "$(PLUGIN_DIR)/$(PLUGIN_NAME)"
-	@echo "Plugin installed: $(PLUGIN_DIR)/$(PLUGIN_NAME) -> $(CURDIR)/plugin"
+	@ln -s "$(CLAUDE_PLUGIN_SRC)" "$(PLUGIN_DIR)/$(PLUGIN_NAME)"
+	@echo "Plugin installed: $(PLUGIN_DIR)/$(PLUGIN_NAME) -> $(CLAUDE_PLUGIN_SRC)"
 	@echo ""
 	@echo "NOTE: Local plugin discovery is currently broken in Claude Code."
 	@echo "Use the --plugin-dir flag instead:"
 	@echo ""
-	@echo "  claude --plugin-dir $(CURDIR)/plugin"
+	@echo "  claude --plugin-dir $(CLAUDE_PLUGIN_SRC)"
 	@echo ""
 	@echo "Commands will be available as: /reality:check, /reality:analyze, etc."
 
@@ -60,16 +64,16 @@ uninstall-claude-plugin:
 
 # Claude Code skills installation (global skills)
 SKILLS_DIR := $(HOME)/.claude/skills
-SKILLS := check analyze extract search validate export stats realitycheck
+CLAUDE_SKILLS := check analyze extract search validate export stats realitycheck
 
 install-claude-skills:
 	@echo "Installing Reality Check skills to Claude Code..."
 	@mkdir -p $(SKILLS_DIR)
-	@for skill in $(SKILLS); do \
+	@for skill in $(CLAUDE_SKILLS); do \
 		if [ -L "$(SKILLS_DIR)/$$skill" ]; then \
 			rm "$(SKILLS_DIR)/$$skill"; \
 		fi; \
-		ln -s "$(CURDIR)/plugin/skills/$$skill" "$(SKILLS_DIR)/$$skill"; \
+		ln -s "$(CLAUDE_SKILLS_SRC)/$$skill" "$(SKILLS_DIR)/$$skill"; \
 		echo "  Installed: $$skill"; \
 	done
 	@echo ""
@@ -78,7 +82,7 @@ install-claude-skills:
 
 uninstall-claude-skills:
 	@echo "Removing Reality Check skills..."
-	@for skill in $(SKILLS); do \
+	@for skill in $(CLAUDE_SKILLS); do \
 		if [ -L "$(SKILLS_DIR)/$$skill" ]; then \
 			rm "$(SKILLS_DIR)/$$skill"; \
 			echo "  Removed: $$skill"; \

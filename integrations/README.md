@@ -1,17 +1,55 @@
 # Integrations
 
-Reality Check supports tool-specific integrations (plugins, skills, wrappers) kept under `integrations/` when they are not part of the core Python package.
+Reality Check supports tool-specific integrations (plugins, skills, wrappers) for AI coding assistants.
+
+## Directory Structure
+
+```
+integrations/
+├── claude/
+│   ├── plugin/           # Claude Code plugin (commands, hooks)
+│   └── skills/           # Claude Code global skills
+└── codex/
+    └── skills/           # OpenAI Codex skills
+```
 
 ## Claude Code
 
-The Claude Code plugin lives in `plugin/`.
+### Plugin
 
-- Install (symlink): `make install-plugin`
-- Uninstall: `make uninstall-plugin`
+The plugin provides slash commands for Reality Check workflows.
+
+```bash
+# Install
+make install-claude-plugin
+
+# Usage (local plugin discovery is currently broken, use --plugin-dir):
+claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
+
+# Commands: /reality:check, /reality:analyze, /reality:search, etc.
+```
+
+### Global Skills
+
+Skills are auto-activated based on context.
+
+```bash
+# Install
+make install-claude-skills
+
+# View installed skills
+/skills
+```
 
 ## Codex
 
-Codex skills live in `integrations/codex/`.
+Codex skills for OpenAI's Codex CLI.
 
-- Install: `make install-codex-skills`
-- Uninstall: `make uninstall-codex-skills`
+```bash
+# Install
+make install-codex-skills
+
+# Usage: $check, $realitycheck, etc.
+```
+
+See [codex/README.md](codex/README.md) for details.

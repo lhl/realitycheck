@@ -234,10 +234,10 @@ make install-claude-plugin
 
 ```bash
 # Start Claude Code with the plugin loaded:
-claude --plugin-dir /path/to/realitycheck/plugin
+claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
 
 # Or create a shell alias:
-alias claude-rc='claude --plugin-dir /path/to/realitycheck/plugin'
+alias claude-rc='claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin'
 ```
 
 ### Plugin Commands

@@ -2,12 +2,12 @@
 
 Integrate Reality Check methodology and database operations into Claude Code sessions.
 
-## Status: v0.1.0-beta
+## Status: v0.1.0
 
 The plugin provides:
 - **Command definitions** - 7 slash commands for analysis workflows
-- **Shell wrappers** - CLI integration via `plugin/scripts/`
-- **Full workflow automation** - `/check` command for end-to-end analysis
+- **Shell wrappers** - CLI integration via `integrations/claude/plugin/scripts/`
+- **Full workflow automation** - `/reality:check` command for end-to-end analysis
 
 ## Installation
 
@@ -15,40 +15,43 @@ The plugin provides:
 
 ```bash
 cd /path/to/realitycheck
-make install-plugin
+make install-claude-plugin
 ```
 
-### Option 2: Manual Symlink
+### Using the Plugin
+
+**Note:** Local plugin discovery from `~/.claude/plugins/local/` is currently broken. Use the `--plugin-dir` flag:
 
 ```bash
-mkdir -p ~/.claude/plugins/local
-ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
+# Start Claude Code with the plugin loaded:
+claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
+
+# Or create a shell alias:
+alias claude-rc='claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin'
 ```
 
-### Option 3: Copy (Standalone)
+### Alternative: Global Skills
+
+If you prefer skills over plugins:
 
 ```bash
-cp -r /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
+make install-claude-skills
 ```
 
-### Verify Installation
-
-```bash
-ls -la ~/.claude/plugins/local/realitycheck
-# Should show: realitycheck -> /path/to/realitycheck/plugin
-```
-
-Restart Claude Code to load the plugin.
+Skills are installed to `~/.claude/skills/` and auto-activate based on context.
 
 ## Commands
 
-### /check - Full Analysis Workflow (Flagship)
+Commands are prefixed with `/reality:`:
+
+### /reality:check - Full Analysis Workflow (Flagship)
 
 The primary command for end-to-end source analysis.
 
 ```
-/check <url>
-/check <url> --domain TECH --quick
+/reality:check <url>
+/reality:check <url> --domain TECH --quick
+/reality:check <source-id> --continue
 ```
 
 **Workflow:**
@@ -64,100 +67,60 @@ The primary command for end-to-end source analysis.
 - `--domain`: Primary domain hint (TECH/LABOR/ECON/etc.)
 - `--quick`: Skip Stage 3 (dialectical analysis)
 - `--no-register`: Analyze without database registration
+- `--continue`: Continue/iterate on an existing analysis
 
-### /realitycheck - Alias
-
-Alias for `/check`. Identical functionality.
-
-### /rc-analyze - Manual Analysis
+### /reality:analyze - Manual Analysis
 
 3-stage analysis without automatic database registration.
 
 ```
-/rc-analyze <url_or_source_id>
+/reality:analyze <url_or_source_id>
 ```
 
-Use when you want to:
-- Analyze without committing to database
-- Re-analyze an existing source
-- Have more control over the process
-
-After analysis, register manually:
-```bash
-uv run python scripts/db.py source add --id "..." --title "..." ...
-uv run python scripts/db.py claim add --text "..." --type "[F]" ...
-```
-
-### /rc-extract - Quick Extraction
+### /reality:extract - Quick Extraction
 
 Fast claim extraction without full 3-stage analysis.
 
 ```
-/rc-extract <source>
+/reality:extract <source>
 ```
 
-Good for:
-- Quick scanning of sources
-- Extracting obvious claims
-- Processing multiple sources rapidly
-
-### /rc-search - Semantic Search
+### /reality:search - Semantic Search
 
 Search claims using natural language.
 
 ```
-/rc-search <query> [--domain DOMAIN] [--limit N] [--format json|text]
+/reality:search <query> [--domain DOMAIN] [--limit N]
 ```
 
-**Examples:**
-```
-/rc-search "AI automation labor displacement"
-/rc-search "training costs" --domain TECH --limit 5
-```
-
-**Backend:** Runs `uv run python scripts/db.py search "..."`.
-
-### /rc-validate - Data Integrity
+### /reality:validate - Data Integrity
 
 Check database for errors and inconsistencies.
 
 ```
-/rc-validate [--strict] [--json]
+/reality:validate [--strict] [--json]
 ```
 
-**Checks:**
-- Schema validation (ID formats, valid types, credence range)
-- Referential integrity (source/claim links)
-- Logical consistency (domain matching, chain credence)
-
-**Backend:** Runs `uv run python scripts/validate.py`.
-
-### /rc-export - Data Export
+### /reality:export - Data Export
 
 Export data to YAML or Markdown.
 
 ```
-/rc-export yaml claims -o registry.yaml
-/rc-export yaml sources -o sources.yaml
-/rc-export md claim --id TECH-2026-001
-/rc-export md predictions -o predictions.md
+/reality:export yaml claims -o registry.yaml
+/reality:export md claim --id TECH-2026-001
 ```
 
-**Backend:** Runs `uv run python scripts/export.py ...`.
-
-### /rc-stats - Database Statistics
+### /reality:stats - Database Statistics
 
 Show counts for all tables.
 
 ```
-/rc-stats
+/reality:stats
 ```
-
-**Backend:** Runs `uv run python scripts/db.py stats`.
 
 ## Shell Wrappers
 
-The plugin includes shell wrappers in `plugin/scripts/`:
+The plugin includes shell wrappers in `integrations/claude/plugin/scripts/`:
 
 | Script | Purpose |
 |--------|---------|
@@ -166,31 +129,17 @@ The plugin includes shell wrappers in `plugin/scripts/`:
 | `run-validate.sh` | Wrapper for validate.py |
 | `run-export.sh` | Wrapper for export.py |
 
-These scripts:
-1. Detect project context (via `.realitycheck.yaml` or `data/*.lance`)
-2. Set environment variables
-3. Invoke Python scripts with `uv run` (development) or installed commands
-
 ## Configuration
 
 ### Plugin Manifest
 
-`plugin/.claude-plugin/plugin.json`:
+`integrations/claude/plugin/.claude-plugin/plugin.json`:
 
 ```json
 {
-  "name": "realitycheck",
+  "name": "reality",
   "version": "0.1.0",
-  "commands": [
-    {"name": "check", "file": "commands/check.md"},
-    {"name": "realitycheck", "file": "commands/realitycheck.md"},
-    {"name": "rc-analyze", "file": "commands/rc-analyze.md"},
-    {"name": "rc-extract", "file": "commands/rc-extract.md"},
-    {"name": "rc-validate", "file": "commands/rc-validate.md"},
-    {"name": "rc-search", "file": "commands/rc-search.md"},
-    {"name": "rc-export", "file": "commands/rc-export.md"},
-    {"name": "rc-stats", "file": "commands/rc-stats.md"}
-  ]
+  "description": "Framework for rigorous analysis of claims, sources, predictions, and argument chains"
 }
 ```
 
@@ -199,137 +148,41 @@ These scripts:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REALITYCHECK_DATA` | `data/realitycheck.lance` | Path to LanceDB database |
-| `REALITYCHECK_EMBED_MODEL` | `all-MiniLM-L6-v2` | Local embedding model (Hugging Face id) |
+| `REALITYCHECK_EMBED_MODEL` | `all-MiniLM-L6-v2` | Local embedding model |
 
-## Dependencies
+## Lifecycle Hooks
 
-The plugin requires:
+The plugin includes lifecycle hooks:
 
-1. **Python 3.11+** with dependencies installed (`uv sync`)
-2. **LanceDB database** initialized (`uv run python scripts/db.py init`)
-3. **Embeddings** for search (generated automatically on first claim)
+| Hook | Script | Purpose |
+|------|--------|---------|
+| Stop | `on-stop.sh` | Runs validation when session ends |
+| PostToolUse | `post-db-modify.sh` | Auto-commit data project changes |
 
-## Troubleshooting
-
-### Commands not appearing
-
-1. Verify symlink: `ls -la ~/.claude/plugins/local/`
-2. Check plugin.json syntax: `cat ~/.claude/plugins/local/realitycheck/.claude-plugin/plugin.json`
-3. Restart Claude Code session
-
-### Database errors
-
-```bash
-# Initialize database
-uv run python scripts/db.py init
-
-# Check database location
-echo $REALITYCHECK_DATA
-
-# Verify data directory
-ls -la data/
-```
-
-### Search returns no results
-
-```bash
-# Check if data exists
-uv run python scripts/db.py stats
-
-# Verify embeddings (claims need embeddings for search)
-uv run python scripts/db.py claim list --format text
-```
-
-### Shell wrapper issues
-
-```bash
-# Test wrapper directly
-./plugin/scripts/run-db.sh --help
-
-# Check if uv is available
-which uv
-
-# Verify Python scripts
-uv run python scripts/db.py --help
-```
+Auto-commit controls:
+- `REALITYCHECK_AUTO_COMMIT` (default: `true`)
+- `REALITYCHECK_AUTO_PUSH` (default: `false`)
 
 ## Development
 
 ### Testing Commands
 
-1. Make changes to `plugin/commands/*.md`
-2. Commands reload on next invocation (no restart needed)
-3. Test in Claude Code session
-
-### Adding New Commands
-
-1. Create `plugin/commands/newcommand.md`
-2. Add entry to `plugin/.claude-plugin/plugin.json`
-3. Restart Claude Code
+1. Make changes to `integrations/claude/plugin/commands/*.md`
+2. Frontmatter must be at the very top of the file
+3. Test with: `claude --plugin-dir /path/to/integrations/claude/plugin`
 
 ### Command Markdown Format
 
 ```markdown
-# /commandname - Short Description
-
-Description of what the command does.
-
 ---
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)"]
+description: Short description of the command
 ---
 
-## Usage
+# /commandname - Title
 
-\`\`\`
-/commandname <args> [--options]
-\`\`\`
-
-## CLI Invocation
-
-\`\`\`bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" subcommand args
-\`\`\`
-
-...
+Command documentation...
 ```
-
-## Lifecycle Hooks
-
-The plugin includes lifecycle hooks that run automatically:
-
-### hooks.json
-
-```json
-{
-  "hooks": {
-    "Stop": [...],           // Runs when session ends
-    "PostToolUse": [...]     // Runs after db.py commands
-  }
-}
-```
-
-### Available Hooks
-
-| Hook | Script | Purpose |
-|------|--------|---------|
-| Stop | `on-stop.sh` | Runs validation when session ends, alerts on errors |
-| PostToolUse | `post-db-modify.sh` | Auto-commit/push data project changes after db write operations |
-
-### How They Work
-
-**on-stop.sh**: When you end a Claude Code session, this hook automatically runs `validate.py` and alerts you if there are any database integrity errors. Warnings are suppressed to keep output clean.
-
-**post-db-modify.sh**: Runs after any write operation (`claim add`, `source add`, `chain add`, `prediction add`, `update`, `import`, `init`, `reset`) executed via a Bash command matching `*db.py*`, `*rc-db*`, or `*run-db.sh*`. By default it auto-commits changes in the data project (e.g., `data/`, `analysis/`, `tracking/`, and `README.md`) and can optionally push.
-
-Auto-commit controls:
-- `REALITYCHECK_AUTO_COMMIT` (default: `true`) - disable with `false`
-- `REALITYCHECK_AUTO_PUSH` (default: `false`) - enable with `true`
-
-### Customizing Hooks
-
-To disable hooks, rename or remove `plugin/hooks/hooks.json`.
-
-To modify behavior, edit the shell scripts in `plugin/hooks/`.
 
 ## Methodology Templates
 
