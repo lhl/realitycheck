@@ -448,6 +448,57 @@ realitycheck-data/
 
 ---
 
+## Future Work
+
+### Analysis Audit Log
+
+Track detailed metadata for each analysis session:
+
+- [ ] Token usage per stage (descriptive, evaluative, dialectical)
+- [ ] Cost estimation ($) per analysis with running totals
+- [ ] Model/agent attribution (which model performed which step)
+- [ ] Timestamp and duration tracking
+- [ ] Store audit log in LanceDB `analysis_logs` table
+- [ ] CLI command: `rc-db analysis list` / `rc-db analysis get <id>`
+- [ ] Export audit data for cost reporting
+
+**Schema draft:**
+```yaml
+analysis_logs:
+  id: "ANALYSIS-2026-001"
+  source_id: "author-2026-title"
+  started_at: "2026-01-21T10:00:00Z"
+  completed_at: "2026-01-21T10:05:00Z"
+  stages:
+    - name: "descriptive"
+      model: "claude-sonnet-4"
+      tokens_in: 2500
+      tokens_out: 1200
+      cost_usd: 0.012
+    - name: "evaluative"
+      ...
+  total_tokens: 8500
+  total_cost_usd: 0.045
+  claims_extracted: ["TECH-2026-001", "TECH-2026-002"]
+```
+
+### GUI Application
+
+Create a desktop GUI for non-technical users:
+
+- [ ] Electron app (or Tauri for smaller bundle)
+- [ ] Visual claim browser with search
+- [ ] Drag-and-drop source upload
+- [ ] Interactive argument chain visualization (D3.js or similar)
+- [ ] Prediction dashboard with status indicators
+- [ ] One-click analysis workflow
+- [ ] Export reports as PDF
+- [ ] Optional: Claude/OpenAI API key configuration for AI-assisted analysis
+
+**Target audience:** Researchers, journalists, analysts who want the methodology without CLI
+
+---
+
 ## Decisions Log
 
 | Date | Decision | Rationale |
