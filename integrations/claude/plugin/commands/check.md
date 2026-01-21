@@ -9,6 +9,8 @@ The flagship Reality Check command for rigorous source analysis.
 
 **Core Methodology**: See `methodology/workflows/check-core.md` for the complete 3-stage analysis methodology, evidence hierarchy, claim types, and extraction format.
 
+**IMPORTANT**: Always write to the DATA repository (pointed to by `REALITYCHECK_DATA`), never to the framework repository. If you see `scripts/`, `tests/`, `integrations/` - you're in the wrong repo.
+
 ## Usage
 
 ```

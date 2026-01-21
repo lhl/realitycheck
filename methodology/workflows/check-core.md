@@ -2,6 +2,19 @@
 
 This document defines the shared methodology for the `/check` (Claude) and `$check` (Codex) workflows. Tool-specific wrappers reference this core methodology.
 
+## Critical: Data Repository vs Framework Repository
+
+**Always write analysis data to the DATA repository, never to the framework repository.**
+
+- **Framework repo** (`realitycheck`): Contains code, scripts, tests, methodology, integrations. NO data.
+- **Data repo** (e.g., `realitycheck-data`): Contains your knowledge base - `data/`, `analysis/`, `tracking/`, claims, sources.
+
+The `REALITYCHECK_DATA` environment variable points to your data repo's database. Derive `PROJECT_ROOT` from this path - that's where all analysis files go.
+
+**Red flags you're in the wrong repo**: If you see `scripts/`, `tests/`, `integrations/`, `methodology/` directories, you're in the framework repo. Stop and check `REALITYCHECK_DATA`.
+
+---
+
 ## Overview
 
 The Reality Check analysis workflow performs rigorous source analysis through a structured pipeline:

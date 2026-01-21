@@ -39,12 +39,16 @@ If `REALITYCHECK_DATA` is not set, prompt the user to either:
 
 ## Project Root + Analysis Files
 
+**IMPORTANT**: Always write to the DATA repository, never to the framework repository. The framework repo (`realitycheck`) contains only code and methodology - no analysis data.
+
 Derive the data project root from `REALITYCHECK_DATA`:
 
 - If path ends with `.lance/` (typical): `PROJECT_ROOT = parent.parent`
 - Otherwise: `PROJECT_ROOT = parent`
 
 Store analysis files at: `PROJECT_ROOT/analysis/sources/<source-id>.md`
+
+If you find yourself writing to a directory containing `scripts/`, `tests/`, `integrations/`, or `methodology/` - STOP. That's the framework repo, not the data repo.
 
 ## Workflow Steps
 
