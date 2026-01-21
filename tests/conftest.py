@@ -25,9 +25,9 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    """Skip embedding tests if SKIP_EMBEDDING_TESTS is set."""
-    if os.environ.get("SKIP_EMBEDDING_TESTS"):
-        skip_embedding = pytest.mark.skip(reason="SKIP_EMBEDDING_TESTS is set")
+    """Skip embedding tests if REALITYCHECK_EMBED_SKIP is set."""
+    if os.environ.get("REALITYCHECK_EMBED_SKIP") or os.environ.get("SKIP_EMBEDDING_TESTS"):
+        skip_embedding = pytest.mark.skip(reason="REALITYCHECK_EMBED_SKIP is set")
         for item in items:
             if "requires_embedding" in item.keywords:
                 item.add_marker(skip_embedding)

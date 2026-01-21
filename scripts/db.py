@@ -8,7 +8,9 @@ for claims, sources, chains, predictions, contradictions, and definitions.
 
 from __future__ import annotations
 
+import json
 import os
+import sys
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -19,35 +21,237 @@ import pyarrow as pa
 
 # Configuration
 DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
-EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 dimension
+EMBEDDING_MODEL = os.getenv("REALITYCHECK_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or "all-MiniLM-L6-v2"
+EMBEDDING_DIM = int(os.getenv("REALITYCHECK_EMBED_DIM") or os.getenv("EMBEDDING_DIM") or "384")  # default: all-MiniLM-L6-v2 dimension
 
 # Lazy-loaded embedding model
 _embedder = None
+_embedder_key: Optional[tuple[Any, ...]] = None
+
+
+def should_skip_embeddings() -> bool:
+    """Return True if embedding generation should be skipped (tests/CI/offline)."""
+    value = os.getenv("REALITYCHECK_EMBED_SKIP")
+    if value is None:
+        # Backwards-compatible alias.
+        value = os.getenv("SKIP_EMBEDDING_TESTS")
+    if not value:
+        return False
+    normalized = value.strip().lower()
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return True
+
+
+def configure_embedding_threads(*, device: str) -> int:
+    """
+    Configure CPU threading defaults for embedding workloads.
+
+    On some systems, large OpenMP thread counts can dramatically reduce embedding throughput.
+    We force a conservative default unless overridden by REALITYCHECK_EMBED_THREADS.
+
+    Returns the configured thread count (0 for non-CPU devices).
+    """
+    if device != "cpu":
+        return 0
+
+    threads_env = os.getenv("REALITYCHECK_EMBED_THREADS")
+    if threads_env is None:
+        # Backwards-compatible alias (older naming before EMBED_* standardization).
+        threads_env = os.getenv("REALITYCHECK_EMBEDDING_THREADS")
+    if threads_env is None:
+        # Backwards-compatible alias (pre-namespace cleanup).
+        threads_env = os.getenv("EMBEDDING_CPU_THREADS")
+    if threads_env is None:
+        threads_env = "4"
+
+    try:
+        threads = int(threads_env)
+    except ValueError:
+        threads = 4
+    if threads < 1:
+        return 0
+
+    # Force thread counts for common runtimes used by PyTorch / tokenizers.
+    for var in [
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ]:
+        os.environ[var] = str(threads)
+
+    # If torch is already imported, clamp its thread pools too.
+    if "torch" in sys.modules:
+        try:
+            import torch  # type: ignore
+        except Exception:
+            return threads
+        try:
+            torch.set_num_threads(threads)
+        except Exception:
+            pass
+        try:
+            torch.set_num_interop_threads(max(1, min(threads, 4)))
+        except Exception:
+            pass
+
+    return threads
+
+
+class OpenAICompatEmbedder:
+    """
+    Minimal OpenAI-compatible embeddings client.
+
+    Intended for opt-in remote embedding backends (e.g., OpenAI, vLLM, etc).
+    """
+
+    def __init__(self, *, model: str, api_base: str, api_key: str, timeout_seconds: float = 60.0):
+        self.model = model
+        self.api_base = (api_base or "").rstrip("/")
+        self.api_key = api_key
+        self.timeout_seconds = float(timeout_seconds)
+
+    def encode(self, texts: Any, **_: Any) -> list[list[float]]:
+        if isinstance(texts, str):
+            inputs = [texts]
+        else:
+            inputs = list(texts)
+
+        if not inputs:
+            return []
+
+        url = f"{self.api_base}/embeddings"
+        payload = {"model": self.model, "input": inputs, "encoding_format": "float"}
+        body = json.dumps(payload).encode("utf-8")
+
+        from urllib.error import HTTPError
+        from urllib.request import Request, urlopen
+
+        req = Request(
+            url,
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+
+        try:
+            with urlopen(req, timeout=self.timeout_seconds) as resp:
+                raw = resp.read()
+        except HTTPError as e:
+            details = ""
+            try:
+                details = e.read().decode("utf-8", errors="replace")
+            except Exception:
+                pass
+            raise ValueError(f"Remote embeddings HTTP {e.code}: {details or e.reason}") from e
+
+        data = json.loads(raw.decode("utf-8"))
+        items = data.get("data")
+        if not isinstance(items, list):
+            raise ValueError(f"Unexpected embeddings response shape: missing 'data' list. keys={sorted(data.keys())}")
+
+        out: list[Optional[list[float]]] = [None] * len(inputs)
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            idx = item.get("index", 0)
+            emb = item.get("embedding")
+            if not isinstance(idx, int) or idx < 0 or idx >= len(inputs):
+                continue
+            if not isinstance(emb, list):
+                continue
+            out[idx] = [float(x) for x in emb]
+
+        if any(v is None for v in out):
+            raise ValueError("Remote embeddings response missing one or more vectors.")
+
+        return [v for v in out if v is not None]
 
 
 def get_embedder():
     """Lazy-load the sentence transformer model."""
-    global _embedder
-    if _embedder is None:
+    global _embedder, _embedder_key
+
+    provider = (os.getenv("REALITYCHECK_EMBED_PROVIDER") or os.getenv("EMBEDDING_PROVIDER") or "local").strip().lower()
+    model_id = os.getenv("REALITYCHECK_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or EMBEDDING_MODEL
+
+    if provider == "openai":
+        api_base = (
+            os.getenv("REALITYCHECK_EMBED_API_BASE")
+            or os.getenv("EMBEDDING_API_BASE")
+            or os.getenv("OPENAI_API_BASE")
+            or "https://api.openai.com/v1"
+        )
+        api_key = (
+            os.getenv("REALITYCHECK_EMBED_API_KEY")
+            or os.getenv("EMBEDDING_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or ""
+        )
+        if not api_key:
+            raise ValueError("REALITYCHECK_EMBED_PROVIDER=openai requires REALITYCHECK_EMBED_API_KEY (or OPENAI_API_KEY).")
+
+        key = ("openai", model_id, api_base)
+        if _embedder is None or _embedder_key != key:
+            _embedder_key = key
+            _embedder = OpenAICompatEmbedder(model=model_id, api_base=api_base, api_key=api_key)
+        return _embedder
+
+    if provider not in {"local", "sentence-transformers"}:
+        raise ValueError(f"Unknown REALITYCHECK_EMBED_PROVIDER='{provider}'. Supported: local, openai.")
+
+    # Force CPU to avoid GPU driver crashes (especially with ROCm)
+    # Users can override with REALITYCHECK_EMBED_DEVICE env var
+    device = os.getenv("REALITYCHECK_EMBED_DEVICE") or os.getenv("EMBEDDING_DEVICE") or "cpu"
+    key = ("local", model_id, device)
+    if _embedder is None or _embedder_key != key:
+        _embedder_key = key
+        if device == "cpu":
+            configure_embedding_threads(device=device)
         from sentence_transformers import SentenceTransformer
-        # Force CPU to avoid GPU driver crashes (especially with ROCm)
-        # Users can override with EMBEDDING_DEVICE env var
-        device = os.getenv("EMBEDDING_DEVICE", "cpu")
-        _embedder = SentenceTransformer(EMBEDDING_MODEL, device=device)
+
+        _embedder = SentenceTransformer(model_id, device=device)
+        if device == "cpu":
+            configure_embedding_threads(device=device)
     return _embedder
 
 
 def embed_text(text: str) -> list[float]:
     """Generate embedding for a text string."""
-    embedder = get_embedder()
-    return embedder.encode(text).tolist()
+    return embed_texts([text])[0]
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """Generate embeddings for multiple texts (batched)."""
+    if not texts:
+        return []
+
     embedder = get_embedder()
-    return embedder.encode(texts).tolist()
+    raw = embedder.encode(texts)
+
+    if hasattr(raw, "tolist"):
+        raw = raw.tolist()
+
+    # Some embedders return a single vector for a single input. Normalize to list[list[float]].
+    if raw and isinstance(raw, list) and raw and isinstance(raw[0], (int, float)):
+        embeddings: list[list[float]] = [[float(x) for x in raw]]
+    else:
+        embeddings = [[float(x) for x in row] for row in raw]
+
+    expected_dim = EMBEDDING_DIM
+    for vec in embeddings:
+        if len(vec) != expected_dim:
+            raise ValueError(
+                f"Embedding dim mismatch: got {len(vec)}, expected {expected_dim}. "
+                "Set REALITYCHECK_EMBED_DIM to match your model and re-init/migrate the DB schema."
+            )
+
+    return embeddings
 
 
 def get_table_names(db: "lancedb.DBConnection") -> list[str]:
@@ -956,9 +1160,9 @@ Examples:
     args = parser.parse_args()
 
     # Helper to determine if embeddings should be generated
-    # Respects both --no-embedding flag and SKIP_EMBEDDING_TESTS env var
+    # Respects both --no-embedding flag and REALITYCHECK_EMBED_SKIP env var
     def should_generate_embedding(args_obj, attr_name="no_embedding"):
-        if os.environ.get("SKIP_EMBEDDING_TESTS") == "1":
+        if should_skip_embeddings():
             return False
         return not getattr(args_obj, attr_name, False)
 

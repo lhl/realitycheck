@@ -1,5 +1,5 @@
 ---
-name: rc-validate
+name: validate
 description: Check Reality Check database integrity and referential consistency. Use when verifying data quality or after making changes.
 argument-hint: "[--strict] [--json]"
 allowed-tools: ["Bash(uv run python scripts/validate.py *)"]

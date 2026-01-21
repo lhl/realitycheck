@@ -1,5 +1,5 @@
 ---
-name: rc-stats
+name: stats
 description: Show Reality Check database statistics including counts for claims, sources, chains, and predictions
 argument-hint: ""
 allowed-tools: ["Bash(uv run python scripts/db.py stats)"]

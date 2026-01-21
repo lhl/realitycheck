@@ -1,5 +1,5 @@
 ---
-name: rc-search
+name: search
 description: Semantic search across Reality Check claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
 argument-hint: "QUERY [--domain DOMAIN] [--limit N] [--format json|text]"
 allowed-tools: ["Bash(uv run python scripts/db.py search *)"]

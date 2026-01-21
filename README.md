@@ -42,7 +42,7 @@ cd realitycheck
 uv sync
 
 # Verify installation
-SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+REALITYCHECK_EMBED_SKIP=1 uv run pytest -v
 ```
 
 ### GPU Support (Optional)
@@ -347,14 +347,14 @@ The 384-dimension vectors are stored in LanceDB and used for similarity search a
 
 **Note:** Embeddings default to CPU to avoid GPU driver crashes. To use GPU:
 ```bash
-export EMBEDDING_DEVICE="cuda"  # or "mps" for Apple Silicon
+export REALITYCHECK_EMBED_DEVICE="cuda"  # or "mps" for Apple Silicon
 ```
 
 ## Development
 
 ```bash
 # Run tests (skip slow embedding tests)
-SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+REALITYCHECK_EMBED_SKIP=1 uv run pytest -v
 
 # Run all tests including embeddings
 uv run pytest -v

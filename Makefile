@@ -45,7 +45,7 @@ uninstall-plugin:
 
 # Testing
 test:
-	SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+	REALITYCHECK_EMBED_SKIP=1 uv run pytest -v
 
 test-all:
 	uv run pytest -v

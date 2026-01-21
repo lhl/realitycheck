@@ -23,15 +23,15 @@ Before tagging `v0.1.0-beta`, the remaining issues are mostly **interface alignm
 
 ### P0: CLI tests likely require embeddings/network by default
 
-The new CLI tests in `tests/test_db.py` call `scripts/db.py claim add` / `source add` / `chain add` without `--no-embedding`. In `scripts/db.py`, embedding generation is the default behavior for these commands. This means `SKIP_EMBEDDING_TESTS=1 uv run pytest` can still end up trying to download/load a sentence-transformers model (brittle in clean CI/offline environments).
+The new CLI tests in `tests/test_db.py` call `scripts/db.py claim add` / `source add` / `chain add` without `--no-embedding`. In `scripts/db.py`, embedding generation is the default behavior for these commands. This means `REALITYCHECK_EMBED_SKIP=1 uv run pytest` can still end up trying to download/load a sentence-transformers model (brittle in clean CI/offline environments).
 
 **Recommendation** (pick one):
 - Add `--no-embedding` in CLI tests everywhere an `add`/`import` command is invoked, or
-- Teach `scripts/db.py` to treat `SKIP_EMBEDDING_TESTS=1` as "force `--no-embedding`".
+- Teach `scripts/db.py` to treat `REALITYCHECK_EMBED_SKIP=1` as "force `--no-embedding`".
 
-**Acceptance criteria**: `SKIP_EMBEDDING_TESTS=1 uv run pytest -v` passes on a machine with no embedding model cached and no network.
+**Acceptance criteria**: `REALITYCHECK_EMBED_SKIP=1 uv run pytest -v` passes on a machine with no embedding model cached and no network.
 
-**Resolution**: Added `should_generate_embedding()` helper function that respects `SKIP_EMBEDDING_TESTS=1` environment variable. All CLI handlers now use this helper instead of directly checking `args.no_embedding`.
+**Resolution**: Added `should_generate_embedding()` helper function that respects `REALITYCHECK_EMBED_SKIP=1` environment variable. All CLI handlers now use this helper instead of directly checking `args.no_embedding`.
 
 ### P0: `.realitycheck.yaml` schema drift (PLAN vs implementation)
 
@@ -102,7 +102,7 @@ allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "
 
 ## Beta Tag Checklist
 
-- [x] `SKIP_EMBEDDING_TESTS=1 uv run pytest -v` passes without cached models
+- [x] `REALITYCHECK_EMBED_SKIP=1 uv run pytest -v` passes without cached models
 - [x] `.realitycheck.yaml` schema unified across `docs/PLAN-separation.md`, `README.md`, `init-project`, and `resolve-project.sh`
 - [x] Validation flags aligned between `scripts/validate.py` and plugin/docs
 - [x] `docs/WORKFLOWS.md` updated to match the Phase 2 CLI

@@ -129,7 +129,7 @@ Ported complete Python implementation from analysis-framework:
 - .gitattributes - LFS tracking for .lance and .parquet files
 - LICENSE - Apache 2.0 license
 
-**Test results**: `SKIP_EMBEDDING_TESTS=1 uv run pytest -v`
+**Test results**: `REALITYCHECK_EMBED_SKIP=1 uv run pytest -v`
 - 91 passed, 17 skipped (embedding tests)
 - All non-embedding tests pass
 
@@ -246,7 +246,7 @@ Key features:
 - TestImportCLI: YAML import, error handling
 - TestTextFormatOutput: human-readable format
 
-All tests pass: `SKIP_EMBEDDING_TESTS=1 uv run pytest -v` (110 passed, 17 skipped)
+All tests pass: `REALITYCHECK_EMBED_SKIP=1 uv run pytest -v` (110 passed, 17 skipped)
 
 **Shell Wrapper Scripts (plugin/scripts/)**
 
@@ -305,7 +305,7 @@ Updated to include CLI integration:
 Addressed feedback from docs/REVIEW-phase2.md:
 
 **P0 - Fixed:**
-- Added `should_generate_embedding()` helper to respect SKIP_EMBEDDING_TESTS env var
+- Added `should_generate_embedding()` helper to respect REALITYCHECK_EMBED_SKIP env var
 - Fixed .realitycheck.yaml schema drift in PLAN-separation.md (database.path → db_path)
 
 **P1 - Fixed:**
@@ -338,7 +338,7 @@ Fixed SIGSEGV crashes when running CLI from directories without local venv:
 
 - Root cause: `uv run` from `/tmp` or project dirs would use system Python with ROCm torch
 - ROCm torch has unstable GPU drivers that crash during embedding generation
-- Fix: Default `EMBEDDING_DEVICE` to "cpu", users can override with env var
+- Fix: Default `REALITYCHECK_EMBED_DEVICE` to "cpu", users can override with env var
 - Added verification that claims are actually persisted in database (test gap)
 
 All tests pass: 129 passed

@@ -1,5 +1,5 @@
 ---
-name: rc-analyze
+name: analyze
 description: Perform a full 3-stage analysis of a source following the Reality Check methodology. Use for manual analysis without automatic database registration.
 argument-hint: "<url_or_source_id>"
 allowed-tools: ["WebFetch", "Read", "Write", "Bash(uv run python scripts/db.py *)"]

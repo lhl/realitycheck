@@ -1,5 +1,5 @@
 ---
-name: rc-extract
+name: extract
 description: Quick claim extraction from a source without full 3-stage analysis. Use for rapid scanning of sources to identify key claims.
 argument-hint: "<source>"
 allowed-tools: ["WebFetch", "Read", "Write"]

@@ -80,7 +80,7 @@ Types:
 uv run pytest -v
 
 # Skip embedding tests (faster)
-SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+REALITYCHECK_EMBED_SKIP=1 uv run pytest -v
 
 # With coverage
 uv run pytest --cov=scripts --cov-report=term-missing

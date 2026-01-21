@@ -309,14 +309,14 @@ This runs:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REALITYCHECK_DATA` | `data/realitycheck.lance` | Database location |
-| `EMBEDDING_PROVIDER` | `local` | Embedding backend (`local` or `openai`) |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Embedding model (HF id for `local`, provider-specific for `openai`) |
-| `EMBEDDING_DIM` | `384` | Vector dimension (must match model output + DB schema) |
-| `EMBEDDING_DEVICE` | `cpu` | Device for local embeddings (`cpu`, `cuda:0`, etc) |
-| `REALITYCHECK_EMBEDDING_THREADS` | `4` | CPU thread clamp for local embeddings (sets `OMP_NUM_THREADS`, etc) |
-| `EMBEDDING_API_BASE` | unset | OpenAI-compatible API base URL (e.g. `https://api.openai.com/v1`) |
-| `EMBEDDING_API_KEY` | unset | API key for `openai` provider (or use `OPENAI_API_KEY`) |
-| `SKIP_EMBEDDING_TESTS` | unset | Skip embedding tests in pytest |
+| `REALITYCHECK_EMBED_PROVIDER` | `local` | Embedding backend (`local` or `openai`) |
+| `REALITYCHECK_EMBED_MODEL` | `all-MiniLM-L6-v2` | Embedding model (HF id for `local`, provider-specific for `openai`) |
+| `REALITYCHECK_EMBED_DIM` | `384` | Vector dimension (must match model output + DB schema) |
+| `REALITYCHECK_EMBED_DEVICE` | `cpu` | Device for local embeddings (`cpu`, `cuda:0`, etc) |
+| `REALITYCHECK_EMBED_THREADS` | `4` | CPU thread clamp for local embeddings (sets `OMP_NUM_THREADS`, etc) |
+| `REALITYCHECK_EMBED_API_BASE` | unset | OpenAI-compatible API base URL (e.g. `https://api.openai.com/v1`) |
+| `REALITYCHECK_EMBED_API_KEY` | unset | API key for `openai` provider (or use `OPENAI_API_KEY`) |
+| `REALITYCHECK_EMBED_SKIP` | unset | Skip embedding tests / embedding generation |
 
 ## Tips
 

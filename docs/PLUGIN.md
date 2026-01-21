@@ -199,7 +199,7 @@ These scripts:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REALITYCHECK_DATA` | `data/realitycheck.lance` | Path to LanceDB database |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence transformer model |
+| `REALITYCHECK_EMBED_MODEL` | `all-MiniLM-L6-v2` | Local embedding model (Hugging Face id) |
 
 ## Dependencies
 

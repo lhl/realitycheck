@@ -85,7 +85,7 @@ realitycheck/
 uv run pytest -v
 
 # Skip embedding tests if torch issues
-SKIP_EMBEDDING_TESTS=1 uv run pytest -v
+REALITYCHECK_EMBED_SKIP=1 uv run pytest -v
 
 # Run with coverage
 uv run pytest --cov=scripts --cov-report=term-missing

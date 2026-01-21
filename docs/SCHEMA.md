@@ -34,7 +34,7 @@ Individual claims extracted from sources.
 | `version` | int32 | Yes | Version number for updates |
 | `last_updated` | string | Yes | ISO timestamp of last update |
 | `notes` | string | No | Additional notes |
-| `embedding` | vector[384] | No | Sentence-transformer embedding |
+| `embedding` | vector[REALITYCHECK_EMBED_DIM] | No | Embedding vector (default 384 dims; see Embeddings) |
 
 ### sources
 
@@ -57,7 +57,7 @@ Bibliography and provenance tracking.
 | `topics` | list[string] | No | Topic tags |
 | `domains` | list[string] | No | Domain codes |
 | `status` | string | No | cataloged/analyzed/etc. |
-| `embedding` | vector[384] | No | Sentence-transformer embedding |
+| `embedding` | vector[REALITYCHECK_EMBED_DIM] | No | Embedding vector (default 384 dims; see Embeddings) |
 
 ### chains
 
@@ -73,7 +73,7 @@ Argument chains (A → B → C → Conclusion).
 | `analysis_file` | string | No | Path to analysis document |
 | `weakest_link` | string | No | ID of weakest claim |
 | `scoring_method` | string | No | MIN/RANGE/CUSTOM |
-| `embedding` | vector[384] | No | Sentence-transformer embedding |
+| `embedding` | vector[REALITYCHECK_EMBED_DIM] | No | Embedding vector (default 384 dims; see Embeddings) |
 
 ### predictions
 
@@ -195,11 +195,20 @@ Legacy domains are automatically migrated:
 
 ## Embeddings
 
-All text fields can be embedded using `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions). Embeddings enable:
+All text fields can be embedded using the configured embedding backend:
+
+- Default: local `sentence-transformers` with `REALITYCHECK_EMBED_MODEL=all-MiniLM-L6-v2` (`REALITYCHECK_EMBED_DIM=384`)
+- Optional: `REALITYCHECK_EMBED_PROVIDER=openai` for an OpenAI-compatible remote embeddings endpoint
+
+Embeddings enable:
 
 - Semantic search across claims/sources
 - Finding related claims
 - Clustering analysis
+
+`REALITYCHECK_EMBED_DIM` must match the model output and the LanceDB schema (vector columns are fixed-size). Changing models/dimensions requires re-initializing or migrating the database.
+
+For CPU-only local embeddings, Reality Check clamps threading by default (`REALITYCHECK_EMBED_THREADS=4`) to avoid pathological slowdowns on some environments.
 
 Generate embeddings with:
 ```bash

@@ -178,7 +178,7 @@ uv run python _dev/embedding_shootout.py --offline --devices cpu --tablefmt gith
 Important environment note (this machine / Strix Halo):
 
 - Running via system `python` with a **ROCm** Torch build produced **~100× slower CPU embeddings** at default thread settings (e.g., MiniLM short ~`8 q/s` vs `~1300 q/s` under `uv run`).
-- If you must use ROCm Torch for CPU, set `OMP_NUM_THREADS=4` or `8` (values like `32` can collapse performance).
+- Reality Check clamps CPU embedding threads by default (`REALITYCHECK_EMBED_THREADS=4`, which sets `OMP_NUM_THREADS`, etc). If you are in an environment where CPU embeddings are unexpectedly slow, try `REALITYCHECK_EMBED_THREADS=4` or `8` (values like `32` can collapse performance).
 
 CPU summary (from `_dev/perf.txt`, `uv run`, RSS is process peak):
 
@@ -314,7 +314,7 @@ Choose based on your constraints:
 
 ### If you want “precision retrieval for long docs”
 
-- Put ColBERT candidates on a separate track; do not treat them as a simple `EMBEDDING_MODEL` swap.
+- Put ColBERT candidates on a separate track; do not treat them as a simple `REALITYCHECK_EMBED_MODEL` swap.
 
 ### Practical recommendation (no schema/index commitments yet)
 
@@ -414,7 +414,7 @@ Minimum acceptance:
 
 ## Immediate Engineering Implication (for Phase 2 stability)
 
-Even if we *don’t* change models yet, Phase 2 tests should not require embedding downloads. The CLI defaults to embedding generation, so tests should explicitly disable embeddings (or the CLI should respect `SKIP_EMBEDDING_TESTS=1`).
+Even if we *don’t* change models yet, Phase 2 tests should not require embedding downloads. The CLI defaults to embedding generation, so tests should explicitly disable embeddings (or the CLI should respect `REALITYCHECK_EMBED_SKIP=1`).
 
 ## Open Questions / TODO
 

@@ -1,5 +1,5 @@
 ---
-name: rc-export
+name: export
 description: Export Reality Check data to Markdown or YAML formats. Use for documentation, backups, or data portability.
 argument-hint: "<format> <type> [--id ID] [-o OUTPUT]"
 allowed-tools: ["Bash(uv run python scripts/export.py *)"]
