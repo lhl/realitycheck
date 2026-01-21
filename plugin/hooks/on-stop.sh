@@ -17,7 +17,7 @@ if [[ -f "$PLUGIN_ROOT/scripts/resolve-project.sh" ]]; then
 fi
 
 # Only run if we have a database
-if [[ -z "$ANALYSIS_DB_PATH" ]] || [[ ! -d "$ANALYSIS_DB_PATH" ]]; then
+if [[ -z "$REALITYCHECK_DATA" ]] || [[ ! -d "$REALITYCHECK_DATA" ]]; then
     exit 0
 fi
 

@@ -43,7 +43,7 @@ See `PLAN-separation.md` for the full architecture and implementation plan.
 - [x] Create .gitignore
 - [x] Create .gitattributes
 - [x] Create .claude/settings.json
-- [x] Add LICENSE (MIT)
+- [x] Add LICENSE (Apache 2.0)
 - [x] Add framework docs (SCHEMA.md, WORKFLOWS.md, PLUGIN.md, CONTRIBUTING.md)
 - [ ] Decide CLAUDE.md vs AGENTS.md roles (remove symlink if needed)
 - [x] Update README to reflect scaffold status
@@ -127,7 +127,7 @@ Ported complete Python implementation from analysis-framework:
 - pyproject.toml - uv-managed dependencies, entry points, pytest config
 - pytest.ini - Test configuration
 - .gitattributes - LFS tracking for .lance and .parquet files
-- LICENSE - MIT license
+- LICENSE - Apache 2.0 license
 
 **Test results**: `SKIP_EMBEDDING_TESTS=1 uv run pytest -v`
 - 91 passed, 17 skipped (embedding tests)
@@ -435,7 +435,7 @@ realitycheck-data/
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-01-20 | Use ANALYSIS_DB_PATH env var | Matches existing db.py, simpler than --db-path flag |
+| 2026-01-20 | Use REALITYCHECK_DATA env var | Matches existing db.py, simpler than --db-path flag |
 | 2026-01-20 | Bundle Python scripts in plugin/lib/ | Plugin-only mode needs to be self-contained |
 | 2026-01-20 | Code schemas are canonical for v0.1.x | Ported schemas from analysis-framework are complete and tested; docs updated to match |
 | 2026-01-20 | No co-author footers in commits | Project rule (AGENTS.md) wins over external tooling defaults; use worklog for provenance |
@@ -471,7 +471,7 @@ realitycheck-data/
 | pyproject.toml | uv package configuration |
 | pytest.ini | Pytest configuration |
 | .gitattributes | Git LFS configuration |
-| LICENSE | MIT license |
+| LICENSE | Apache 2.0 license |
 | plugin/.claude-plugin/plugin.json | Plugin manifest |
 | plugin/commands/analyze.md | Source analysis command |
 | plugin/commands/extract.md | Claim extraction command |

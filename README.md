@@ -107,10 +107,10 @@ uv run python /path/to/realitycheck/scripts/db.py init-project
 
 ```bash
 # Tell Reality Check where your database is
-export ANALYSIS_DB_PATH="data/realitycheck.lance"
+export REALITYCHECK_DATA="data/realitycheck.lance"
 
 # Add to your shell profile for persistence:
-echo 'export ANALYSIS_DB_PATH="data/realitycheck.lance"' >> ~/.bashrc
+echo 'export REALITYCHECK_DATA="data/realitycheck.lance"' >> ~/.bashrc
 ```
 
 ### 3. Add Your First Claim
@@ -167,7 +167,7 @@ git submodule add https://github.com/lhl/realitycheck.git .framework
 
 ## CLI Reference
 
-All commands require `ANALYSIS_DB_PATH` to be set, or run from a directory with `.realitycheck.yaml`.
+All commands require `REALITYCHECK_DATA` to be set, or run from a directory with `.realitycheck.yaml`.
 
 ```bash
 # Database management
@@ -374,4 +374,4 @@ See [CLAUDE.md](CLAUDE.md) for development workflow and contribution guidelines.
 
 ## License
 
-MIT
+Apache 2.0

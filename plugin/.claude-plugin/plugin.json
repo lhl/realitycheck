@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Framework for rigorous analysis of claims, sources, predictions, and argument chains",
   "author": "Leonard Lin",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/lhl/realitycheck",
   "commands": [
     {
@@ -52,7 +52,7 @@
     ]
   },
   "config": {
-    "db_path_env": "ANALYSIS_DB_PATH",
+    "db_path_env": "REALITYCHECK_DATA",
     "default_db_path": "data/realitycheck.lance"
   }
 }

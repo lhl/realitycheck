@@ -18,7 +18,7 @@ import lancedb
 import pyarrow as pa
 
 # Configuration
-DB_PATH = Path(os.getenv("ANALYSIS_DB_PATH", "data/realitycheck.lance"))
+DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 EMBEDDING_DIM = 384  # all-MiniLM-L6-v2 dimension
 
@@ -1072,7 +1072,7 @@ A unified knowledge base for rigorous claim analysis.
 
 ```bash
 # Set database path
-export ANALYSIS_DB_PATH="data/realitycheck.lance"
+export REALITYCHECK_DATA="data/realitycheck.lance"
 
 # Add claims
 rc-db claim add --text "Your claim" --type "[F]" --domain "TECH" --evidence-level "E3"
@@ -1131,14 +1131,14 @@ rc-validate
 
         # Initialize database
         full_db_path = project_path / db_path
-        os.environ["ANALYSIS_DB_PATH"] = str(full_db_path)
+        os.environ["REALITYCHECK_DATA"] = str(full_db_path)
         db = get_db(full_db_path)
         tables = init_tables(db)
         print(f"  Initialized: database with {len(tables)} tables")
 
         print(f"\nProject ready! Next steps:")
         print(f"  cd {project_path}")
-        print(f"  export ANALYSIS_DB_PATH=\"{db_path}\"")
+        print(f"  export REALITYCHECK_DATA=\"{db_path}\"")
         print(f"  rc-db claim add --text \"...\" --type \"[F]\" --domain \"TECH\" --evidence-level \"E3\"")
         sys.stdout.flush()
 

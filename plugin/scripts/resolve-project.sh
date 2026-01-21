@@ -8,7 +8,7 @@
 #
 # It exports:
 # - PROJECT_ROOT: Path to the project root
-# - ANALYSIS_DB_PATH: Path to the LanceDB database
+# - REALITYCHECK_DATA: Path to the LanceDB database
 # - REALITYCHECK_FRAMEWORK: Path to the realitycheck framework (if installed)
 #
 # Usage:
@@ -23,7 +23,7 @@ START_DIR="${1:-$(pwd)}"
 CURRENT="$START_DIR"
 
 PROJECT_ROOT=""
-ANALYSIS_DB_PATH=""
+REALITYCHECK_DATA=""
 
 # Search upward for project markers
 while [[ "$CURRENT" != "/" ]]; do
@@ -34,7 +34,7 @@ while [[ "$CURRENT" != "/" ]]; do
         if command -v yq &> /dev/null; then
             DB_PATH_CONF=$(yq -r '.db_path // empty' "$CURRENT/.realitycheck.yaml" 2>/dev/null || true)
             if [[ -n "$DB_PATH_CONF" ]]; then
-                ANALYSIS_DB_PATH="$CURRENT/$DB_PATH_CONF"
+                REALITYCHECK_DATA="$CURRENT/$DB_PATH_CONF"
             fi
         fi
         break
@@ -43,7 +43,7 @@ while [[ "$CURRENT" != "/" ]]; do
     # Check for data/realitycheck.lance
     if [[ -d "$CURRENT/data/realitycheck.lance" ]]; then
         PROJECT_ROOT="$CURRENT"
-        ANALYSIS_DB_PATH="$CURRENT/data/realitycheck.lance"
+        REALITYCHECK_DATA="$CURRENT/data/realitycheck.lance"
         break
     fi
 
@@ -52,7 +52,7 @@ while [[ "$CURRENT" != "/" ]]; do
         LANCE_DB=$(find "$CURRENT/data" -maxdepth 1 -name "*.lance" -type d 2>/dev/null | head -1)
         if [[ -n "$LANCE_DB" ]]; then
             PROJECT_ROOT="$CURRENT"
-            ANALYSIS_DB_PATH="$LANCE_DB"
+            REALITYCHECK_DATA="$LANCE_DB"
             break
         fi
     fi
@@ -61,8 +61,8 @@ while [[ "$CURRENT" != "/" ]]; do
 done
 
 # Default database path if not found
-if [[ -z "$ANALYSIS_DB_PATH" && -n "$PROJECT_ROOT" ]]; then
-    ANALYSIS_DB_PATH="$PROJECT_ROOT/data/realitycheck.lance"
+if [[ -z "$REALITYCHECK_DATA" && -n "$PROJECT_ROOT" ]]; then
+    REALITYCHECK_DATA="$PROJECT_ROOT/data/realitycheck.lance"
 fi
 
 # Try to find the realitycheck framework
@@ -77,13 +77,13 @@ fi
 
 # Export variables
 export PROJECT_ROOT
-export ANALYSIS_DB_PATH
+export REALITYCHECK_DATA
 export REALITYCHECK_FRAMEWORK
 
 # If sourced, variables are already exported
 # If run as script, print for eval
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "export PROJECT_ROOT=\"$PROJECT_ROOT\""
-    echo "export ANALYSIS_DB_PATH=\"$ANALYSIS_DB_PATH\""
+    echo "export REALITYCHECK_DATA=\"$REALITYCHECK_DATA\""
     echo "export REALITYCHECK_FRAMEWORK=\"$REALITYCHECK_FRAMEWORK\""
 fi

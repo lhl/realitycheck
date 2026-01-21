@@ -211,4 +211,4 @@ Include:
 
 ## License
 
-MIT License - see LICENSE file.
+Apache 2.0 License - see LICENSE file.

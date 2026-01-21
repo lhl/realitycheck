@@ -336,7 +336,7 @@ else
 fi
 
 # Set env var for db.py and run
-export ANALYSIS_DB_PATH="$DB_PATH"
+export REALITYCHECK_DATA="$DB_PATH"
 python "$SCRIPTS_DIR/db.py" "$@"
 ```
 
@@ -973,7 +973,7 @@ export:
 EOF
 
 # 5. Initialize database
-export ANALYSIS_DB_PATH="data/realitycheck.lance"
+export REALITYCHECK_DATA="data/realitycheck.lance"
 python .framework/scripts/db.py init
 
 # 6. Start analyzing (use plugin or scripts directly)

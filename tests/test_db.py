@@ -425,7 +425,7 @@ class TestClaimCLI:
     def test_claim_add_creates_claim(self, temp_db_path: Path):
         """claim add creates a new claim."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         # Initialize database first
         subprocess.run(
@@ -469,7 +469,7 @@ class TestClaimCLI:
     def test_claim_add_with_explicit_id(self, temp_db_path: Path):
         """claim add with --id uses provided ID."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -500,7 +500,7 @@ class TestClaimCLI:
     def test_claim_get_outputs_json(self, temp_db_path: Path):
         """claim get returns JSON output."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         # Initialize and add claim
         subprocess.run(
@@ -541,7 +541,7 @@ class TestClaimCLI:
     def test_claim_get_not_found(self, temp_db_path: Path):
         """claim get returns error for non-existent claim."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -564,7 +564,7 @@ class TestClaimCLI:
     def test_claim_list_outputs_json(self, temp_db_path: Path):
         """claim list returns JSON array."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -605,7 +605,7 @@ class TestClaimCLI:
     def test_claim_list_filters_by_domain(self, temp_db_path: Path):
         """claim list --domain filters results."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -660,7 +660,7 @@ class TestClaimCLI:
     def test_claim_update_modifies_record(self, temp_db_path: Path):
         """claim update modifies existing claim."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -721,7 +721,7 @@ class TestSourceCLI:
     def test_source_add_creates_source(self, temp_db_path: Path):
         """source add creates a new source."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -753,7 +753,7 @@ class TestSourceCLI:
     def test_source_get_outputs_json(self, temp_db_path: Path):
         """source get returns JSON output."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -793,7 +793,7 @@ class TestSourceCLI:
     def test_source_list_filters_by_type(self, temp_db_path: Path):
         """source list --type filters results."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -852,7 +852,7 @@ class TestChainCLI:
     def test_chain_add_creates_chain(self, temp_db_path: Path):
         """chain add creates a new chain."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -883,7 +883,7 @@ class TestChainCLI:
     def test_chain_get_outputs_json(self, temp_db_path: Path):
         """chain get returns JSON output."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -922,7 +922,7 @@ class TestChainCLI:
     def test_chain_list_outputs_json(self, temp_db_path: Path):
         """chain list returns JSON array."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -964,7 +964,7 @@ class TestPredictionCLI:
     def test_prediction_add_creates_prediction(self, temp_db_path: Path):
         """prediction add creates a new prediction."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -994,7 +994,7 @@ class TestPredictionCLI:
     def test_prediction_list_filters_by_status(self, temp_db_path: Path):
         """prediction list --status filters results."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -1049,7 +1049,7 @@ class TestRelatedCLI:
     def test_related_shows_relationships(self, temp_db_path: Path):
         """related shows claim relationships."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -1109,7 +1109,7 @@ class TestImportCLI:
     def test_import_yaml_claims(self, temp_db_path: Path, tmp_path: Path):
         """import loads claims from YAML file."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -1179,7 +1179,7 @@ class TestImportCLI:
     def test_import_handles_missing_file(self, temp_db_path: Path):
         """import returns error for missing file."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],
@@ -1270,7 +1270,7 @@ class TestTextFormatOutput:
     def test_claim_list_text_format(self, temp_db_path: Path):
         """claim list --format text outputs human-readable format."""
         env = os.environ.copy()
-        env["ANALYSIS_DB_PATH"] = str(temp_db_path)
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
 
         subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "init"],

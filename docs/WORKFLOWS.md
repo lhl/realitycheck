@@ -48,11 +48,11 @@ This creates:
 ### Set Environment Variable
 
 ```bash
-export ANALYSIS_DB_PATH="data/realitycheck.lance"
+export REALITYCHECK_DATA="data/realitycheck.lance"
 
 # Or in your project directory:
 cd ~/my-research
-export ANALYSIS_DB_PATH="$(pwd)/data/realitycheck.lance"
+export REALITYCHECK_DATA="$(pwd)/data/realitycheck.lance"
 ```
 
 ## Claim Workflows
@@ -307,7 +307,7 @@ This runs:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANALYSIS_DB_PATH` | `data/realitycheck.lance` | Database location |
+| `REALITYCHECK_DATA` | `data/realitycheck.lance` | Database location |
 | `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer model |
 | `SKIP_EMBEDDING_TESTS` | unset | Skip embedding tests in pytest |
 

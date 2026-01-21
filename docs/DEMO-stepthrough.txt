@@ -35,14 +35,14 @@ Output:
 
   Project ready! Next steps:
     cd /tmp/test-realitycheck
-    export ANALYSIS_DB_PATH="data/realitycheck.lance"
+    export REALITYCHECK_DATA="data/realitycheck.lance"
     rc-db claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
 
 ================================================================================
 STEP 2: Check Initial Stats
 ================================================================================
 
-$ export ANALYSIS_DB_PATH="data/realitycheck.lance"
+$ export REALITYCHECK_DATA="data/realitycheck.lance"
 $ uv run python scripts/db.py stats
 
 Output:

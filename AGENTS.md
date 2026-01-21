@@ -154,7 +154,7 @@ test: add claim relationship tests
 
 **Environment variable for DB path:**
 ```python
-DB_PATH = Path(os.environ.get("ANALYSIS_DB_PATH", "data/realitycheck.lance"))
+DB_PATH = Path(os.environ.get("REALITYCHECK_DATA", "data/realitycheck.lance"))
 ```
 
 **CLI subcommands in db.py:**

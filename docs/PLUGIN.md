@@ -151,7 +151,7 @@ The plugin includes shell wrappers in `plugin/scripts/`:
 
 | Script | Purpose |
 |--------|---------|
-| `resolve-project.sh` | Find project root, set ANALYSIS_DB_PATH |
+| `resolve-project.sh` | Find project root, set REALITYCHECK_DATA |
 | `run-db.sh` | Wrapper for db.py |
 | `run-validate.sh` | Wrapper for validate.py |
 | `run-export.sh` | Wrapper for export.py |
@@ -187,7 +187,7 @@ These scripts:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ANALYSIS_DB_PATH` | `data/realitycheck.lance` | Path to LanceDB database |
+| `REALITYCHECK_DATA` | `data/realitycheck.lance` | Path to LanceDB database |
 | `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence transformer model |
 
 ## Dependencies
@@ -213,7 +213,7 @@ The plugin requires:
 uv run python scripts/db.py init
 
 # Check database location
-echo $ANALYSIS_DB_PATH
+echo $REALITYCHECK_DATA
 
 # Verify data directory
 ls -la data/
