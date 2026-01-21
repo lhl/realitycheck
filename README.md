@@ -221,37 +221,53 @@ rc-export yaml claims -o claims.yaml    # Export to YAML
 
 ## Claude Code Plugin
 
-[Claude Code](https://claude.ai/code) is Anthropic's AI coding assistant. Reality Check includes a plugin that adds slash commands for analysis workflows.
+[Claude Code](https://github.com/anthropics/claude-code/) is Anthropic's AI coding assistant. Reality Check includes a plugin that adds slash commands for analysis workflows.
 
 ### Install the Plugin
 
 ```bash
 # From the realitycheck repo directory:
-make install-plugin
-
-# Or manually:
-mkdir -p ~/.claude/plugins/local
-ln -s /path/to/realitycheck/plugin ~/.claude/plugins/local/realitycheck
+make install-claude-plugin
 ```
 
-Restart Claude Code to load the plugin.
+**Note:** Local plugin discovery from `~/.claude/plugins/local/` is currently broken. Use the `--plugin-dir` flag:
+
+```bash
+# Start Claude Code with the plugin loaded:
+claude --plugin-dir /path/to/realitycheck/plugin
+
+# Or create a shell alias:
+alias claude-rc='claude --plugin-dir /path/to/realitycheck/plugin'
+```
 
 ### Plugin Commands
 
+Commands are prefixed with `/reality:`:
+
 | Command | Description |
 |---------|-------------|
-| `/check <url>` | **Flagship** - Full analysis workflow (fetch → analyze → register → validate) |
-| `/realitycheck <url>` | Alias for `/check` |
-| `/analyze <source>` | Manual 3-stage analysis without auto-registration |
-| `/extract <source>` | Quick claim extraction |
-| `/search <query>` | Semantic search across claims |
-| `/validate` | Check database integrity |
-| `/export <format> <type>` | Export to YAML/Markdown |
+| `/reality:check <url>` | **Flagship** - Full analysis workflow (fetch → analyze → register → validate) |
+| `/reality:analyze <source>` | Manual 3-stage analysis without auto-registration |
+| `/reality:extract <source>` | Quick claim extraction |
+| `/reality:search <query>` | Semantic search across claims |
+| `/reality:validate` | Check database integrity |
+| `/reality:export <format> <type>` | Export to YAML/Markdown |
+| `/reality:stats` | Show database statistics |
+
+### Alternative: Global Skills
+
+If you prefer skills over plugins:
+
+```bash
+make install-claude-skills
+```
+
+This installs skills to `~/.claude/skills/` which are auto-activated based on context.
 
 ### Example Session
 
 ```
-> /check https://arxiv.org/abs/2401.00001
+> /reality:check https://arxiv.org/abs/2401.00001
 
 Claude will:
 1. Fetch the paper content

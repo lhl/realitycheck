@@ -1,27 +1,34 @@
 # Reality Check Makefile
 
-.PHONY: help install-plugin uninstall-plugin install-skills uninstall-skills install-codex-skills uninstall-codex-skills test test-all init clean
+.PHONY: help install-claude-plugin uninstall-claude-plugin install-claude-skills uninstall-claude-skills install-codex-skills uninstall-codex-skills test test-all init clean
 
 help:
 	@echo "Reality Check - Available targets:"
 	@echo ""
-	@echo "  install-plugin    Install Claude Code plugin (symlink to ~/.claude/plugins/local/)"
-	@echo "  uninstall-plugin  Remove Claude Code plugin"
-	@echo "  install-skills    Install Claude Code skills (symlink to ~/.claude/skills/)"
-	@echo "  uninstall-skills  Remove Claude Code skills"
-	@echo "  install-codex-skills    Install Codex skills (symlink)"
-	@echo "  uninstall-codex-skills  Remove Codex skills"
-	@echo "  test              Run tests (skip embedding tests)"
-	@echo "  test-all          Run all tests including embeddings"
-	@echo "  init              Initialize database"
-	@echo "  clean             Remove generated files"
+	@echo "  Claude Code:"
+	@echo "    install-claude-plugin    Install plugin (use with: claude --plugin-dir ...)"
+	@echo "    uninstall-claude-plugin  Remove plugin"
+	@echo "    install-claude-skills    Install global skills (~/.claude/skills/)"
+	@echo "    uninstall-claude-skills  Remove global skills"
+	@echo ""
+	@echo "  Codex:"
+	@echo "    install-codex-skills     Install Codex skills"
+	@echo "    uninstall-codex-skills   Remove Codex skills"
+	@echo ""
+	@echo "  Development:"
+	@echo "    test                     Run tests (skip embedding tests)"
+	@echo "    test-all                 Run all tests including embeddings"
+	@echo "    init                     Initialize database"
+	@echo "    clean                    Remove generated files"
 	@echo ""
 
-# Plugin installation
+# Claude Code plugin installation
+# Note: Local plugin discovery from ~/.claude/plugins/local/ is currently broken.
+# Use --plugin-dir flag instead: claude --plugin-dir /path/to/realitycheck/plugin
 PLUGIN_DIR := $(HOME)/.claude/plugins/local
-PLUGIN_NAME := realitycheck
+PLUGIN_NAME := reality
 
-install-plugin:
+install-claude-plugin:
 	@echo "Installing Reality Check plugin to Claude Code..."
 	@mkdir -p $(PLUGIN_DIR)
 	@if [ -L "$(PLUGIN_DIR)/$(PLUGIN_NAME)" ]; then \
@@ -35,10 +42,14 @@ install-plugin:
 	@ln -s "$(CURDIR)/plugin" "$(PLUGIN_DIR)/$(PLUGIN_NAME)"
 	@echo "Plugin installed: $(PLUGIN_DIR)/$(PLUGIN_NAME) -> $(CURDIR)/plugin"
 	@echo ""
-	@echo "Restart Claude Code to load the plugin."
-	@echo "Available commands: /check, /realitycheck, /analyze, /extract, /search, /validate, /export"
+	@echo "NOTE: Local plugin discovery is currently broken in Claude Code."
+	@echo "Use the --plugin-dir flag instead:"
+	@echo ""
+	@echo "  claude --plugin-dir $(CURDIR)/plugin"
+	@echo ""
+	@echo "Commands will be available as: /reality:check, /reality:analyze, etc."
 
-uninstall-plugin:
+uninstall-claude-plugin:
 	@echo "Removing Reality Check plugin..."
 	@if [ -L "$(PLUGIN_DIR)/$(PLUGIN_NAME)" ]; then \
 		rm "$(PLUGIN_DIR)/$(PLUGIN_NAME)"; \
@@ -51,7 +62,7 @@ uninstall-plugin:
 SKILLS_DIR := $(HOME)/.claude/skills
 SKILLS := check analyze extract search validate export stats realitycheck
 
-install-skills:
+install-claude-skills:
 	@echo "Installing Reality Check skills to Claude Code..."
 	@mkdir -p $(SKILLS_DIR)
 	@for skill in $(SKILLS); do \
@@ -65,7 +76,7 @@ install-skills:
 	@echo "Skills installed to $(SKILLS_DIR)"
 	@echo "Restart Claude Code and use /skills to see available skills."
 
-uninstall-skills:
+uninstall-claude-skills:
 	@echo "Removing Reality Check skills..."
 	@for skill in $(SKILLS); do \
 		if [ -L "$(SKILLS_DIR)/$$skill" ]; then \
