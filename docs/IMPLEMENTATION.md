@@ -482,6 +482,50 @@ analysis_logs:
   claims_extracted: ["TECH-2026-001", "TECH-2026-002"]
 ```
 
+### Multi-Pass Analysis & Agent SDK Integration
+
+Support iterative analysis across multiple tools/models, with the Reality Check epistemological framework as the unifying methodology.
+
+**Continue mode:**
+- [ ] `/check --continue <source-id>` to append to existing analysis
+- [ ] Detect existing analysis file and offer to continue vs. overwrite
+- [ ] Track which claims were added/modified in each pass
+
+**Cross-tool compatibility:**
+- [ ] Claude Code plugin
+- [ ] OpenAI Codex skills
+- [ ] Claude Agent SDK integration (leverage agent framework for lookups, search, etc.)
+- [ ] Other agent SDKs as they emerge (OpenAI Agents API, etc.)
+- [ ] Standalone CLI mode (no AI, manual entry)
+
+**In-document audit log:**
+
+Append analysis log to the bottom of each analysis markdown file:
+
+```markdown
+---
+
+## Analysis Log
+
+| Pass | Date | Tool | Model | Duration | Tokens | Cost | Notes |
+|------|------|------|-------|----------|--------|------|-------|
+| 1 | 2026-01-21 10:00 | Claude Code | claude-sonnet-4 | 8m | 12,500 | $0.08 | Initial 3-stage analysis |
+| 2 | 2026-01-21 14:30 | Codex | o3 | 5m | 8,200 | $0.12 | Extended claim extraction |
+| 3 | 2026-01-22 09:00 | Claude Code | claude-sonnet-4 | 3m | 4,100 | $0.03 | Added counterfactuals |
+
+### Revision Notes
+
+**Pass 2 (Codex)**: Added claims ECON-2026-015 through ECON-2026-018, focused on fiscal policy implications.
+
+**Pass 3**: Added counterfactual analysis per user request.
+```
+
+**Agent SDK architecture:**
+- Reality Check provides the epistemological framework (claim taxonomy, evidence hierarchy, methodology)
+- Agent SDKs provide the execution environment (tool use, context management, model routing)
+- Analysis audit log captures provenance regardless of which agent performed the work
+- Future: pluggable "analyzers" that wrap different agent SDKs with RC methodology
+
 ### GUI Application
 
 Create a desktop GUI for non-technical users:
