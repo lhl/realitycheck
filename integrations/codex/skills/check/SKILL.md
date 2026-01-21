@@ -1,6 +1,6 @@
 ---
 name: check
-description: Reality Check (Codex): handle `/check <url>` by fetching a source, performing 3-stage analysis, extracting claims, optionally registering them via `rc-db`, and running `rc-validate`.
+description: "Reality Check (Codex): handle `/check <url>` by fetching a source, performing 3-stage analysis, extracting claims, optionally registering them via `rc-db`, and running `rc-validate`."
 ---
 
 # Reality Check `/check` (Codex)

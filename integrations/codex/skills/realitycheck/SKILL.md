@@ -1,6 +1,6 @@
 ---
 name: realitycheck
-description: Reality Check (Codex): provides `/reality:*` utility commands (data/stats/search/validate/export/etc.) by invoking the installed `rc-*` CLIs, and can set `REALITYCHECK_DATA` for the current Codex session.
+description: "Reality Check (Codex): provides `/reality:*` utility commands (data/stats/search/validate/export/etc.) by invoking the installed `rc-*` CLIs, and can set `REALITYCHECK_DATA` for the current Codex session."
 metadata:
   short-description: /reality:* commands for Codex
 ---
