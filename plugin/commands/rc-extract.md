@@ -1,11 +1,11 @@
-# /extract - Claim Extraction
+# /rc-extract - Claim Extraction
 
 Quick claim extraction from a source without full 3-stage analysis.
 
 ## Usage
 
 ```
-/extract <source>
+/rc-extract <source>
 ```
 
 ## Arguments
@@ -64,6 +64,13 @@ Uses `methodology/templates/claim-extraction.md`
 ## Examples
 
 ```
-/extract https://arxiv.org/abs/2301.xxxxx
-/extract "AI will automate 50% of jobs by 2030"
+/rc-extract https://arxiv.org/abs/2301.xxxxx
+/rc-extract "AI will automate 50% of jobs by 2030"
 ```
+
+## Related Commands
+
+- `/check` - Full automated analysis workflow
+- `/rc-analyze` - Full 3-stage analysis
+- `/rc-search` - Semantic search
+- `/rc-stats` - Database statistics

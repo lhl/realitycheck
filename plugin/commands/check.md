@@ -184,7 +184,8 @@ Generate a summary report:
 
 ## Related Commands
 
-- `/analyze` - Manual 3-stage analysis without database registration
-- `/extract` - Quick claim extraction without full analysis
-- `/search` - Find related claims in database
-- `/validate` - Check database integrity
+- `/rc-analyze` - Manual 3-stage analysis without database registration
+- `/rc-extract` - Quick claim extraction without full analysis
+- `/rc-search` - Find related claims in database
+- `/rc-validate` - Check database integrity
+- `/rc-stats` - Show database statistics

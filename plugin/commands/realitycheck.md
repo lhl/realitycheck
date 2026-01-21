@@ -42,5 +42,6 @@ The Reality Check workflow:
 ## See Also
 
 - `/check` - Primary command (this is an alias)
-- `/analyze` - Manual analysis without database
-- `/extract` - Quick claim extraction
+- `/rc-analyze` - Manual analysis without database
+- `/rc-extract` - Quick claim extraction
+- `/rc-stats` - Show database statistics

@@ -69,12 +69,12 @@ The primary command for end-to-end source analysis.
 
 Alias for `/check`. Identical functionality.
 
-### /analyze - Manual Analysis
+### /rc-analyze - Manual Analysis
 
 3-stage analysis without automatic database registration.
 
 ```
-/analyze <url_or_source_id>
+/rc-analyze <url_or_source_id>
 ```
 
 Use when you want to:
@@ -88,12 +88,12 @@ uv run python scripts/db.py source add --id "..." --title "..." ...
 uv run python scripts/db.py claim add --text "..." --type "[F]" ...
 ```
 
-### /extract - Quick Extraction
+### /rc-extract - Quick Extraction
 
 Fast claim extraction without full 3-stage analysis.
 
 ```
-/extract <source>
+/rc-extract <source>
 ```
 
 Good for:
@@ -101,28 +101,28 @@ Good for:
 - Extracting obvious claims
 - Processing multiple sources rapidly
 
-### /search - Semantic Search
+### /rc-search - Semantic Search
 
 Search claims using natural language.
 
 ```
-/search <query> [--domain DOMAIN] [--limit N] [--format json|text]
+/rc-search <query> [--domain DOMAIN] [--limit N] [--format json|text]
 ```
 
 **Examples:**
 ```
-/search "AI automation labor displacement"
-/search "training costs" --domain TECH --limit 5
+/rc-search "AI automation labor displacement"
+/rc-search "training costs" --domain TECH --limit 5
 ```
 
 **Backend:** Runs `uv run python scripts/db.py search "..."`.
 
-### /validate - Data Integrity
+### /rc-validate - Data Integrity
 
 Check database for errors and inconsistencies.
 
 ```
-/validate [--strict] [--json]
+/rc-validate [--strict] [--json]
 ```
 
 **Checks:**
@@ -132,18 +132,28 @@ Check database for errors and inconsistencies.
 
 **Backend:** Runs `uv run python scripts/validate.py`.
 
-### /export - Data Export
+### /rc-export - Data Export
 
 Export data to YAML or Markdown.
 
 ```
-/export yaml claims -o registry.yaml
-/export yaml sources -o sources.yaml
-/export md claim --id TECH-2026-001
-/export md predictions -o predictions.md
+/rc-export yaml claims -o registry.yaml
+/rc-export yaml sources -o sources.yaml
+/rc-export md claim --id TECH-2026-001
+/rc-export md predictions -o predictions.md
 ```
 
 **Backend:** Runs `uv run python scripts/export.py ...`.
+
+### /rc-stats - Database Statistics
+
+Show counts for all tables.
+
+```
+/rc-stats
+```
+
+**Backend:** Runs `uv run python scripts/db.py stats`.
 
 ## Shell Wrappers
 
@@ -174,11 +184,12 @@ These scripts:
   "commands": [
     {"name": "check", "file": "commands/check.md"},
     {"name": "realitycheck", "file": "commands/realitycheck.md"},
-    {"name": "analyze", "file": "commands/analyze.md"},
-    {"name": "extract", "file": "commands/extract.md"},
-    {"name": "validate", "file": "commands/validate.md"},
-    {"name": "search", "file": "commands/search.md"},
-    {"name": "export", "file": "commands/export.md"}
+    {"name": "rc-analyze", "file": "commands/rc-analyze.md"},
+    {"name": "rc-extract", "file": "commands/rc-extract.md"},
+    {"name": "rc-validate", "file": "commands/rc-validate.md"},
+    {"name": "rc-search", "file": "commands/rc-search.md"},
+    {"name": "rc-export", "file": "commands/rc-export.md"},
+    {"name": "rc-stats", "file": "commands/rc-stats.md"}
   ]
 }
 ```

@@ -298,9 +298,10 @@ This runs:
 ### Quick Operations
 
 ```
-> /search AI costs
-> /validate
-> /export yaml claims
+> /rc-search AI costs
+> /rc-validate
+> /rc-export yaml claims
+> /rc-stats
 ```
 
 ## Environment Variables
@@ -308,7 +309,13 @@ This runs:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REALITYCHECK_DATA` | `data/realitycheck.lance` | Database location |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer model |
+| `EMBEDDING_PROVIDER` | `local` | Embedding backend (`local` or `openai`) |
+| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Embedding model (HF id for `local`, provider-specific for `openai`) |
+| `EMBEDDING_DIM` | `384` | Vector dimension (must match model output + DB schema) |
+| `EMBEDDING_DEVICE` | `cpu` | Device for local embeddings (`cpu`, `cuda:0`, etc) |
+| `REALITYCHECK_EMBEDDING_THREADS` | `4` | CPU thread clamp for local embeddings (sets `OMP_NUM_THREADS`, etc) |
+| `EMBEDDING_API_BASE` | unset | OpenAI-compatible API base URL (e.g. `https://api.openai.com/v1`) |
+| `EMBEDDING_API_KEY` | unset | API key for `openai` provider (or use `OPENAI_API_KEY`) |
 | `SKIP_EMBEDDING_TESTS` | unset | Skip embedding tests in pytest |
 
 ## Tips

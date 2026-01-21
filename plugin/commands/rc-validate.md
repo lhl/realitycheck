@@ -1,4 +1,4 @@
-# /validate - Data Integrity Check
+# /rc-validate - Data Integrity Check
 
 Check database integrity and referential consistency.
 
@@ -9,7 +9,7 @@ allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
 ## Usage
 
 ```
-/validate [--strict] [--json]
+/rc-validate [--strict] [--json]
 ```
 
 ## CLI Invocation
@@ -75,8 +75,14 @@ WARN [CHAIN_CREDENCE_EXCEEDS_MIN] CHAIN-2026-001: Chain credence 0.8 > min claim
 ## Examples
 
 ```
-/validate
-/validate --strict
-/validate --json
-/validate --mode yaml --repo-root /path/to/data-repo
+/rc-validate
+/rc-validate --strict
+/rc-validate --json
+/rc-validate --mode yaml --repo-root /path/to/data-repo
 ```
+
+## Related Commands
+
+- `/rc-export` - Export data
+- `/rc-stats` - Database statistics
+- `/check` - Full analysis workflow
