@@ -11,6 +11,7 @@ Supports:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -282,6 +283,18 @@ def main():
     regen_parser.add_argument("--batch-size", type=int, default=32)
 
     args = parser.parse_args()
+
+    if args.command:
+        db_path = getattr(args, "db_path", None)
+        if db_path is None and not os.getenv("REALITYCHECK_DATA"):
+            default_db = Path("data/realitycheck.lance")
+            if not default_db.exists():
+                print(
+                    "Error: REALITYCHECK_DATA is not set and no default database was found at "
+                    f"'{default_db}'. Set REALITYCHECK_DATA or pass --db-path.",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
 
     if args.command == "status":
         print(f"Embedding model: {EMBEDDING_MODEL}")

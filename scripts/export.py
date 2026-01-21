@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -475,6 +476,16 @@ def main():
     subparsers.add_parser("stats", help="Show database statistics")
 
     args = parser.parse_args()
+
+    if args.command and args.db_path is None and not os.getenv("REALITYCHECK_DATA"):
+        default_db = Path("data/realitycheck.lance")
+        if not default_db.exists():
+            print(
+                "Error: REALITYCHECK_DATA is not set and no default database was found at "
+                f"'{default_db}'. Set REALITYCHECK_DATA or pass --db-path.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
 
     def output_result(content: str, output_path: Optional[Path]):
         if output_path:

@@ -422,6 +422,22 @@ import os
 class TestClaimCLI:
     """Tests for claim CLI subcommands."""
 
+    def test_stats_errors_when_no_data_env_and_no_default_db(self):
+        """stats errors with a helpful message when REALITYCHECK_DATA is unset and no default DB exists."""
+        env = os.environ.copy()
+        env.pop("REALITYCHECK_DATA", None)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "stats"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 2
+        assert "REALITYCHECK_DATA" in result.stderr
+
     def test_claim_add_creates_claim(self, temp_db_path: Path):
         """claim add creates a new claim."""
         env = os.environ.copy()

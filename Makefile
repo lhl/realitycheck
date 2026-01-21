@@ -1,12 +1,14 @@
 # Reality Check Makefile
 
-.PHONY: help install-plugin uninstall-plugin test test-all init clean
+.PHONY: help install-plugin uninstall-plugin install-codex-skills uninstall-codex-skills test test-all init clean
 
 help:
 	@echo "Reality Check - Available targets:"
 	@echo ""
 	@echo "  install-plugin    Install Claude Code plugin (symlink)"
 	@echo "  uninstall-plugin  Remove Claude Code plugin"
+	@echo "  install-codex-skills    Install Codex skills (symlink)"
+	@echo "  uninstall-codex-skills  Remove Codex skills"
 	@echo "  test              Run tests (skip embedding tests)"
 	@echo "  test-all          Run all tests including embeddings"
 	@echo "  init              Initialize database"
@@ -42,6 +44,15 @@ uninstall-plugin:
 	else \
 		echo "Plugin symlink not found at $(PLUGIN_DIR)/$(PLUGIN_NAME)"; \
 	fi
+
+# Codex skills installation
+install-codex-skills:
+	@echo "Installing Reality Check Codex skills..."
+	@bash integrations/codex/install.sh
+
+uninstall-codex-skills:
+	@echo "Removing Reality Check Codex skills..."
+	@bash integrations/codex/uninstall.sh
 
 # Testing
 test:

@@ -55,6 +55,8 @@ cd ~/my-research
 export REALITYCHECK_DATA="$(pwd)/data/realitycheck.lance"
 ```
 
+**Note:** If `REALITYCHECK_DATA` is not set, most commands will only work when a default database exists at `./data/realitycheck.lance/` (relative to your current directory). Otherwise, the CLI will exit with a helpful error prompting you to set `REALITYCHECK_DATA` or create a project via `rc-db init-project`.
+
 ## Claim Workflows
 
 ### Add a Claim

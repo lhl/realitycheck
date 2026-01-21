@@ -9,6 +9,25 @@ Date: 2026-01-21
 Framework: /home/lhl/github/lhl/realitycheck
 
 ================================================================================
+STEP 0 (OPTIONAL): Codex Skills Setup
+================================================================================
+
+Reality Check ships Codex skills that approximate Claude-style slash commands.
+
+--- Install skills (symlink into ~/.codex/skills) ---
+$ cd /home/lhl/github/lhl/realitycheck
+$ make install-codex-skills
+
+Restart Codex to pick up new skills.
+
+--- In Codex, point this session at the demo database ---
+> /reality:data /tmp/test-realitycheck/data/realitycheck.lance
+> /reality:stats
+
+Note: `/reality:data` only affects the current Codex session. To persist for your shell:
+  export REALITYCHECK_DATA="/tmp/test-realitycheck/data/realitycheck.lance"
+
+================================================================================
 STEP 1: Initialize Project
 ================================================================================
 
@@ -427,11 +446,14 @@ EVIDENCE LEVELS REFERENCE
 PREDICTION STATUSES REFERENCE
 ================================================================================
 
-  [P→] Pending     - Awaiting resolution
-  [P✓] Verified    - Prediction confirmed
-  [P✗] Falsified   - Prediction proven wrong
-  [P~] Ambiguous   - Unclear resolution
-  [P⊘] Obsolete    - No longer relevant
+  [P+] Confirmed           - Prediction occurred as specified
+  [P~] Partially Confirmed - Core thesis correct, details differ
+  [P→] On Track            - Intermediate indicators align
+  [P?] Uncertain           - Insufficient data to evaluate
+  [P←] Off Track           - Intermediate indicators diverge
+  [P!] Partially Refuted   - Core thesis problematic, some elements valid
+  [P-] Refuted             - Prediction clearly failed
+  [P∅] Unfalsifiable       - No possible evidence could refute
 
 ================================================================================
 DOMAIN CODES REFERENCE

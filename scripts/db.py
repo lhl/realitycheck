@@ -1174,6 +1174,51 @@ Examples:
     # -------------------------------------------------------------------------
     args = parser.parse_args()
 
+    def ensure_data_selected_for_command(command: Optional[str]) -> None:
+        """
+        Fail early with a friendly message when the database location is ambiguous.
+
+        If REALITYCHECK_DATA is unset, we only proceed without error when:
+        - The command is creating a new DB (`init`, `reset`) or creating a project (`init-project`), or
+        - A default `./data/realitycheck.lance` exists in the current directory.
+        """
+        if not command:
+            return
+
+        if os.getenv("REALITYCHECK_DATA"):
+            return
+
+        default_db = Path("data/realitycheck.lance")
+
+        if command == "init-project":
+            return
+
+        if command in {"init", "reset"}:
+            print(
+                "Note: REALITYCHECK_DATA is not set; using default database path "
+                f"'{default_db}' relative to '{Path.cwd()}'.",
+                file=sys.stderr,
+            )
+            print('Set it explicitly to avoid surprises, e.g.:', file=sys.stderr)
+            print('  export REALITYCHECK_DATA="/path/to/realitycheck.lance"', file=sys.stderr)
+            return
+
+        if default_db.exists():
+            return
+
+        print(
+            "Error: REALITYCHECK_DATA is not set and no default database was found at "
+            f"'{default_db}'.",
+            file=sys.stderr,
+        )
+        print('Set REALITYCHECK_DATA to your DB path, e.g.:', file=sys.stderr)
+        print('  export REALITYCHECK_DATA="/path/to/realitycheck.lance"', file=sys.stderr)
+        print("Or create a new project database with:", file=sys.stderr)
+        print("  rc-db init-project --path /path/to/project", file=sys.stderr)
+        sys.exit(2)
+
+    ensure_data_selected_for_command(args.command)
+
     # Helper to determine if embeddings should be generated
     # Respects both --no-embedding flag and REALITYCHECK_EMBED_SKIP env var
     def should_generate_embedding(args_obj, attr_name="no_embedding"):

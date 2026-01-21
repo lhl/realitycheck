@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import asdict, dataclass
@@ -78,6 +79,18 @@ def _is_probability(value: Any) -> bool:
 def validate_db(db_path: Optional[Path] = None) -> list[Finding]:
     """Validate LanceDB database integrity."""
     findings: list[Finding] = []
+
+    if db_path is None and not os.getenv("REALITYCHECK_DATA"):
+        default_db = Path("data/realitycheck.lance")
+        if not default_db.exists():
+            return [
+                Finding(
+                    "ERROR",
+                    "REALITYCHECK_DATA_MISSING",
+                    "REALITYCHECK_DATA is not set and no default database was found at "
+                    f"'{default_db}'. Set REALITYCHECK_DATA or pass --db-path.",
+                )
+            ]
 
     try:
         db = get_db(db_path)

@@ -16,29 +16,38 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 
 ## Status
 
-**v0.1.0-beta** - Core functionality complete. Extended CLI, Claude Code plugin with full workflow automation, and 112 passing tests.
+**v0.1.0** - Core functionality complete. Extended CLI, Claude Code plugin with full workflow automation, and 137 passing tests.
+
+[![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
 ## Prerequisites
 
 - **Python 3.11+**
-- **[uv](https://docs.astral.sh/uv/)** - Fast Python package manager
-  ```bash
-  # Install uv (macOS/Linux)
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-
-  # Or with pip
-  pip install uv
-  ```
 - **[Claude Code](https://claude.ai/code)** (optional) - For plugin integration
 
 ## Installation
+
+### From PyPI (Recommended)
+
+```bash
+# Install with pip
+pip install realitycheck
+
+# Or with uv (faster)
+uv pip install realitycheck
+
+# Verify installation
+rc-db --help
+```
+
+### From Source (Development)
 
 ```bash
 # Clone the framework
 git clone https://github.com/lhl/realitycheck.git
 cd realitycheck
 
-# Install dependencies
+# Install dependencies with uv
 uv sync
 
 # Verify installation
@@ -93,7 +102,7 @@ rm -rf .venv && uv sync --extra-index-url <your-index-url>
 mkdir my-research && cd my-research
 
 # Initialize a Reality Check project (creates structure + database)
-uv run python /path/to/realitycheck/scripts/db.py init-project
+rc-db init-project
 
 # This creates:
 #   .realitycheck.yaml    - Project config
@@ -116,8 +125,7 @@ echo 'export REALITYCHECK_DATA="data/realitycheck.lance"' >> ~/.bashrc
 ### 3. Add Your First Claim
 
 ```bash
-# From your project directory:
-uv run python /path/to/realitycheck/scripts/db.py claim add \
+rc-db claim add \
   --text "AI training costs double annually" \
   --type "[F]" \
   --domain "TECH" \
@@ -130,7 +138,7 @@ uv run python /path/to/realitycheck/scripts/db.py claim add \
 ### 4. Add a Source
 
 ```bash
-uv run python /path/to/realitycheck/scripts/db.py source add \
+rc-db source add \
   --id "epoch-2024-training" \
   --title "Training Compute Trends" \
   --type "REPORT" \
@@ -143,13 +151,13 @@ uv run python /path/to/realitycheck/scripts/db.py source add \
 
 ```bash
 # Semantic search
-uv run python /path/to/realitycheck/scripts/db.py search "AI costs"
+rc-db search "AI costs"
 
 # List all claims
-uv run python /path/to/realitycheck/scripts/db.py claim list --format text
+rc-db claim list --format text
 
 # Check database stats
-uv run python /path/to/realitycheck/scripts/db.py stats
+rc-db stats
 ```
 
 ## Using with Framework as Submodule
@@ -167,44 +175,47 @@ git submodule add https://github.com/lhl/realitycheck.git .framework
 
 ## CLI Reference
 
-All commands require `REALITYCHECK_DATA` to be set, or run from a directory with `.realitycheck.yaml`.
+All commands should be run with `REALITYCHECK_DATA` set.
+
+If `REALITYCHECK_DATA` is not set, commands will only run when a default database exists at `./data/realitycheck.lance/` (and will otherwise exit with a helpful error suggesting how to set `REALITYCHECK_DATA` or create a project via `rc-db init-project`). The Claude Code plugin can also auto-resolve project config via `.realitycheck.yaml`.
 
 ```bash
 # Database management
-db.py init                              # Initialize database tables
-db.py init-project [--path DIR]         # Create new project structure
-db.py stats                             # Show statistics
-db.py reset                             # Reset database (destructive!)
+rc-db init                              # Initialize database tables
+rc-db init-project [--path DIR]         # Create new project structure
+rc-db stats                             # Show statistics
+rc-db reset                             # Reset database (destructive!)
 
 # Claim operations
-db.py claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
-db.py claim add --id "TECH-2026-001" --text "..." ...  # With explicit ID
-db.py claim get <id>                    # Get single claim (JSON)
-db.py claim list [--domain D] [--type T] [--format json|text]
-db.py claim update <id> --credence 0.9 [--notes "..."]
+rc-db claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
+rc-db claim add --id "TECH-2026-001" --text "..." ...  # With explicit ID
+rc-db claim get <id>                    # Get single claim (JSON)
+rc-db claim list [--domain D] [--type T] [--format json|text]
+rc-db claim update <id> --credence 0.9 [--notes "..."]
+rc-db claim delete <id>                 # Delete a claim
 
 # Source operations
-db.py source add --id "..." --title "..." --type "PAPER" --author "..." --year 2024
-db.py source get <id>
-db.py source list [--type T] [--status S]
+rc-db source add --id "..." --title "..." --type "PAPER" --author "..." --year 2024
+rc-db source get <id>
+rc-db source list [--type T] [--status S]
 
 # Chain operations (argument chains)
-db.py chain add --id "..." --name "..." --thesis "..." --claims "ID1,ID2,ID3"
-db.py chain get <id>
-db.py chain list
+rc-db chain add --id "..." --name "..." --thesis "..." --claims "ID1,ID2,ID3"
+rc-db chain get <id>
+rc-db chain list
 
 # Prediction operations
-db.py prediction add --claim-id "..." --source-id "..." --status "[P→]"
-db.py prediction list [--status S]
+rc-db prediction add --claim-id "..." --source-id "..." --status "[P→]"
+rc-db prediction list [--status S]
 
 # Search and relationships
-db.py search "query" [--domain D] [--limit N]
-db.py related <claim-id>                # Find related claims
+rc-db search "query" [--domain D] [--limit N]
+rc-db related <claim-id>                # Find related claims
 
 # Import/Export
-db.py import <file.yaml> --type claims|sources|all
-validate.py                             # Check database integrity
-export.py yaml claims -o claims.yaml    # Export to YAML
+rc-db import <file.yaml> --type claims|sources|all
+rc-validate                             # Check database integrity
+rc-export yaml claims -o claims.yaml    # Export to YAML
 ```
 
 ## Claude Code Plugin
@@ -251,6 +262,21 @@ Claude will:
 ```
 
 See `docs/PLUGIN.md` for full documentation.
+
+## Codex Skills
+
+Codex doesn’t support Claude-style plugins, but it does support “skills”. Reality Check ships Codex skills that approximate slash commands:
+
+- `/check ...`
+- `/reality:* ...` (including `/reality:data` to set `REALITYCHECK_DATA` for the current Codex session)
+
+Install:
+
+```bash
+make install-codex-skills
+```
+
+See `integrations/codex/README.md` for usage and examples.
 
 ## Taxonomy Reference
 
@@ -304,13 +330,15 @@ realitycheck/                 # Framework repo (this)
 │   ├── export.py             # YAML/Markdown export
 │   └── migrate.py            # Legacy YAML migration
 ├── plugin/                   # Claude Code plugin
-│   ├── commands/             # Slash command definitions
+│   ├── skills/               # Slash command skill definitions
 │   └── scripts/              # Shell wrappers
+├── integrations/             # Other tool integrations
+│   └── codex/                # Codex skills + installers
 ├── methodology/              # Analysis templates
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md
 │   └── templates/
-├── tests/                    # pytest suite (112 tests)
+├── tests/                    # pytest suite (137 tests)
 └── docs/                     # Documentation
 
 my-research/                  # Your data repo (separate)

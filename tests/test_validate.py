@@ -54,6 +54,15 @@ class TestConstants:
 class TestDatabaseValidation:
     """Tests for database integrity validation."""
 
+    def test_validate_db_reports_missing_data_env_when_no_db(self, monkeypatch, tmp_path: Path):
+        """Missing REALITYCHECK_DATA and missing default DB reports a clear error."""
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("REALITYCHECK_DATA", raising=False)
+
+        findings = validate_db(None)
+
+        assert any(f.code == "REALITYCHECK_DATA_MISSING" for f in findings)
+
     def test_valid_database_passes(self, initialized_db, temp_db_path, sample_claim, sample_source):
         """Valid database produces no errors."""
         add_source(sample_source, initialized_db, generate_embedding=False)

@@ -409,25 +409,40 @@ realitycheck-data/
 
 **Tagged**: v0.1.0 (`5845136`)
 
+#### 2026-01-21: Codex Skills + DB Path UX
+
+- Added Codex skills under `integrations/codex/` to approximate slash commands (`/check` and `/reality:*`, including `/reality:data` for setting `REALITYCHECK_DATA` within a Codex session).
+- Added install/uninstall scripts and Makefile targets: `make install-codex-skills` / `make uninstall-codex-skills`.
+- Added early, user-friendly errors when `REALITYCHECK_DATA` is unset and no default `./data/realitycheck.lance/` exists (db/validate/export/embed).
+- Added tests for env-missing behavior; `uv run pytest -v` now: 137 passed.
+
 ---
 
 ## Phase 4: Clean Up & Publish
 
 ### Punchlist
 
-- [ ] Remove analysis data from framework repo
-- [ ] Update README with installation guide
-- [ ] Finalize pyproject.toml for PyPI
-  - [ ] Package metadata (name, version, description, author, license, URLs)
-  - [ ] Entry points for CLI (`realitycheck` command)
-  - [ ] Classifiers and keywords
-- [ ] Test with TestPyPI
-  - [ ] `uv publish --publish-url https://test.pypi.org/legacy/`
-  - [ ] Verify: `pip install -i https://test.pypi.org/simple/ realitycheck`
-- [ ] Publish to PyPI: `uv publish`
-- [ ] Verify: `pip install realitycheck` works
+- [x] Remove analysis data from framework repo (already done - data/ is empty)
+- [x] Update README with installation guide (`pip install realitycheck`)
+- [x] Finalize pyproject.toml for PyPI
+  - [x] Package metadata (name, version, description, author, license, URLs)
+  - [x] Entry points for CLI (rc-db, rc-validate, rc-export, rc-migrate, rc-embed)
+  - [x] Classifiers and keywords
+- [x] Test with TestPyPI (skipped - TestPyPI registration issues)
+- [x] Publish to PyPI: `uv tool run twine upload dist/*`
+- [x] Verify: `pip install realitycheck` works
 - [ ] Tag realitycheck as v1.0.0
 - [ ] Archive analysis-framework repo
+
+### Worklog
+
+#### 2026-01-21: PyPI Publishing
+
+- Built package: `uv build` → `realitycheck-0.1.0-py3-none-any.whl`
+- Published to PyPI: `uv tool run twine upload dist/*` (using ~/.pypirc)
+- Verified install in fresh venv: `uv pip install realitycheck && rc-db --help`
+- Updated README with pip install as primary installation method
+- Package available at: https://pypi.org/project/realitycheck/0.1.0/
 
 ---
 
@@ -483,6 +498,12 @@ realitycheck-data/
 | methodology/templates/source-analysis.md | 3-stage analysis template |
 | methodology/templates/claim-extraction.md | Quick extraction template |
 | methodology/templates/synthesis.md | Cross-source synthesis template |
+| integrations/README.md | Integration index (Codex, etc.) |
+| integrations/codex/README.md | Codex skills install/usage |
+| integrations/codex/install.sh | Install Codex skills into `$CODEX_HOME/skills` |
+| integrations/codex/uninstall.sh | Uninstall Codex skills |
+| integrations/codex/skills/check/SKILL.md | Codex `/check` skill |
+| integrations/codex/skills/realitycheck/SKILL.md | Codex `/reality:*` skill |
 | docs/SCHEMA.md | Database schema reference |
 | docs/WORKFLOWS.md | Workflow documentation |
 | docs/PLUGIN.md | Plugin installation/usage |
