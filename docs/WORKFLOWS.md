@@ -331,16 +331,20 @@ This runs:
 The plugin automatically commits data changes after database write operations. This ensures your knowledge base is version-controlled without manual intervention.
 
 **How it works:**
-1. After any `claim add`, `source add`, `prediction add`, `import`, or `init` command
-2. The PostToolUse hook detects changes in the `data/` directory
-3. Changes are staged and committed with an appropriate message
-4. Push is optional (disabled by default)
+1. After any write command (`claim/source/chain/prediction add`, `update`, `import`, `init`, `reset`)
+2. The PostToolUse hook detects changes in the data project (e.g., `data/`, `analysis/`, `tracking/`, `README.md`)
+3. `README.md` stats are updated (if possible) before committing
+4. Changes are staged and committed with an appropriate message (excludes `inbox/` by default)
+5. Push is optional (disabled by default)
 
 **Commit messages:**
 - `data: add claim(s)` - After claim operations
 - `data: add source(s)` - After source operations
+- `data: add chain(s)` - After chain operations
+- `data: add prediction(s)` - After prediction operations
 - `data: import data` - After bulk imports
 - `data: initialize database` - After init
+- `data: reset database` - After reset
 
 **Configuration:**
 ```bash
@@ -350,6 +354,8 @@ export REALITYCHECK_AUTO_COMMIT=false
 # Enable auto-push after commit
 export REALITYCHECK_AUTO_PUSH=true
 ```
+
+**Codex note:** Codex skills do not support Claude Code-style hooks. If you are using `$check` in Codex, you need to commit/push the data repo manually (or run the same scripts the plugin hooks call). To keep integrations in sync, treat `plugin/hooks/auto-commit-data.sh` as the source of truth for auto-commit behavior.
 
 ### Separate Data Repository
 

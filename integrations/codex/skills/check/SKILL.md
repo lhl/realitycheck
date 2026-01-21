@@ -97,3 +97,21 @@ If those aren’t on `PATH`, fall back to running from the framework repo:
 
 - `uv run python scripts/db.py ...`
 - `uv run python scripts/validate.py ...`
+
+## Data Repo Version Control (Codex)
+
+Codex skills do not support Claude Code-style hooks. After successful registration (any `rc-db` write operation), explicitly handle version control for the data project:
+
+1. If `PROJECT_ROOT/.git` exists and there are changes under `data/`, `analysis/`, `tracking/`, or `README.md`:
+   - If you can locate the framework repo (common when using these skills), update README stats (optional but recommended):
+     - `bash <framework-root>/plugin/scripts/update-readme-stats.sh "$PROJECT_ROOT"`
+     - If you can’t find it, skip this step.
+   - Commit (default behavior mirrors the Claude plugin: commit is on, push is off):
+     - If `REALITYCHECK_AUTO_COMMIT` is unset or `true`, run:
+       - `git add data/ analysis/ tracking/ README.md`
+       - `git commit -m "<message>"`
+       Where `<message>` mirrors the plugin defaults:
+       - `data: add claim(s)` / `data: add source(s)` / `data: add chain(s)` / `data: add prediction(s)`
+       - `data: import data` / `data: initialize database` / `data: reset database`
+     - If `REALITYCHECK_AUTO_PUSH=true`: `git push`
+2. If the user is unsure about auto-commit/push, ask before pushing.

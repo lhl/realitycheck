@@ -21,6 +21,15 @@
         ]
       },
       {
+        "matcher": "Bash(*rc-db*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post-db-modify.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Bash(*run-db.sh*)",
         "hooks": [
           {

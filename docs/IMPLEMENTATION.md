@@ -189,7 +189,7 @@ Created framework documentation:
 - [x] Update `/analyze`, `/extract`, `/validate`, `/export`, `/search` to invoke CLI
 - [x] Lifecycle hooks (`plugin/hooks/hooks.json`)
   - on-stop.sh - Auto-validate on session end
-  - post-db-modify.sh - Post-database-operation hook (silent by default)
+  - post-db-modify.sh - Post-database-operation hook (auto-commit/push data project changes)
 - [x] CLI tests (20 new tests) - all passing
 
 **Release:**

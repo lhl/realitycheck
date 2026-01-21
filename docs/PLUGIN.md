@@ -313,13 +313,17 @@ The plugin includes lifecycle hooks that run automatically:
 | Hook | Script | Purpose |
 |------|--------|---------|
 | Stop | `on-stop.sh` | Runs validation when session ends, alerts on errors |
-| PostToolUse | `post-db-modify.sh` | Runs after database modifications (silent by default) |
+| PostToolUse | `post-db-modify.sh` | Auto-commit/push data project changes after db write operations |
 
 ### How They Work
 
 **on-stop.sh**: When you end a Claude Code session, this hook automatically runs `validate.py` and alerts you if there are any database integrity errors. Warnings are suppressed to keep output clean.
 
-**post-db-modify.sh**: Runs after any Bash command matching `*db.py*`. Currently silent by default - the Stop hook handles validation. Can be enabled for per-operation reminders.
+**post-db-modify.sh**: Runs after any write operation (`claim add`, `source add`, `chain add`, `prediction add`, `update`, `import`, `init`, `reset`) executed via a Bash command matching `*db.py*`, `*rc-db*`, or `*run-db.sh*`. By default it auto-commits changes in the data project (e.g., `data/`, `analysis/`, `tracking/`, and `README.md`) and can optionally push.
+
+Auto-commit controls:
+- `REALITYCHECK_AUTO_COMMIT` (default: `true`) - disable with `false`
+- `REALITYCHECK_AUTO_PUSH` (default: `false`) - enable with `true`
 
 ### Customizing Hooks
 

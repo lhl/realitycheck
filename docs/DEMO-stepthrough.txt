@@ -29,6 +29,8 @@ Restart Codex to pick up new skills.
 Note: `$realitycheck data ...` only affects the current Codex session. To persist for your shell:
   export REALITYCHECK_DATA="/tmp/test-realitycheck/data/realitycheck.lance"
 
+Note: Codex skills do not support Claude Code-style hooks (auto-commit/push, README stats updates). If you want the demo data repo committed/pushed during Codex usage, do it explicitly with `git` (or run the same scripts the Claude plugin hooks call).
+
 ================================================================================
 STEP 1: Initialize Project
 ================================================================================

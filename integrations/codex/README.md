@@ -41,6 +41,8 @@ If Codex doesn’t auto-trigger the skill, explicitly invoke it with `$check` or
 
 **Embeddings:** By default, Reality Check generates embeddings when you register sources/claims. Only use `--no-embedding` (or `REALITYCHECK_EMBED_SKIP=1`) when you explicitly want to defer embeddings (e.g., offline without a cached model).
 
+**Commits/push:** Codex skills do not support Claude Code-style hooks. If your `REALITYCHECK_DATA` points to a separate git repo, commit/push changes manually (or run the same scripts the Claude plugin hooks call: `plugin/hooks/auto-commit-data.sh`, which updates README stats and commits `data/`, `analysis/`, `tracking/`, `README.md`).
+
 Examples:
 
 ```text

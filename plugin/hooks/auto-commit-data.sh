@@ -32,8 +32,9 @@ fi
 
 cd "$PROJECT_ROOT"
 
-# Check for changes in the data directory
-if ! git status --porcelain data/ 2>/dev/null | grep -q .; then
+# Check for changes in project content we want to version-control.
+# Note: we intentionally do not auto-stage inbox/ (often contains large/raw source files).
+if ! git status --porcelain -- data/ analysis/ tracking/ README.md 2>/dev/null | grep -q .; then
     # No changes to commit
     exit 0
 fi
@@ -72,8 +73,8 @@ if [[ -x "$SCRIPT_DIR/../scripts/update-readme-stats.sh" ]]; then
     "$SCRIPT_DIR/../scripts/update-readme-stats.sh" "$PROJECT_ROOT" 2>/dev/null || true
 fi
 
-# Stage and commit data changes (including updated README.md)
-git add data/
+# Stage and commit data project changes (including updated README.md).
+git add data/ analysis/ tracking/ 2>/dev/null || true
 git add README.md 2>/dev/null || true
 git commit -m "$COMMIT_MSG" --no-verify 2>/dev/null || true
 
