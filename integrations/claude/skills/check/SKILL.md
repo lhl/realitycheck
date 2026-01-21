@@ -1,115 +1,51 @@
 ---
 name: check
 description: Full Reality Check analysis workflow - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis.
-argument-hint: "<url> [--domain DOMAIN] [--quick] [--no-register]"
-allowed-tools: ["WebFetch", "Read", "Write", "Bash(uv run python scripts/db.py *)", "Bash(uv run python scripts/validate.py *)"]
+argument-hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
+allowed-tools: ["WebFetch", "Read", "Write", "Bash(uv run python scripts/db.py *)", "Bash(uv run python scripts/validate.py *)", "Bash(rc-db *)", "Bash(rc-validate *)"]
 ---
 
-# Reality Check - Full Analysis Workflow
+# /check - Full Analysis Workflow
 
 The flagship Reality Check command for rigorous source analysis.
 
+**Core Methodology**: See `methodology/workflows/check-core.md` for the complete 3-stage analysis methodology, evidence hierarchy, claim types, and extraction format.
+
 ## Usage
 
-Analyze the source: $ARGUMENTS
+```
+/check <url>
+/check <url> --domain TECH --quick
+/check <source-id> --continue
+/check --continue
+```
 
 ## Arguments
 
 - `url`: URL of the source to analyze
-- `--domain`: Primary domain for claims (TECH/LABOR/ECON/GOV/etc.)
+- `--domain`: Primary domain hint (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)
 - `--quick`: Skip Stage 3 (dialectical analysis) for faster processing
 - `--no-register`: Analyze without registering to database
+- `--continue`: Continue/iterate on an existing analysis instead of starting fresh
 
-## Workflow
+## Workflow Steps
 
-This command orchestrates the full Reality Check analysis pipeline:
+1. **Fetch** - Use `WebFetch` to retrieve source content
+2. **Metadata** - Extract title, author, date, type, generate source-id
+3. **Analysis** - Perform 3-stage analysis (see methodology)
+4. **Extract** - Format claims as YAML (see methodology)
+5. **Register** - Add source and claims to database
+6. **Validate** - Run integrity checks
+7. **README** - Update data project analysis index
+8. **Report** - Generate summary
 
-### Step 1: Fetch Source
+## Database Commands
 
-Use `WebFetch` to retrieve the source content.
-
-### Step 2: Source Metadata
-
-Extract and confirm source metadata:
-
-| Field | Value |
-|-------|-------|
-| **Title** | [extracted from page] |
-| **Author** | [extracted or "Unknown"] |
-| **Date** | [publication date if available] |
-| **Type** | [PAPER/ARTICLE/BLOG/REPORT/etc.] |
-| **Source ID** | [auto-generated: author-year-slug] |
-
-### Step 3: Three-Stage Analysis
-
-Perform the Reality Check 3-stage methodology:
-
-#### Stage 1: Descriptive Analysis
-
-1. **Summary**: Neutral 2-3 paragraph summary of the source
-2. **Key Claims**: List all claims with preliminary type classification
-3. **Predictions**: Any explicit or implicit predictions with timeframes
-4. **Assumptions**: Stated and unstated premises
-5. **Key Terms**: Define ambiguous terms with operational proxies
-
-#### Stage 2: Evaluative Analysis
-
-1. **Internal Coherence**: Check for logical consistency
-2. **Evidence Quality**: Rate using Evidence Hierarchy (E1-E6)
-3. **Unfalsifiable Claims**: Flag untestable claims
-4. **Disconfirming Evidence**: Actively search for contradictions
-5. **Persuasion Techniques**: Note rhetorical devices
-
-**Evidence Hierarchy Reference:**
-- **E1**: Systematic review, meta-analysis, replicated experiments
-- **E2**: Single peer-reviewed study, official data
-- **E3**: Expert consensus, working papers
-- **E4**: Industry reports, credible journalism
-- **E5**: Personal observation, anecdote
-- **E6**: Pure speculation, unfalsifiable claims
-
-#### Stage 3: Dialectical Analysis
-
-1. **Steelman**: Present the strongest version
-2. **Counterarguments**: Best objections
-3. **Base Rates**: Historical analogs
-4. **Synthesis**: Where does this fit?
-
-### Step 4: Extract Claims
-
-Format claims for database registration:
-
-```yaml
-claims:
-  - id: "[DOMAIN]-[YYYY]-[NNN]"
-    text: "[Precise claim statement]"
-    type: "[F/T/H/P/A/C/S/X]"
-    domain: "[DOMAIN]"
-    evidence_level: "E[1-6]"
-    credence: 0.XX
-    operationalization: "[How to test]"
-    assumptions: ["..."]
-    falsifiers: ["..."]
-    source_ids: ["[source-id]"]
-```
-
-**Claim Types:**
-- `[F]` Fact: Empirically verified
-- `[T]` Theory: Explanatory framework
-- `[H]` Hypothesis: Testable, awaiting evidence
-- `[P]` Prediction: Future-oriented with conditions
-- `[A]` Assumption: Underlying premise
-- `[C]` Counterfactual: Alternative scenario
-- `[S]` Speculation: Unfalsifiable
-- `[X]` Contradiction: Logical inconsistency
-
-### Step 5: Register in Database
-
-Use the CLI to register the source and claims:
+Use installed commands if available, otherwise fall back to uv:
 
 ```bash
 # Register source
-uv run python scripts/db.py source add \
+rc-db source add \
   --id "SOURCE_ID" \
   --title "TITLE" \
   --type "TYPE" \
@@ -118,7 +54,7 @@ uv run python scripts/db.py source add \
   --url "URL"
 
 # Register each claim
-uv run python scripts/db.py claim add \
+rc-db claim add \
   --id "CLAIM_ID" \
   --text "CLAIM_TEXT" \
   --type "[TYPE]" \
@@ -126,83 +62,32 @@ uv run python scripts/db.py claim add \
   --evidence-level "EX" \
   --credence 0.XX \
   --source-ids "SOURCE_ID"
+
+# Or with uv (from framework repo):
+uv run python scripts/db.py source add ...
+uv run python scripts/db.py claim add ...
 ```
 
-### Step 6: Validation
-
-Run validation to ensure data integrity:
+## Validation
 
 ```bash
-uv run python scripts/validate.py
+rc-validate
+# or: uv run python scripts/validate.py
 ```
 
-### Step 7: Update Data Project README
+## Version Control
 
-After completing the analysis, update the data project's `README.md` analysis index:
+If running as a global skill (not via plugin), version control is manual:
 
-1. **Add to Source Analyses table**: Insert a new row **at the top** of the table (reverse chronological order - newest first):
-
-```markdown
-| Date | Document | Status | Summary |
-|------|----------|--------|---------|
-| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |  ← INSERT HERE (top of table)
-| ... existing rows below ... |
-```
-
-**Status values:**
-- `[REVIEWED]` - Analysis complete, claims extracted and registered
-- `[DRAFT]` - In progress
-- `[PENDING]` - Awaiting analysis
-
-2. **Stats are auto-generated**: The counts table at the top will be updated by the auto-commit hook (if running in plugin mode) or manually via `update-readme-stats.sh`.
-
-### Step 8: Summary Report
-
-Generate a summary report:
-
-```
-## Analysis Summary
-
-**Source**: [title] ([source-id])
-**Claims Extracted**: X
-**Domains**: [list]
-
-### Claim Summary
-
-| ID | Type | Credence | Evidence |
-|----|------|----------|----------|
-| ... | ... | ... | ... |
-
-### Key Findings
-- [Most significant insight]
-- [Notable assumption or gap]
-- [Relationship to existing claims]
-
-### Validation Status
-✓ All claims registered
-✓ Source linked
-✓ Embeddings generated
-✓ README index updated
-```
-
-## Requirements
-
-- Database must be initialized (`uv run python scripts/db.py init`)
-- For URL sources: internet access for WebFetch
-- For best results: provide `--domain` hint
-
-## Examples
-
-```
-/check https://arxiv.org/abs/2024.12345
-/check https://example.com/ai-report --domain TECH
-/check https://blog.example.com/post --domain ECON --quick
-```
+1. After registration, check for changes in the data project
+2. Stage: `git add data/ analysis/ tracking/ README.md`
+3. Commit: `git commit -m "data: add source(s)"`
+4. Push if desired: `git push`
 
 ## Related Commands
 
-- `/rc-analyze` - Manual 3-stage analysis without database registration
-- `/rc-extract` - Quick claim extraction without full analysis
-- `/rc-search` - Find related claims in database
-- `/rc-validate` - Check database integrity
-- `/rc-stats` - Show database statistics
+- `/analyze` - Manual 3-stage analysis without registration
+- `/extract` - Quick claim extraction
+- `/search` - Find related claims
+- `/validate` - Check database integrity
+- `/stats` - Show database statistics
