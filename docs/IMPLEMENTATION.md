@@ -432,7 +432,7 @@ realitycheck-data/
 - [x] Publish to PyPI: `uv tool run twine upload dist/*`
 - [x] Verify: `pip install realitycheck` works
 - [x] Tag realitycheck as v0.1.0
-- [ ] Archive analysis-framework repo
+- [x] Archive analysis-framework repo
 
 ### Worklog
 
@@ -605,7 +605,15 @@ Create a desktop GUI for non-technical users:
 | docs/WORKFLOWS.md | Workflow documentation |
 | docs/PLUGIN.md | Plugin installation/usage |
 | CONTRIBUTING.md | Contribution guidelines |
+| integrations/amp/README.md | Amp integration guide |
+| integrations/amp/install.sh | Install Amp skills |
+| integrations/amp/uninstall.sh | Uninstall Amp skills |
+| integrations/amp/skills/realitycheck-check/SKILL.md | Full analysis workflow |
+| integrations/amp/skills/realitycheck-search/SKILL.md | Semantic search |
+| integrations/amp/skills/realitycheck-validate/SKILL.md | Data validation |
+| integrations/amp/skills/realitycheck-export/SKILL.md | Data export |
+| integrations/amp/skills/realitycheck-stats/SKILL.md | Database statistics |
 
 ---
 
-*Last updated: 2026-01-21 (Phase 3 complete, realitycheck-data v0.1.0 tagged)*
+*Last updated: 2026-01-22 (Amp skills added)*

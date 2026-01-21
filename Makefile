@@ -1,9 +1,13 @@
 # Reality Check Makefile
 
-.PHONY: help install-claude-plugin uninstall-claude-plugin install-claude-skills uninstall-claude-skills install-codex-skills uninstall-codex-skills test test-all init clean
+.PHONY: help install-claude-plugin uninstall-claude-plugin install-claude-skills uninstall-claude-skills install-codex-skills uninstall-codex-skills install-amp-skills uninstall-amp-skills test test-all init clean
 
 help:
 	@echo "Reality Check - Available targets:"
+	@echo ""
+	@echo "  Amp:"
+	@echo "    install-amp-skills       Install Amp skills (~/.config/agents/skills/)"
+	@echo "    uninstall-amp-skills     Remove Amp skills"
 	@echo ""
 	@echo "  Claude Code:"
 	@echo "    install-claude-plugin    Install plugin (use with: claude --plugin-dir ...)"
@@ -98,6 +102,15 @@ install-codex-skills:
 uninstall-codex-skills:
 	@echo "Removing Reality Check Codex skills..."
 	@bash integrations/codex/uninstall.sh
+
+# Amp skills installation
+install-amp-skills:
+	@echo "Installing Reality Check Amp skills..."
+	@bash integrations/amp/install.sh
+
+uninstall-amp-skills:
+	@echo "Removing Reality Check Amp skills..."
+	@bash integrations/amp/uninstall.sh
 
 # Testing
 test:

@@ -6,12 +6,27 @@ Reality Check supports tool-specific integrations (plugins, skills, wrappers) fo
 
 ```
 integrations/
+├── amp/
+│   └── skills/           # Amp skills
 ├── claude/
 │   ├── plugin/           # Claude Code plugin (commands, hooks)
 │   └── skills/           # Claude Code global skills
 └── codex/
     └── skills/           # OpenAI Codex skills
 ```
+
+## Amp
+
+Skills for [Amp](https://ampcode.com) - activate on natural language triggers.
+
+```bash
+# Install
+make install-amp-skills
+
+# Triggers: "Analyze this article", "Search for claims", "Validate database", etc.
+```
+
+See [amp/README.md](amp/README.md) for details.
 
 ## Claude Code
 
