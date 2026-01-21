@@ -308,7 +308,9 @@ This runs:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `REALITYCHECK_DATA` | `data/realitycheck.lance` | Database location |
+| `REALITYCHECK_DATA` | `data/realitycheck.lance` | Database location (takes precedence over project detection) |
+| `REALITYCHECK_AUTO_COMMIT` | `true` | Auto-commit data changes after db operations |
+| `REALITYCHECK_AUTO_PUSH` | `false` | Auto-push after commit (requires AUTO_COMMIT=true) |
 | `REALITYCHECK_EMBED_PROVIDER` | `local` | Embedding backend (`local` or `openai`) |
 | `REALITYCHECK_EMBED_MODEL` | `all-MiniLM-L6-v2` | Embedding model (HF id for `local`, provider-specific for `openai`) |
 | `REALITYCHECK_EMBED_DIM` | `384` | Vector dimension (must match model output + DB schema) |
@@ -317,6 +319,58 @@ This runs:
 | `REALITYCHECK_EMBED_API_BASE` | unset | OpenAI-compatible API base URL (e.g. `https://api.openai.com/v1`) |
 | `REALITYCHECK_EMBED_API_KEY` | unset | API key for `openai` provider (or use `OPENAI_API_KEY`) |
 | `REALITYCHECK_EMBED_SKIP` | unset | Skip embedding tests / embedding generation |
+
+## Data Persistence
+
+### Auto-Commit (Default Behavior)
+
+The plugin automatically commits data changes after database write operations. This ensures your knowledge base is version-controlled without manual intervention.
+
+**How it works:**
+1. After any `claim add`, `source add`, `prediction add`, `import`, or `init` command
+2. The PostToolUse hook detects changes in the `data/` directory
+3. Changes are staged and committed with an appropriate message
+4. Push is optional (disabled by default)
+
+**Commit messages:**
+- `data: add claim(s)` - After claim operations
+- `data: add source(s)` - After source operations
+- `data: import data` - After bulk imports
+- `data: initialize database` - After init
+
+**Configuration:**
+```bash
+# Disable auto-commit (manual commits only)
+export REALITYCHECK_AUTO_COMMIT=false
+
+# Enable auto-push after commit
+export REALITYCHECK_AUTO_PUSH=true
+```
+
+### Separate Data Repository
+
+The recommended setup separates the framework (this repo) from your data:
+
+```
+~/github/you/
+├── realitycheck/           # Framework (cloned from github.com/lhl/realitycheck)
+└── realitycheck-data/      # Your knowledge base (your own repo)
+    ├── data/
+    │   └── realitycheck.lance/
+    ├── .realitycheck.yaml
+    └── ...
+```
+
+**Setup:**
+```bash
+# Set REALITYCHECK_DATA to point to your data repo
+export REALITYCHECK_DATA="$HOME/github/you/realitycheck-data/data/realitycheck.lance"
+
+# Add to your shell profile for persistence
+echo 'export REALITYCHECK_DATA="$HOME/github/you/realitycheck-data/data/realitycheck.lance"' >> ~/.bashrc
+```
+
+**Important:** When `REALITYCHECK_DATA` is set, it takes precedence over project detection. This ensures commands always target your intended database regardless of current working directory.
 
 ## Tips
 

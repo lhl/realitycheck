@@ -18,6 +18,24 @@
 
 set -e
 
+# If REALITYCHECK_DATA is already set and valid, respect it
+if [[ -n "$REALITYCHECK_DATA" && -d "$REALITYCHECK_DATA" ]]; then
+    # Derive PROJECT_ROOT from REALITYCHECK_DATA if not set
+    if [[ -z "$PROJECT_ROOT" ]]; then
+        # Assume standard layout: PROJECT_ROOT/data/realitycheck.lance
+        PROJECT_ROOT="$(dirname "$(dirname "$REALITYCHECK_DATA")")"
+    fi
+    export PROJECT_ROOT
+    export REALITYCHECK_DATA
+    # Skip search - env var takes precedence
+    if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+        echo "export PROJECT_ROOT=\"$PROJECT_ROOT\""
+        echo "export REALITYCHECK_DATA=\"$REALITYCHECK_DATA\""
+        echo "export REALITYCHECK_FRAMEWORK=\"$REALITYCHECK_FRAMEWORK\""
+    fi
+    return 0 2>/dev/null || exit 0
+fi
+
 # Start from current directory or provided path
 START_DIR="${1:-$(pwd)}"
 CURRENT="$START_DIR"
