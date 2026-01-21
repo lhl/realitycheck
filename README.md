@@ -23,7 +23,8 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 ## Prerequisites
 
 - **Python 3.11+**
-- **[Claude Code](https://claude.ai/code)** (optional) - For plugin integration
+- **[Claude Code](https://github.com/anthropics/claude-code/)** (optional) - For plugin integration
+- **[OpenAI Codex](https://github.com/openai/codex)** (optional) - For skills integration
 
 ## Installation
 
