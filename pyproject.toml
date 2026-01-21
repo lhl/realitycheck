@@ -31,6 +31,7 @@ dependencies = [
     "lancedb>=0.18.0",
     "pyarrow>=18.0.0",
     "pyyaml>=6.0",
+    "beautifulsoup4>=4.12.0",
     "sentence-transformers>=3.0.0",
     "tabulate>=0.9.0",
 ]
@@ -47,6 +48,7 @@ rc-validate = "scripts.validate:main"
 rc-export = "scripts.export:main"
 rc-migrate = "scripts.migrate:main"
 rc-embed = "scripts.embed:main"
+rc-html-extract = "scripts.html_extract:main"
 
 [project.urls]
 Homepage = "https://github.com/lhl/realitycheck"

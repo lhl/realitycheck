@@ -24,6 +24,8 @@ Other scripts:
 - `validate.py` - Data integrity validation
 - `export.py` - Export to YAML/Markdown
 - `migrate.py` - Migrate from legacy YAML
+- `embed.py` - Generate/re-generate missing embeddings
+- `html_extract.py` - Extract `{title, published, text}` from HTML (useful pre-processing for analysis)
 
 ## Project Setup
 

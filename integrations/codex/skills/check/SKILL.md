@@ -42,6 +42,7 @@ By default, **do not skip embeddings**.
 - When registering sources/claims with `rc-db`, **do not** add `--no-embedding` unless:
   - The user explicitly asks to skip embeddings, or
   - Embedding generation fails (e.g., missing local model / offline) and the user confirms they want to proceed anyway.
+- Do not add `--no-embedding` “for safety” or “to avoid dependencies”. Treat embeddings as part of the default workflow.
 - If embeddings are skipped, note it in the analysis log and suggest running `rc-embed generate` later.
 - If `REALITYCHECK_EMBED_SKIP` is set in the environment, treat that as an explicit instruction to skip embeddings.
 
@@ -69,6 +70,9 @@ When `--continue` is specified (or when the user asks to continue an existing an
 2. **Fetch the source**
    - Prefer `curl -L <url>` and save the raw content to a temporary file.
    - If the URL is a PDF, download it and extract text (e.g., via `pdftotext` if available).
+   - If the URL is HTML, extract `{title, published, text}` with:
+     - `rc-html-extract /path/to/page.html --format json`
+     Use the extracted `text` as the input for the 3-stage analysis (and `title/published` for source metadata).
 3. **Decide analysis target**
    - If this is a new analysis, generate a stable `source-id` and create `analysis/sources/<source-id>.md`.
    - If `--continue` is set, locate the existing `analysis/sources/<source-id>.md` (or pick the most recent) and append.

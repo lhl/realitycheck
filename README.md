@@ -333,7 +333,9 @@ realitycheck/                 # Framework repo (this)
 │   ├── db.py                 # Database operations + CLI
 │   ├── validate.py           # Data integrity checks
 │   ├── export.py             # YAML/Markdown export
-│   └── migrate.py            # Legacy YAML migration
+│   ├── migrate.py            # Legacy YAML migration
+│   ├── embed.py              # Embedding utilities (re-generate, status)
+│   └── html_extract.py       # HTML → {title, published, text} extraction
 ├── plugin/                   # Claude Code plugin
 │   ├── skills/               # Slash command skill definitions
 │   └── scripts/              # Shell wrappers

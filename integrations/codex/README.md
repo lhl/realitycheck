@@ -50,4 +50,5 @@ $realitycheck stats
 $realitycheck search "automation wages" --domain LABOR --limit 5 --format text
 $realitycheck validate --strict
 $realitycheck embed status
+rc-html-extract ./page.html --format json
 ```
