@@ -42,6 +42,42 @@ The Reality Check analysis workflow performs rigorous source analysis through a 
 
 ---
 
+## Output Contract (Required)
+
+Every `/check` (Claude) / `$check` (Codex) run must produce a **human-auditable analysis** with **explicit claim structure**.
+
+At minimum, the workflow must create (or update, in continuation mode) the analysis markdown file:
+
+- `PROJECT_ROOT/analysis/sources/<source-id>.md`
+
+The markdown **must** include:
+
+1. **Metadata** (Source ID, URL, author, date/type)
+2. **Three-stage analysis** (Stages 1–3)
+3. **Claim tables with evidence + credence**
+   - A **Key Claims** table (top claims; can be a subset), and
+   - A **Claim Summary** table (all extracted claims)
+4. **Extracted claims artifact**
+   - Either embed a YAML block under “Claims to Register”, or write `analysis/sources/<source-id>.yaml` and reference it
+5. **Continuation notes** (when `--continue` is used)
+   - Preserve existing content; append a short “Continuation Notes” section describing what changed and why
+
+If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not complete**.
+
+### Key Claims (table template)
+
+| # | Claim | Claim ID | Type | Domain | Evidence | Credence | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|----------|----------:|-----------|----------------|
+| 1 | … | DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1–E6 | 0.00 | ✓/? | … |
+
+### Claim Summary (table template)
+
+| ID | Type | Domain | Evidence | Credence | Claim |
+|----|------|--------|----------|----------:|-------|
+| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1–E6 | 0.00 | … |
+
+---
+
 ## Source Metadata
 
 Extract and confirm source metadata before analysis:
