@@ -303,7 +303,7 @@ CLAIMS_SCHEMA = pa.schema([
 
 SOURCES_SCHEMA = pa.schema([
     pa.field("id", pa.string(), nullable=False),
-    pa.field("type", pa.string(), nullable=False),  # PAPER/BOOK/REPORT/ARTICLE/BLOG/SOCIAL/CONVO/KNOWLEDGE
+    pa.field("type", pa.string(), nullable=False),  # PAPER/BOOK/REPORT/ARTICLE/BLOG/SOCIAL/CONVO/INTERVIEW/DATA/FICTION/KNOWLEDGE
     pa.field("title", pa.string(), nullable=False),
     pa.field("author", pa.list_(pa.string()), nullable=False),
     pa.field("year", pa.int32(), nullable=False),

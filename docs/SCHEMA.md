@@ -43,7 +43,7 @@ Bibliography and provenance tracking.
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | string | Yes | Unique source ID |
-| `type` | string | Yes | PAPER/BOOK/REPORT/ARTICLE/BLOG/SOCIAL/CONVO/KNOWLEDGE |
+| `type` | string | Yes | PAPER/BOOK/REPORT/ARTICLE/BLOG/SOCIAL/CONVO/INTERVIEW/DATA/FICTION/KNOWLEDGE |
 | `title` | string | Yes | Source title |
 | `author` | list[string] | Yes | Author names |
 | `year` | int32 | Yes | Publication year |
@@ -190,7 +190,10 @@ Legacy domains are automatically migrated:
 | ARTICLE | News or magazine article |
 | BLOG | Blog post |
 | SOCIAL | Social media post |
-| CONVO | Conversation or interview |
+| CONVO | Conversation transcript (e.g., chat logs) |
+| INTERVIEW | Interview, talk, or speech transcript |
+| DATA | Dataset or repository reference |
+| FICTION | Fictional work (useful for narrative analysis) |
 | KNOWLEDGE | General knowledge/common understanding |
 
 ## Embeddings
