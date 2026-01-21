@@ -157,6 +157,34 @@ claims:
 
 ---
 
+## Quick Reference
+
+### Claim Types
+
+| Type | Symbol | Definition |
+|------|--------|------------|
+| Fact | `[F]` | Empirically verified, consensus reality |
+| Theory | `[T]` | Coherent framework with empirical support |
+| Hypothesis | `[H]` | Testable proposition, awaiting evidence |
+| Prediction | `[P]` | Future-oriented with specified conditions |
+| Assumption | `[A]` | Underlying premise (stated or unstated) |
+| Counterfactual | `[C]` | Alternative scenario for comparison |
+| Speculation | `[S]` | Unfalsifiable or untestable claim |
+| Contradiction | `[X]` | Identified logical inconsistency |
+
+### Evidence Hierarchy
+
+| Level | Strength | Description |
+|-------|----------|-------------|
+| E1 | Strong Empirical | Replicated studies, systematic reviews, meta-analyses |
+| E2 | Moderate Empirical | Single peer-reviewed study, official statistics |
+| E3 | Strong Theoretical | Expert consensus, working papers, preprints |
+| E4 | Weak Theoretical | Industry reports, credible journalism |
+| E5 | Opinion/Forecast | Personal observation, anecdote, expert opinion |
+| E6 | Unsupported | Pure speculation, unfalsifiable claims |
+
+---
+
 ## Analyst Notes
 
 [Any additional observations, questions for follow-up, or methodological notes]
