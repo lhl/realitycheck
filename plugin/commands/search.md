@@ -1,15 +1,16 @@
-# /rc-search - Semantic Search
-
-Search claims and sources using natural language queries.
-
 ---
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh search *)"]
+description: Search claims and sources using natural language queries
 ---
+
+# /search - Semantic Search
+
+Search claims and sources using natural language queries.
 
 ## Usage
 
 ```
-/rc-search <query> [--domain DOMAIN] [--limit N] [--format json|text]
+/search <query> [--domain DOMAIN] [--limit N] [--format json|text]
 ```
 
 ## CLI Invocation
@@ -54,14 +55,14 @@ Results include:
 ## Examples
 
 ```
-/rc-search "AI automation labor displacement"
-/rc-search "training costs" --domain TECH --limit 5
-/rc-search "wealth concentration inequality"
+/search "AI automation labor displacement"
+/search "training costs" --domain TECH --limit 5
+/search "wealth concentration inequality"
 ```
 
 ## Related Commands
 
-- `/rc-analyze` - Full source analysis
-- `/rc-extract` - Quick claim extraction
-- `/rc-export` - Export search results
-- `/rc-stats` - Database statistics
+- `/analyze` - Full source analysis
+- `/extract` - Quick claim extraction
+- `/export` - Export search results
+- `/stats` - Database statistics

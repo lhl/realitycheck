@@ -1,10 +1,11 @@
+---
+allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
+description: Full Reality Check analysis workflow - fetch, analyze, extract claims, register, validate
+---
+
 # /check - Full Analysis Workflow
 
 The flagship Reality Check command for rigorous source analysis.
-
----
-allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
----
 
 ## Usage
 
@@ -209,8 +210,8 @@ Generate a summary report:
 
 ## Related Commands
 
-- `/rc-analyze` - Manual 3-stage analysis without database registration
-- `/rc-extract` - Quick claim extraction without full analysis
-- `/rc-search` - Find related claims in database
-- `/rc-validate` - Check database integrity
-- `/rc-stats` - Show database statistics
+- `/analyze` - Manual 3-stage analysis without database registration
+- `/extract` - Quick claim extraction without full analysis
+- `/search` - Find related claims in database
+- `/validate` - Check database integrity
+- `/stats` - Show database statistics

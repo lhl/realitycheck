@@ -1,15 +1,16 @@
-# /rc-export - Data Export
-
-Export data to Markdown or YAML formats.
-
 ---
 allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-export.sh *)"]
+description: Export data to Markdown or YAML formats
 ---
+
+# /export - Data Export
+
+Export data to Markdown or YAML formats.
 
 ## Usage
 
 ```
-/rc-export <format> <type> [--id ID] [-o OUTPUT]
+/export <format> <type> [--id ID] [-o OUTPUT]
 ```
 
 ## CLI Invocation
@@ -52,19 +53,19 @@ uv run python scripts/export.py <format> <type> [OPTIONS]
 ## Examples
 
 ```
-/rc-export yaml claims -o registry.yaml
-/rc-export yaml sources -o sources.yaml
-/rc-export md claim --id TECH-2026-001
-/rc-export md chain --id CHAIN-2026-001
-/rc-export md predictions -o predictions.md
-/rc-export md summary -o dashboard.md
+/export yaml claims -o registry.yaml
+/export yaml sources -o sources.yaml
+/export md claim --id TECH-2026-001
+/export md chain --id CHAIN-2026-001
+/export md predictions -o predictions.md
+/export md summary -o dashboard.md
 ```
 
 ## Related Commands
 
-- `/rc-validate` - Check data integrity
-- `/rc-search` - Semantic search
-- `/rc-stats` - Database statistics
+- `/validate` - Check data integrity
+- `/search` - Semantic search
+- `/stats` - Database statistics
 
 ## Legacy Format
 

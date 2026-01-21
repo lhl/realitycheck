@@ -1,11 +1,15 @@
-# /rc-analyze - Source Analysis
+---
+description: Perform a full 3-stage analysis of a source following the Reality Check methodology
+---
+
+# /analyze - Source Analysis
 
 Perform a full 3-stage analysis of a source following the Reality Check methodology.
 
 ## Usage
 
 ```
-/rc-analyze <url_or_source_id>
+/analyze <url_or_source_id>
 ```
 
 ## Arguments
@@ -79,13 +83,13 @@ Uses `methodology/templates/source-analysis.md`
 ## Examples
 
 ```
-/rc-analyze https://example.com/ai-labor-report
-/rc-analyze epoch-2024-training
+/analyze https://example.com/ai-labor-report
+/analyze epoch-2024-training
 ```
 
 ## Related Commands
 
 - `/check` - Full automated analysis workflow
-- `/rc-extract` - Quick claim extraction
-- `/rc-search` - Semantic search
-- `/rc-stats` - Database statistics
+- `/extract` - Quick claim extraction
+- `/search` - Semantic search
+- `/stats` - Database statistics
