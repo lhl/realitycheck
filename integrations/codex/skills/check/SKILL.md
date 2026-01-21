@@ -1,19 +1,19 @@
 ---
 name: check
-description: "Reality Check (Codex): handle `/check <url>` by fetching a source, performing 3-stage analysis, extracting claims, optionally registering them via `rc-db`, and running `rc-validate`."
+description: "Reality Check check workflow for Codex (fetch, analyze, extract, register, validate)."
 ---
 
-# Reality Check `/check` (Codex)
+# Reality Check `$check` (Codex)
 
 This skill mirrors the Claude Code `/check` workflow, but for Codex CLI.
 
 ## Invocation
 
-- `/check <url> [--domain DOMAIN] [--quick] [--no-register]`
-- `/check <source-id> --continue` - Continue an existing analysis
-- `/check --continue` - Continue the most recent analysis
+- `$check <url> [--domain DOMAIN] [--quick] [--no-register]`
+- `$check <source-id> --continue` - Continue an existing analysis
+- `$check --continue` - Continue the most recent analysis
 
-If this skill does not auto-trigger from `/check`, explicitly invoke it with `$check` and repeat the command.
+Note: Codex CLI reserves `/...` for built-in commands. Use `$check ...` (or plain text asking for a check) instead of `/check ...`.
 
 ## Preconditions
 
@@ -22,7 +22,7 @@ If this skill does not auto-trigger from `/check`, explicitly invoke it with `$c
 
 If `REALITYCHECK_DATA` is not set, ask the user to either:
 - Export it in their shell, or
-- Use `/reality:data <path>` (see the `realitycheck` Codex skill) to set it for the current Codex session.
+- Use `$realitycheck data <path>` (see the `realitycheck` Codex skill) to set it for the current Codex session.
 
 ## Continuation Mode
 

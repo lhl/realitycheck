@@ -266,10 +266,12 @@ See `docs/PLUGIN.md` for full documentation.
 
 ## Codex Skills
 
-Codex doesn’t support Claude-style plugins, but it does support “skills”. Reality Check ships Codex skills that approximate slash commands:
+Codex doesn’t support Claude-style plugins, but it does support “skills”.
 
-- `/check ...`
-- `/reality:* ...` (including `/reality:data` to set `REALITYCHECK_DATA` for the current Codex session)
+Codex CLI reserves `/...` for built-in commands, so custom slash commands are not supported. Reality Check ships Codex skills you can invoke with `$...`:
+
+- `$check ...`
+- `$realitycheck ...` (including `$realitycheck data <path>` to target a DB for the current Codex session)
 
 Install:
 

@@ -1,9 +1,11 @@
 # Reality Check Codex Skills
 
-This directory contains Codex CLI “skills” that approximate Claude Code-style slash commands:
+This directory contains Codex CLI “skills” that approximate Claude Code-style workflows.
 
-- `/check ...` → `integrations/codex/skills/check/SKILL.md`
-- `/reality:* ...` → `integrations/codex/skills/realitycheck/SKILL.md`
+Codex CLI reserves `/...` for built-in commands, so custom slash commands are not supported. Use `$...` skill invocation (or plain language) instead.
+
+- `$check ...` → `integrations/codex/skills/check/SKILL.md`
+- `$realitycheck ...` → `integrations/codex/skills/realitycheck/SKILL.md`
 
 ## Install
 
@@ -40,9 +42,9 @@ If Codex doesn’t auto-trigger the skill, explicitly invoke it with `$check` or
 Examples:
 
 ```text
-/check https://example.com/report --domain TECH
-/reality:data ~/my-realitycheck-data/data/realitycheck.lance
-/reality:stats
-/reality:search "automation wages" --domain LABOR --limit 5 --format text
-/reality:validate --strict
+$check https://example.com/report --domain TECH --quick --no-register
+$realitycheck data ~/my-realitycheck-data/data/realitycheck.lance
+$realitycheck stats
+$realitycheck search "automation wages" --domain LABOR --limit 5 --format text
+$realitycheck validate --strict
 ```

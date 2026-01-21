@@ -12,7 +12,9 @@ Framework: /home/lhl/github/lhl/realitycheck
 STEP 0 (OPTIONAL): Codex Skills Setup
 ================================================================================
 
-Reality Check ships Codex skills that approximate Claude-style slash commands.
+Reality Check ships Codex skills to streamline Reality Check workflows inside Codex.
+
+Note: Codex CLI reserves `/...` for built-in commands, so custom slash commands are not supported.
 
 --- Install skills (symlink into ~/.codex/skills) ---
 $ cd /home/lhl/github/lhl/realitycheck
@@ -21,10 +23,10 @@ $ make install-codex-skills
 Restart Codex to pick up new skills.
 
 --- In Codex, point this session at the demo database ---
-> /reality:data /tmp/test-realitycheck/data/realitycheck.lance
-> /reality:stats
+> $realitycheck data /tmp/test-realitycheck/data/realitycheck.lance
+> $realitycheck stats
 
-Note: `/reality:data` only affects the current Codex session. To persist for your shell:
+Note: `$realitycheck data ...` only affects the current Codex session. To persist for your shell:
   export REALITYCHECK_DATA="/tmp/test-realitycheck/data/realitycheck.lance"
 
 ================================================================================

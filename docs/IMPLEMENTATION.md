@@ -411,7 +411,7 @@ realitycheck-data/
 
 #### 2026-01-21: Codex Skills + DB Path UX
 
-- Added Codex skills under `integrations/codex/` to approximate slash commands (`/check` and `/reality:*`, including `/reality:data` for setting `REALITYCHECK_DATA` within a Codex session).
+- Added Codex skills under `integrations/codex/` for `$check` and `$realitycheck` (data/stats/search/validate/export), including `$realitycheck data <path>` for setting `REALITYCHECK_DATA` within a Codex session.
 - Added install/uninstall scripts and Makefile targets: `make install-codex-skills` / `make uninstall-codex-skills`.
 - Added early, user-friendly errors when `REALITYCHECK_DATA` is unset and no default `./data/realitycheck.lance/` exists (db/validate/export/embed).
 - Added tests for env-missing behavior; `uv run pytest -v` now: 137 passed.
@@ -599,8 +599,8 @@ Create a desktop GUI for non-technical users:
 | integrations/codex/README.md | Codex skills install/usage |
 | integrations/codex/install.sh | Install Codex skills into `$CODEX_HOME/skills` |
 | integrations/codex/uninstall.sh | Uninstall Codex skills |
-| integrations/codex/skills/check/SKILL.md | Codex `/check` skill |
-| integrations/codex/skills/realitycheck/SKILL.md | Codex `/reality:*` skill |
+| integrations/codex/skills/check/SKILL.md | Codex `$check` skill |
+| integrations/codex/skills/realitycheck/SKILL.md | Codex `$realitycheck` skill |
 | docs/SCHEMA.md | Database schema reference |
 | docs/WORKFLOWS.md | Workflow documentation |
 | docs/PLUGIN.md | Plugin installation/usage |

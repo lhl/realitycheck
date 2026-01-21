@@ -1,26 +1,28 @@
 ---
 name: realitycheck
-description: "Reality Check (Codex): provides `/reality:*` utility commands (data/stats/search/validate/export/etc.) by invoking the installed `rc-*` CLIs, and can set `REALITYCHECK_DATA` for the current Codex session."
+description: "Reality Check utilities for Codex (data, stats, search, validate, export) via rc-* CLIs."
 metadata:
-  short-description: /reality:* commands for Codex
+  short-description: Reality Check utilities for Codex
 ---
 
-# Reality Check `/reality:*` (Codex)
+# Reality Check `$realitycheck` (Codex)
 
-Use this skill when the user types a `/reality:<subcommand> ...` message in Codex.
+Use this skill when the user asks for Reality Check utility commands in Codex.
 
-If this skill does not auto-trigger, explicitly invoke it with `$realitycheck` and repeat the `/reality:*` command.
+If this skill does not auto-trigger, explicitly invoke it with `$realitycheck` and repeat the request.
+
+Note: Codex CLI reserves `/...` for built-in commands. Custom `/reality:*` commands are not supported; use `$realitycheck ...` instead.
 
 ## Preconditions
 
 - Assume the `realitycheck` Python package is installed (so `rc-db`, `rc-validate`, `rc-export`, `rc-migrate` are on `PATH`).
 - Prefer using `REALITYCHECK_DATA` for database selection.
 
-If `REALITYCHECK_DATA` is not set, guide the user to set it (or use `/reality:data` below).
+If `REALITYCHECK_DATA` is not set, guide the user to set it (or use `data <path>` below).
 
 ## Subcommands
 
-### `/reality:data <path>`
+### `data <path>`
 
 Set (or override) `REALITYCHECK_DATA` for the current Codex session.
 
@@ -32,35 +34,35 @@ Behavior:
 
 Important: this cannot permanently change the user’s shell environment; it only affects commands executed by Codex in this session.
 
-### `/reality:stats`
+### `stats`
 
 Run:
 - `rc-db stats`
 
-### `/reality:search <query> [--domain DOMAIN] [--limit N] [--format json|text]`
+### `search <query> [--domain DOMAIN] [--limit N] [--format json|text]`
 
 Run:
 - `rc-db search "<query>" ...`
 
-### `/reality:validate [--strict] [--json]`
+### `validate [--strict] [--json]`
 
 Run:
 - `rc-validate ...`
 
-### `/reality:export ...`
+### `export ...`
 
 Pass through to `rc-export`. Common patterns:
 - `rc-export yaml claims -o claims.yaml`
 - `rc-export yaml sources -o sources.yaml`
 - `rc-export md summary -o summary.md`
 
-### `/reality:help`
+### `help`
 
-Print a concise help message listing the supported `/reality:*` subcommands and examples.
+Print a concise help message listing the supported subcommands and examples.
 
 ## Execution rules
 
 - Prefer installed entry points (`rc-*`) over `uv run python scripts/*.py`.
 - When running commands, ensure they target the intended DB:
   - If `REALITYCHECK_DATA` is set in the environment, use it as-is.
-  - If the user used `/reality:data`, prefix commands with `REALITYCHECK_DATA="<path>"` for every invocation.
+  - If the user used `data <path>`, prefix commands with `REALITYCHECK_DATA="<path>"` for every invocation.
