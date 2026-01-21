@@ -10,6 +10,8 @@ This skill mirrors the Claude Code `/check` workflow, but for Codex CLI.
 ## Invocation
 
 - `/check <url> [--domain DOMAIN] [--quick] [--no-register]`
+- `/check <source-id> --continue` - Continue an existing analysis
+- `/check --continue` - Continue the most recent analysis
 
 If this skill does not auto-trigger from `/check`, explicitly invoke it with `$check` and repeat the command.
 
@@ -21,6 +23,21 @@ If this skill does not auto-trigger from `/check`, explicitly invoke it with `$c
 If `REALITYCHECK_DATA` is not set, ask the user to either:
 - Export it in their shell, or
 - Use `/reality:data <path>` (see the `realitycheck` Codex skill) to set it for the current Codex session.
+
+## Continuation Mode
+
+When `--continue` is specified (or when the user asks to continue an existing analysis):
+
+1. **Find existing analysis**: Look for `analysis/sources/[source-id].md`
+2. **Read current state**: Load the existing analysis and registered claims
+3. **Iterate, don't overwrite**: Add to the existing analysis rather than replacing it
+4. **Focus areas**:
+   - Extract claims that were skipped or noted as "TODO"
+   - Deepen specific sections (more counterfactuals, stronger steelman)
+   - Address questions or gaps identified in the original pass
+   - Cross-reference with newly added claims in the database
+
+**Important**: Preserve all existing content. Append new sections and note what was added in this pass.
 
 ## Execution Outline
 

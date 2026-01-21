@@ -11,6 +11,8 @@ allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "
 ```
 /check <url>
 /check <url> --domain TECH --quick
+/check <source-id> --continue
+/check --continue  # continue most recent analysis
 ```
 
 ## Arguments
@@ -19,6 +21,23 @@ allowed-tools: ["WebFetch", "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh *)", "
 - `--domain`: Primary domain for claims (TECH/LABOR/ECON/GOV/etc.)
 - `--quick`: Skip Stage 3 (dialectical analysis) for faster processing
 - `--no-register`: Analyze without registering to database
+- `--continue`: Continue/iterate on an existing analysis instead of starting fresh
+
+## Continuation Mode
+
+When `--continue` is specified (or when the user asks to continue an existing analysis):
+
+1. **Find existing analysis**: Look for the analysis file in `analysis/sources/[source-id].md`
+2. **Read current state**: Load the existing analysis and registered claims
+3. **Iterate, don't overwrite**: Add to the existing analysis rather than replacing it
+4. **Focus areas for continuation**:
+   - Extract claims that were skipped or noted as "TODO"
+   - Deepen specific sections (e.g., more counterfactuals, stronger steelman)
+   - Add evidence that was found after initial analysis
+   - Address questions or gaps identified in the original pass
+   - Cross-reference with newly added claims in the database
+
+**Important**: When continuing, preserve all existing content. Append new sections, update claim counts, and note what was added in this pass.
 
 ## Workflow
 
@@ -177,9 +196,15 @@ Generate a summary report:
 ## Examples
 
 ```
+# New analysis
 /check https://arxiv.org/abs/2024.12345
 /check https://example.com/ai-report --domain TECH
 /check https://blog.example.com/post --domain ECON --quick
+
+# Continue existing analysis
+/check carney-2025-global --continue
+/check --continue  # continues most recent
+/check carney-2025-global --continue "focus on fiscal policy claims"
 ```
 
 ## Related Commands
