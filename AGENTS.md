@@ -215,7 +215,7 @@ When modifying hook behavior:
 
 Key sync points:
 - **Auto-commit:** `hooks/post-db-modify.sh` → Codex skill "Data Repo Version Control" section
-- **README stats:** `scripts/update-readme-stats.sh` → Codex skill optional step
+- **README stats:** `scripts/update-readme-stats.sh` → Codex skill optional step (also used by plugin hooks)
 
 ## Handling Blockers
 

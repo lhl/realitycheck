@@ -481,9 +481,23 @@ rc-export markdown source SOURCE_ID -o source.md
 
 ---
 
+## Update README Stats
+
+After registration and validation, update the data project's README.md with current statistics:
+
+```bash
+# From the realitycheck framework directory
+scripts/update-readme-stats.sh "$PROJECT_ROOT"
+# or: bash scripts/update-readme-stats.sh "$(dirname "$REALITYCHECK_DATA")"
+```
+
+This updates the "Current Status" and "Claim Domains" tables in the data repo's README.md.
+
+---
+
 ## Version Control
 
-After registration and validation, commit and push changes to the data repository:
+After updating README stats, commit and push changes to the data repository:
 
 ```bash
 # From the data project root (parent of data/)
