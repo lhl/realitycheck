@@ -1174,6 +1174,18 @@ Examples:
     # -------------------------------------------------------------------------
     args = parser.parse_args()
 
+    def is_framework_repo() -> bool:
+        """Check if we're in the realitycheck framework repo (not a data repo)."""
+        # Check for telltale framework files
+        framework_markers = [
+            Path("scripts/db.py"),
+            Path("CLAUDE.md"),
+            Path("integrations/claude"),
+            Path("methodology/workflows"),
+        ]
+        matches = sum(1 for m in framework_markers if m.exists())
+        return matches >= 2  # At least 2 markers = likely framework repo
+
     def ensure_data_selected_for_command(command: Optional[str]) -> None:
         """
         Fail early with a friendly message when the database location is ambiguous.
@@ -1181,6 +1193,8 @@ Examples:
         If REALITYCHECK_DATA is unset, we only proceed without error when:
         - The command is creating a new DB (`init`, `reset`) or creating a project (`init-project`), or
         - A default `./data/realitycheck.lance` exists in the current directory.
+
+        Additionally, refuse to create a database inside the framework repo itself.
         """
         if not command:
             return
@@ -1194,6 +1208,22 @@ Examples:
             return
 
         if command in {"init", "reset"}:
+            # Check if we're in the framework repo - refuse to create data there
+            if is_framework_repo():
+                print(
+                    "Error: You appear to be in the realitycheck framework repo.",
+                    file=sys.stderr,
+                )
+                print(
+                    "Creating a database here would mix framework code with data.",
+                    file=sys.stderr,
+                )
+                print("\nTo create a separate data project:", file=sys.stderr)
+                print("  rc-db init-project --path ~/realitycheck-data", file=sys.stderr)
+                print("\nOr set REALITYCHECK_DATA explicitly:", file=sys.stderr)
+                print('  export REALITYCHECK_DATA="/path/to/your/data/realitycheck.lance"', file=sys.stderr)
+                sys.exit(2)
+
             print(
                 "Note: REALITYCHECK_DATA is not set; using default database path "
                 f"'{default_db}' relative to '{Path.cwd()}'.",
