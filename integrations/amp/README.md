@@ -18,7 +18,7 @@ Reality Check skills for [Amp](https://ampcode.com).
 
 ```bash
 # From the realitycheck repo root
-make install-amp-skills
+make install-skills-amp
 ```
 
 ### Option 2: Install script

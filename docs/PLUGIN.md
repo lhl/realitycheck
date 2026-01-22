@@ -15,7 +15,7 @@ The plugin provides:
 
 ```bash
 cd /path/to/realitycheck
-make install-claude-plugin
+make install-plugin-claude
 ```
 
 ### Using the Plugin
@@ -35,7 +35,7 @@ alias claude-rc='claude --plugin-dir /path/to/realitycheck/integrations/claude/p
 If you prefer skills over plugins:
 
 ```bash
-make install-claude-skills
+make install-skills-claude
 ```
 
 Skills are installed to `~/.claude/skills/` and auto-activate based on context.

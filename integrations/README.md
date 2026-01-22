@@ -80,7 +80,7 @@ Skills for [Amp](https://ampcode.com) - activate on natural language triggers.
 
 ```bash
 # Install
-make install-amp-skills
+make install-skills-amp
 
 # Skills: realitycheck-{analyze,check,export,extract,search,stats,validate}
 # Triggers: "Analyze this article", "Search for claims", "Validate database", etc.
@@ -96,7 +96,7 @@ The plugin provides slash commands for Reality Check workflows.
 
 ```bash
 # Install
-make install-claude-plugin
+make install-plugin-claude
 
 # Usage (local plugin discovery is currently broken, use --plugin-dir):
 claude --plugin-dir /path/to/realitycheck/integrations/claude/plugin
@@ -110,7 +110,7 @@ Skills are auto-activated based on context.
 
 ```bash
 # Install
-make install-claude-skills
+make install-skills-claude
 
 # View installed skills
 /skills
@@ -124,7 +124,7 @@ Codex skills for OpenAI's Codex CLI.
 
 ```bash
 # Install
-make install-codex-skills
+make install-skills-codex
 
 # Skills: $analyze, $check, $export, $extract, $search, $stats, $validate, $realitycheck
 ```

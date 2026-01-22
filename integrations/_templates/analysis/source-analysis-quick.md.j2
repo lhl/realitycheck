@@ -1,0 +1,47 @@
+{#- Quick analysis skeleton template - minimal required sections for cross-reference sources -#}
+# Source Analysis: {{ title | default('[Title]') }}
+
+{% include "partials/legends.md.j2" %}
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | {{ source_id | default('[author-year-shorttitle]') }} |
+| **Title** | {{ title | default('[extracted from source]') }} |
+| **Author(s)** | {{ author | default('[name(s)]') }} |
+| **Date** | {{ date | default('[YYYY-MM-DD or YYYY]') }} |
+| **Type** | {{ source_type | default('[PAPER/ARTICLE/BLOG/REPORT/INTERVIEW/etc.]') }} |
+| **URL** | {{ url | default('[source URL]') }} |
+| **Reliability** | {{ reliability | default('[0.0-1.0]') }} |
+| **Analysis Depth** | quick |
+
+> **Note**: This is a quick extraction for cross-reference purposes. For full analysis, use `--continue` to expand.
+
+---
+
+## Summary
+
+[Brief 1-2 paragraph summary of the source]
+
+---
+
+{% include "tables/claim-summary.md.j2" %}
+
+### Claims to Register
+
+```yaml
+claims:
+  - id: "DOMAIN-YYYY-NNN"
+    text: "[Precise claim statement]"
+    type: "[F/T/H/P/A/C/S/X]"
+    domain: "[DOMAIN]"
+    evidence_level: "E[1-6]"
+    credence: 0.XX
+    source_ids: ["{{ source_id | default('[source-id]') }}"]
+```
+
+---
+
+**Analysis Date**: [YYYY-MM-DD]
+**Analyst**: [human/claude/gpt/etc.]
