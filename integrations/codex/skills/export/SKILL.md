@@ -4,19 +4,20 @@
 
 ---
 name: export
-description: Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation.
-argument-hint: "<format> <type> [--id ID] [-o OUTPUT]"
-allowed-tools: ["Bash(uv run python scripts/export.py *)", "Bash(rc-export *)"]
+description: "Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation."
 ---
 
-# /export - Data Export
+# Data Export (Codex)
+
 Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation.
 
-## Usage
+## Invocation
 
 ```
-/export <format> <type> [--id ID] [-o OUTPUT]
+$export <format> <type>
 ```
+
+Note: Codex reserves `/...` for built-in commands. Use `$export` instead.
 
 Export Reality Check data to YAML or Markdown formats.
 
@@ -78,7 +79,7 @@ claims:
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/stats`
-- `/validate`
+- `$stats`
+- `$validate`

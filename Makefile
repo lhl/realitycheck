@@ -1,6 +1,6 @@
 # Reality Check Makefile
 
-.PHONY: help install-claude-plugin uninstall-claude-plugin install-claude-skills uninstall-claude-skills install-codex-skills uninstall-codex-skills install-amp-skills uninstall-amp-skills test test-all init clean
+.PHONY: help install-claude-plugin uninstall-claude-plugin install-claude-skills uninstall-claude-skills install-codex-skills uninstall-codex-skills install-amp-skills uninstall-amp-skills test test-all init clean assemble-skills check-skills
 
 help:
 	@echo "Reality Check - Available targets:"
@@ -20,6 +20,8 @@ help:
 	@echo "    uninstall-codex-skills   Remove Codex skills"
 	@echo ""
 	@echo "  Development:"
+	@echo "    assemble-skills          Generate skills from templates"
+	@echo "    check-skills             Check if generated skills are up-to-date"
 	@echo "    test                     Run tests (skip embedding tests)"
 	@echo "    test-all                 Run all tests including embeddings"
 	@echo "    init                     Initialize database"
@@ -118,6 +120,15 @@ test:
 
 test-all:
 	uv run pytest -v
+
+# Skill generation from templates
+assemble-skills:
+	@echo "Generating skills from templates..."
+	@python integrations/assemble.py
+
+check-skills:
+	@echo "Checking if skills are up-to-date..."
+	@python integrations/assemble.py --check
 
 # Database
 init:

@@ -10,11 +10,13 @@ SKILLS_DST="${HOME}/.config/agents/skills"
 
 # Skills to install
 SKILLS=(
+    "realitycheck-analyze"
     "realitycheck-check"
-    "realitycheck-search"
-    "realitycheck-validate"
     "realitycheck-export"
+    "realitycheck-extract"
+    "realitycheck-search"
     "realitycheck-stats"
+    "realitycheck-validate"
 )
 
 echo "Installing Reality Check skills for Amp..."

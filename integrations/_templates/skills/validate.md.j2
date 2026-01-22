@@ -1,22 +1,4 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
----
-name: validate
-description: Validate Reality Check database integrity and referential consistency. Run after adding data or before committing.
-argument-hint: "[--strict] [--json]"
-allowed-tools: ["Bash(uv run python scripts/validate.py *)", "Bash(rc-validate *)"]
----
-
-# /validate - Data Validation
-Validate Reality Check database integrity and referential consistency. Run after adding data or before committing.
-
-## Usage
-
-```
-/validate [--strict] [--json]
-```
+{#- Data Validation - check database integrity -#}
 
 Validate Reality Check database integrity and referential consistency.
 
@@ -60,10 +42,3 @@ Status: OK (1 warning)
 - Before committing data changes
 - As part of CI/CD pipeline
 - When debugging data issues
-
----
-
-## Related Commands
-
-- `/check`
-- `/stats`

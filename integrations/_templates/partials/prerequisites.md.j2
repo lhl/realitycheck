@@ -1,0 +1,34 @@
+{#- Prerequisites and environment setup -#}
+## Prerequisites
+
+### Environment
+
+Set `REALITYCHECK_DATA` to point to your data repository:
+
+```bash
+export REALITYCHECK_DATA=/path/to/realitycheck-data/data/realitycheck.lance
+```
+
+The `PROJECT_ROOT` is derived from this path - all analysis files go there.
+
+### Red Flags: Wrong Repository
+
+**IMPORTANT**: Always write to the DATA repository, never to the framework repository.
+
+If you see these directories, you're in the **framework** repo (wrong place for data):
+- `scripts/`
+- `tests/`
+- `integrations/`
+- `methodology/`
+
+Stop and verify `REALITYCHECK_DATA` is set correctly.
+
+### Data Source of Truth
+
+**LanceDB is the source of truth**, not YAML files.
+
+- Query sources: `rc-db source get <id>` or `rc-db source list`
+- Query claims: `rc-db claim get <id>` or `rc-db claim list`
+- Search: `rc-db search "query"`
+
+**Ignore YAML files** like `claims/registry.yaml` or `reference/sources.yaml` - these are exports/legacy format.

@@ -1,0 +1,173 @@
+# Reality Check Skill Configuration
+# This file defines all skills and their per-integration metadata.
+# Used by assemble.py to generate integration-specific SKILL.md files.
+
+# Global defaults per integration
+defaults:
+  amp:
+    name_prefix: "realitycheck-"  # e.g., realitycheck-check
+    skill_dir: "amp/skills"
+  claude:
+    name_prefix: ""  # e.g., check
+    skill_dir: "claude/skills"
+  codex:
+    name_prefix: ""  # e.g., check
+    skill_dir: "codex/skills"
+
+# Skill definitions
+skills:
+  check:
+    title: "Full Analysis Workflow"
+    description: "Full Reality Check analysis - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis."
+    template: "check.md.j2"
+    related: ["search", "validate", "stats"]
+
+    amp:
+      triggers:
+        - "Analyze this article for claims"
+        - "Reality check this URL"
+        - "Run a check on"
+        - "Perform a full analysis"
+
+    claude:
+      argument_hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
+      allowed_tools:
+        - "WebFetch"
+        - "Read"
+        - "Write"
+        - "Bash(uv run python scripts/db.py *)"
+        - "Bash(uv run python scripts/validate.py *)"
+        - "Bash(rc-db *)"
+        - "Bash(rc-validate *)"
+
+    codex:
+      invocation: "$check <url>"
+
+  analyze:
+    title: "Manual 3-Stage Analysis"
+    description: "Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration."
+    template: "analyze.md.j2"
+    related: ["check", "extract"]
+
+    amp:
+      triggers:
+        - "Analyze this source"
+        - "Do a 3-stage analysis"
+        - "Manual analysis of"
+
+    claude:
+      argument_hint: "<url_or_source_id>"
+      allowed_tools:
+        - "WebFetch"
+        - "Read"
+        - "Write"
+        - "Bash(uv run python scripts/db.py *)"
+
+    codex:
+      invocation: "$analyze <url>"
+
+  extract:
+    title: "Quick Claim Extraction"
+    description: "Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources."
+    template: "extract.md.j2"
+    related: ["check", "analyze"]
+
+    amp:
+      triggers:
+        - "Extract claims from"
+        - "Quick extract"
+        - "Harvest claims from"
+
+    claude:
+      argument_hint: "<source>"
+      allowed_tools:
+        - "WebFetch"
+        - "Read"
+        - "Write"
+
+    codex:
+      invocation: "$extract <source>"
+
+  search:
+    title: "Semantic Search"
+    description: "Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis."
+    template: "search.md.j2"
+    related: ["stats", "validate"]
+
+    amp:
+      triggers:
+        - "Search for claims about"
+        - "Find related claims"
+        - "Look up claims"
+
+    claude:
+      argument_hint: "QUERY [--domain DOMAIN] [--limit N]"
+      allowed_tools:
+        - "Bash(uv run python scripts/db.py search *)"
+        - "Bash(rc-db search *)"
+
+    codex:
+      invocation: "$search <query>"
+
+  validate:
+    title: "Data Validation"
+    description: "Validate Reality Check database integrity and referential consistency. Run after adding data or before committing."
+    template: "validate.md.j2"
+    related: ["check", "stats"]
+
+    amp:
+      triggers:
+        - "Validate the database"
+        - "Check data integrity"
+        - "Run validation"
+
+    claude:
+      argument_hint: "[--strict] [--json]"
+      allowed_tools:
+        - "Bash(uv run python scripts/validate.py *)"
+        - "Bash(rc-validate *)"
+
+    codex:
+      invocation: "$validate"
+
+  export:
+    title: "Data Export"
+    description: "Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation."
+    template: "export.md.j2"
+    related: ["stats", "validate"]
+
+    amp:
+      triggers:
+        - "Export claims to YAML"
+        - "Generate a summary report"
+        - "Export the database"
+
+    claude:
+      argument_hint: "<format> <type> [--id ID] [-o OUTPUT]"
+      allowed_tools:
+        - "Bash(uv run python scripts/export.py *)"
+        - "Bash(rc-export *)"
+
+    codex:
+      invocation: "$export <format> <type>"
+
+  stats:
+    title: "Database Statistics"
+    description: "Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions."
+    template: "stats.md.j2"
+    related: ["search", "validate"]
+
+    amp:
+      triggers:
+        - "Show database stats"
+        - "How many claims"
+        - "Database statistics"
+
+    claude:
+      argument_hint: ""
+      allowed_tools:
+        - "Bash(uv run python scripts/db.py stats)"
+        - "Bash(rc-db stats)"
+
+    codex:
+      invocation: "$stats"

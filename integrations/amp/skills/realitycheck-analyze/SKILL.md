@@ -3,20 +3,19 @@
 <!-- Regenerate: make assemble-skills -->
 
 ---
-name: analyze
+name: realitycheck-analyze
 description: Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
-argument-hint: "<url_or_source_id>"
-allowed-tools: ["WebFetch", "Read", "Write", "Bash(uv run python scripts/db.py *)"]
 ---
 
-# /analyze - Manual 3-Stage Analysis
+# Manual 3-Stage Analysis
+
 Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
 
-## Usage
+## When This Skill Activates
 
-```
-/analyze <url_or_source_id>
-```
+- "Analyze this source"
+- "Do a 3-stage analysis"
+- "Manual analysis of"
 
 Perform a full 3-stage analysis following the Reality Check methodology. Use this for manual analysis when you want to review claims before registering them.
 
@@ -123,11 +122,11 @@ rc-db source add --id "..." --title "..." --type "..." --author "..." --year YYY
 rc-db claim add --id "..." --text "..." --type "[F]" --domain "..." --evidence-level "E2" --credence 0.XX --source-ids "..."
 ```
 
-Or use `/check` for fully automated analysis + registration.
+Or use `$check` for fully automated analysis + registration.
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/check`
-- `/extract`
+- `realitycheck-check`
+- `realitycheck-extract`

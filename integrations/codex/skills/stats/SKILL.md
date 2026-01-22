@@ -3,19 +3,21 @@
 <!-- Regenerate: make assemble-skills -->
 
 ---
-name: realitycheck-stats
-description: Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
+name: stats
+description: "Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions."
 ---
 
-# Database Statistics
+# Database Statistics (Codex)
 
 Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
 
-## When This Skill Activates
+## Invocation
 
-- "Show database stats"
-- "How many claims"
-- "Database statistics"
+```
+$stats
+```
+
+Note: Codex reserves `/...` for built-in commands. Use `$stats` instead.
 
 Show statistics about the Reality Check database.
 
@@ -68,5 +70,5 @@ By Evidence Level:
 
 ## Related Skills
 
-- `realitycheck-search`
-- `realitycheck-validate`
+- `$search`
+- `$validate`

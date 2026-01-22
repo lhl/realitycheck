@@ -4,19 +4,20 @@
 
 ---
 name: analyze
-description: Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
-argument-hint: "<url_or_source_id>"
-allowed-tools: ["WebFetch", "Read", "Write", "Bash(uv run python scripts/db.py *)"]
+description: "Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration."
 ---
 
-# /analyze - Manual 3-Stage Analysis
+# Manual 3-Stage Analysis (Codex)
+
 Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
 
-## Usage
+## Invocation
 
 ```
-/analyze <url_or_source_id>
+$analyze <url>
 ```
+
+Note: Codex reserves `/...` for built-in commands. Use `$analyze` instead.
 
 Perform a full 3-stage analysis following the Reality Check methodology. Use this for manual analysis when you want to review claims before registering them.
 
@@ -123,11 +124,11 @@ rc-db source add --id "..." --title "..." --type "..." --author "..." --year YYY
 rc-db claim add --id "..." --text "..." --type "[F]" --domain "..." --evidence-level "E2" --credence 0.XX --source-ids "..."
 ```
 
-Or use `/check` for fully automated analysis + registration.
+Or use `$check` for fully automated analysis + registration.
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/check`
-- `/extract`
+- `$check`
+- `$extract`

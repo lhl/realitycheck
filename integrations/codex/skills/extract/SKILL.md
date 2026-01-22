@@ -4,19 +4,20 @@
 
 ---
 name: extract
-description: Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources.
-argument-hint: "<source>"
-allowed-tools: ["WebFetch", "Read", "Write"]
+description: "Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources."
 ---
 
-# /extract - Quick Claim Extraction
+# Quick Claim Extraction (Codex)
+
 Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources.
 
-## Usage
+## Invocation
 
 ```
-/extract <source>
+$extract <source>
 ```
+
+Note: Codex reserves `/...` for built-in commands. Use `$extract` instead.
 
 Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or when sources are supporting evidence rather than primary subjects.
 
@@ -89,11 +90,11 @@ Use this hierarchy to rate **strength of evidential support** for claims.
 - Quick extractions should be labeled with `Analysis Depth: quick` in the analysis file
 - Minimum requirements: Metadata, Legends, Claim Summary table, Claims YAML
 - Full Stage 2 evaluation tables (verification, counterevidence, tensions, persuasion) are optional for quick extractions
-- If a source proves more significant, upgrade to full analysis with `/check --continue`
+- If a source proves more significant, upgrade to full analysis with `$check --continue`
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/check`
-- `/analyze`
+- `$check`
+- `$analyze`

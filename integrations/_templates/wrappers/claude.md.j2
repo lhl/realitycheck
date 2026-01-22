@@ -1,0 +1,36 @@
+{#- Claude Code skill wrapper template -#}
+{#- Variables: name, description, argument_hint, allowed_tools, title, template, related -#}
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
+---
+name: {{ name }}
+description: {{ description }}
+argument-hint: "{{ argument_hint | default('') }}"
+allowed-tools: {{ allowed_tools | tojson }}
+---
+
+# /{{ name }}{% if title %} - {{ title }}{% endif %}
+
+{{ description }}
+
+{% if argument_hint %}
+## Usage
+
+```
+/{{ name }} {{ argument_hint }}
+```
+
+{% endif %}
+{% include "skills/" ~ template %}
+
+{% if related %}
+---
+
+## Related Commands
+
+{% for r in related %}
+- `/{{ r }}`
+{% endfor %}
+{% endif %}

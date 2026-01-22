@@ -1,21 +1,4 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
----
-name: realitycheck-stats
-description: Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
----
-
-# Database Statistics
-
-Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
-
-## When This Skill Activates
-
-- "Show database stats"
-- "How many claims"
-- "Database statistics"
+{#- Database Statistics - show counts and summaries -#}
 
 Show statistics about the Reality Check database.
 
@@ -62,11 +45,4 @@ By Evidence Level:
 
 - Stats are computed from the live LanceDB database
 - Use this to get a quick overview of the knowledge base
-- For detailed exploration, use `$search`
-
----
-
-## Related Skills
-
-- `realitycheck-search`
-- `realitycheck-validate`
+- For detailed exploration, use `{{ invocation_prefix }}search`

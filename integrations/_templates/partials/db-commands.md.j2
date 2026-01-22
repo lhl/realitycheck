@@ -1,0 +1,54 @@
+{#- Database CLI commands reference -#}
+## Database Commands
+
+Use installed commands if available, otherwise fall back to uv:
+
+```bash
+# Check database stats
+rc-db stats
+# or: uv run python scripts/db.py stats
+
+# Register source
+rc-db source add \
+  --id "SOURCE_ID" \
+  --title "TITLE" \
+  --type "TYPE" \
+  --author "AUTHOR" \
+  --year YEAR \
+  --url "URL"
+
+# Register claim
+rc-db claim add \
+  --id "CLAIM_ID" \
+  --text "CLAIM_TEXT" \
+  --type "[TYPE]" \
+  --domain "DOMAIN" \
+  --evidence-level "EX" \
+  --credence 0.XX \
+  --source-ids "SOURCE_ID"
+
+# Search claims
+rc-db search "query" --limit 10
+
+# Get specific record
+rc-db claim get CLAIM_ID
+rc-db source get SOURCE_ID
+
+# List records
+rc-db claim list --domain TECH
+rc-db source list --type ARTICLE
+```
+
+### Validation
+
+```bash
+rc-validate
+# or: uv run python scripts/validate.py
+```
+
+### Export
+
+```bash
+rc-export yaml claims -o claims.yaml
+rc-export markdown source SOURCE_ID -o source.md
+```

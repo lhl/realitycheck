@@ -3,19 +3,21 @@
 <!-- Regenerate: make assemble-skills -->
 
 ---
-name: realitycheck-search
-description: Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
+name: search
+description: "Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis."
 ---
 
-# Semantic Search
+# Semantic Search (Codex)
 
 Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
 
-## When This Skill Activates
+## Invocation
 
-- "Search for claims about"
-- "Find related claims"
-- "Look up claims"
+```
+$search <query>
+```
+
+Note: Codex reserves `/...` for built-in commands. Use `$search` instead.
 
 Search claims and sources using natural language queries.
 
@@ -60,5 +62,5 @@ rc-db search "economic transition" --type claim
 
 ## Related Skills
 
-- `realitycheck-stats`
-- `realitycheck-validate`
+- `$stats`
+- `$validate`

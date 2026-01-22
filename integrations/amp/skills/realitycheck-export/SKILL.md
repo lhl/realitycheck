@@ -1,80 +1,83 @@
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
 ---
 name: realitycheck-export
-description: Exports Reality Check data to YAML or Markdown formats. Use for documentation, backups, or generating human-readable reports.
+description: Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation.
 ---
 
-# Reality Check - Data Export
+# Data Export
 
-Export data to YAML or Markdown formats.
+Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation.
 
 ## When This Skill Activates
 
 - "Export claims to YAML"
 - "Generate a summary report"
 - "Export the database"
-- "Create a markdown report"
 
-## Prerequisites
-
-- `realitycheck` package installed (`pip install realitycheck`)
-- `REALITYCHECK_DATA` environment variable set
+Export Reality Check data to YAML or Markdown formats.
 
 ## Usage
 
 ```bash
-rc-export yaml claims
-rc-export yaml sources
-rc-export md summary
-rc-export md predictions
+rc-export <format> <type> [--id ID] [-o OUTPUT]
+# or: uv run python scripts/export.py <format> <type> ...
 ```
 
-## Formats
+## Arguments
 
-### YAML Export
-
-| Type | Description |
-|------|-------------|
-| `claims` | All claims with counters and chains |
-| `sources` | All sources |
-| `all` | Both claims and sources |
-
-```bash
-rc-export yaml claims -o claims/registry.yaml
-rc-export yaml sources -o reference/sources.yaml
-```
-
-### Markdown Export
-
-| Type | Description |
-|------|-------------|
-| `claim --id ID` | Single claim as Markdown |
-| `chain --id ID` | Argument chain as Markdown |
-| `predictions` | All predictions by status |
-| `summary` | Dashboard with statistics |
-
-```bash
-rc-export md summary -o dashboard.md
-rc-export md predictions -o tracking/predictions.md
-rc-export md claim --id TECH-2026-001
-```
+- `format`: Output format (`yaml` or `markdown`)
+- `type`: What to export (`claims`, `sources`, `chains`, `all`)
 
 ## Options
 
-| Option | Description |
-|--------|-------------|
-| `-o, --output FILE` | Output file (default: stdout) |
-| `--id ID` | Required for claim/chain export |
+- `--id`: Export specific record by ID
+- `-o, --output`: Output file path (default: stdout)
+- `--domain`: Filter by domain (for claims)
+- `--include-embeddings`: Include vector embeddings (large!)
 
-## Common Workflows
+## Examples
 
-### Backup to YAML
 ```bash
-rc-export yaml claims -o claims/registry.yaml
-rc-export yaml sources -o reference/sources.yaml
+# Export all claims as YAML
+rc-export yaml claims -o claims.yaml
+
+# Export specific source as Markdown
+rc-export markdown source --id doctorow-2026-reverse-centaur
+
+# Export all data as YAML
+rc-export yaml all -o full-export.yaml
+
+# Export TECH domain claims
+rc-export yaml claims --domain TECH -o tech-claims.yaml
 ```
 
-### Generate Documentation
-```bash
-rc-export md summary -o README-stats.md
-rc-export md predictions -o tracking/predictions.md
+## Output Formats
+
+**YAML**: Machine-readable, suitable for backup/migration
+```yaml
+claims:
+  - id: "TECH-2026-001"
+    text: "..."
+    type: "[T]"
+    ...
 ```
+
+**Markdown**: Human-readable, suitable for documentation
+```markdown
+# Claims Export
+
+## TECH-2026-001
+**Text**: ...
+**Type**: [T]
+...
+```
+
+---
+
+## Related Skills
+
+- `realitycheck-stats`
+- `realitycheck-validate`

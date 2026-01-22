@@ -4,19 +4,20 @@
 
 ---
 name: validate
-description: Validate Reality Check database integrity and referential consistency. Run after adding data or before committing.
-argument-hint: "[--strict] [--json]"
-allowed-tools: ["Bash(uv run python scripts/validate.py *)", "Bash(rc-validate *)"]
+description: "Validate Reality Check database integrity and referential consistency. Run after adding data or before committing."
 ---
 
-# /validate - Data Validation
+# Data Validation (Codex)
+
 Validate Reality Check database integrity and referential consistency. Run after adding data or before committing.
 
-## Usage
+## Invocation
 
 ```
-/validate [--strict] [--json]
+$validate
 ```
+
+Note: Codex reserves `/...` for built-in commands. Use `$validate` instead.
 
 Validate Reality Check database integrity and referential consistency.
 
@@ -63,7 +64,7 @@ Status: OK (1 warning)
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/check`
-- `/stats`
+- `$check`
+- `$stats`

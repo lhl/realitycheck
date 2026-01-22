@@ -1,0 +1,38 @@
+{#- Quick Claim Extraction - fast extraction without full analysis -#}
+
+Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or when sources are supporting evidence rather than primary subjects.
+
+## When to Use
+
+- Quick extraction of claims from supporting sources
+- Building cross-reference evidence for existing claims
+- Initial triage before deciding on full analysis
+- Sources that are data-heavy rather than argument-heavy
+
+## Output Format
+
+```yaml
+claims:
+  - id: "DOMAIN-YYYY-NNN"
+    text: "[Precise claim statement]"
+    type: "[F/T/H/P/A/C/S/X]"
+    domain: "[DOMAIN]"
+    evidence_level: "E[1-6]"
+    credence: 0.XX
+    source_ids: ["[source-id]"]
+```
+
+{% include "partials/claim-types.md.j2" %}
+
+{% include "partials/evidence-hierarchy.md.j2" %}
+
+{% include "partials/domain-codes.md.j2" %}
+
+---
+
+## Notes
+
+- Quick extractions should be labeled with `Analysis Depth: quick` in the analysis file
+- Minimum requirements: Metadata, Legends, Claim Summary table, Claims YAML
+- Full Stage 2 evaluation tables (verification, counterevidence, tensions, persuasion) are optional for quick extractions
+- If a source proves more significant, upgrade to full analysis with `{{ invocation_prefix }}check --continue`

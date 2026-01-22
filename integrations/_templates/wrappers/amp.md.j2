@@ -1,0 +1,34 @@
+{#- Amp skill wrapper template -#}
+{#- Variables: name, description, triggers, title, template, related -#}
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
+---
+name: {{ name }}
+description: {{ description }}
+---
+
+# {{ title | default(name | replace('realitycheck-', '') | title) }}
+
+{{ description }}
+
+{% if triggers %}
+## When This Skill Activates
+
+{% for trigger in triggers %}
+- "{{ trigger }}"
+{% endfor %}
+
+{% endif %}
+{% include "skills/" ~ template %}
+
+{% if related %}
+---
+
+## Related Skills
+
+{% for r in related %}
+- `{{ amp_prefix }}{{ r }}`
+{% endfor %}
+{% endif %}

@@ -1,0 +1,54 @@
+{#- Manual 3-Stage Analysis - without automatic database registration -#}
+
+Perform a full 3-stage analysis following the Reality Check methodology. Use this for manual analysis when you want to review claims before registering them.
+
+{% include "partials/prerequisites.md.j2" %}
+
+## Methodology
+
+### Stage 1: Descriptive Analysis
+- Summarize the source neutrally
+- Extract key claims, predictions, and assumptions
+- Identify theoretical lineage (what traditions/thinkers it builds on)
+- Map argument structure (chain arguments, logical flow)
+- Note scope and domain (what does this attempt to explain?)
+- Define key terms with operational proxies
+
+### Stage 2: Evaluative Analysis
+- Assess internal coherence and logical consistency
+- Evaluate evidence quality using Evidence Hierarchy (E1-E6)
+- Verify key factual claims (especially crux claims)
+- Search for disconfirming evidence (5 min minimum)
+- Check for internal tensions/self-contradictions
+- Note persuasion techniques and rhetorical devices
+- Identify unstated assumptions and dependencies
+- Flag unfalsifiable claims
+
+### Stage 3: Dialectical Analysis
+- Steelman the strongest version of the argument
+- Identify strongest counterarguments and counterfactuals
+- Consider base rates and historical analogs
+- Map relationships to other theories (supporting/contradicting)
+- Synthesize: where does this fit in the broader landscape?
+
+---
+
+{% include "partials/evidence-hierarchy.md.j2" %}
+
+{% include "partials/claim-types.md.j2" %}
+
+---
+
+## Output
+
+Generate:
+1. Analysis document following the 3-stage methodology
+2. Extracted claims formatted for database registration
+
+After analysis, register manually:
+```bash
+rc-db source add --id "..." --title "..." --type "..." --author "..." --year YYYY --url "..."
+rc-db claim add --id "..." --text "..." --type "[F]" --domain "..." --evidence-level "E2" --credence 0.XX --source-ids "..."
+```
+
+Or use `{{ invocation_prefix }}check` for fully automated analysis + registration.

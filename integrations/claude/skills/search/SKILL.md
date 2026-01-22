@@ -1,25 +1,38 @@
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
 ---
 name: search
-description: Semantic search across Reality Check claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
-argument-hint: "QUERY [--domain DOMAIN] [--limit N] [--format json|text]"
-allowed-tools: ["Bash(uv run python scripts/db.py search *)"]
+description: Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
+argument-hint: "QUERY [--domain DOMAIN] [--limit N]"
+allowed-tools: ["Bash(uv run python scripts/db.py search *)", "Bash(rc-db search *)"]
 ---
 
-# Reality Check Semantic Search
+# /search - Semantic Search
+Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
+
+## Usage
+
+```
+/search QUERY [--domain DOMAIN] [--limit N]
+```
 
 Search claims and sources using natural language queries.
 
 ## Usage
 
-```!
-uv run python scripts/db.py search "$ARGUMENTS"
+```bash
+rc-db search "query" --limit 10
+# or: uv run python scripts/db.py search "query" --limit 10
 ```
 
 ## Options
 
-- `--domain`: Filter by domain (LABOR, ECON, GOV, TECH, SOC, etc.)
+- `--domain`: Filter by domain (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)
 - `--limit`: Maximum results to return (default: 10)
 - `--format`: Output format - `json` (default) or `text`
+- `--type`: Filter by record type (`claim` or `source`)
 
 ## How It Works
 
@@ -38,7 +51,15 @@ Results include:
 
 ## Examples
 
+```bash
+rc-db search "AI automation labor displacement"
+rc-db search "training costs" --domain TECH --limit 5
+rc-db search "economic transition" --type claim
 ```
-/rc-search "AI automation labor displacement"
-/rc-search "training costs" --domain TECH --limit 5
-```
+
+---
+
+## Related Commands
+
+- `/stats`
+- `/validate`

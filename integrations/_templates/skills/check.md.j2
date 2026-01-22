@@ -1,0 +1,210 @@
+{#- Full Analysis Workflow - the flagship Reality Check command -#}
+{#- This is the comprehensive template that includes all methodology content -#}
+
+The flagship Reality Check command for rigorous source analysis.
+
+{% include "partials/prerequisites.md.j2" %}
+
+## Workflow Steps
+
+1. **Fetch** - Use `WebFetch` to retrieve source content
+2. **Metadata** - Extract title, author, date, type, generate source-id
+3. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
+4. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence
+5. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
+6. **Extract** - Format claims as YAML
+7. **Register** - Add source and claims to database
+8. **Validate** - Run integrity checks
+9. **README** - Update data project analysis index
+10. **Report** - Generate summary
+
+---
+
+## Analysis Output Contract
+
+Every analysis must produce a **human-auditable analysis** file at:
+`PROJECT_ROOT/analysis/sources/<source-id>.md`
+
+The analysis **must** include:
+
+1. **Metadata** (Source ID, URL, author, date/type)
+2. **Legends** (top-of-file quick reference)
+3. **Three-stage analysis** (Stages 1-3)
+4. **Claim tables with evidence + credence**
+5. **Extracted claims artifact** (embedded YAML or separate file)
+
+If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not complete**.
+
+### Required Elements
+
+**Stage 1 (Descriptive)**:
+- Source Metadata table
+- Core Thesis (1-3 sentences)
+- Key Claims table (with Verified? and Falsifiable By columns)
+- Argument Structure diagram
+- Theoretical Lineage
+- Scope & Limitations
+
+**Stage 2 (Evaluative)**:
+- Key Factual Claims Verified (with Crux? column)
+- Disconfirming Evidence Search
+- Internal Tensions / Self-Contradictions
+- Persuasion Techniques
+- Unstated Assumptions
+- Evidence Assessment
+- Credence Assessment
+
+**Stage 3 (Dialectical)**:
+- Steelmanned Argument
+- Strongest Counterarguments
+- Supporting Theories (with source IDs)
+- Contradicting Theories (with source IDs)
+- Synthesis Notes
+- Claims to Cross-Reference
+
+**End**:
+- Claim Summary table (all claims)
+- Claims to Register (YAML)
+- Confidence in Analysis (0.0-1.0)
+
+---
+
+## Analysis Template
+
+Use this structure for analysis documents:
+
+```markdown
+# Source Analysis: [Title]
+
+{% include "partials/legends.md.j2" %}
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | [author-year-shorttitle] |
+| **Title** | [extracted from source] |
+| **Author(s)** | [name(s)] |
+| **Date** | [YYYY-MM-DD or YYYY] |
+| **Type** | [PAPER/ARTICLE/BLOG/REPORT/INTERVIEW/etc.] |
+| **URL** | [source URL] |
+| **Reliability** | [0.0-1.0] |
+| **Rigor Level** | [SPITBALL/DRAFT/REVIEWED/CANONICAL] |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+[1-3 sentence summary of main argument]
+
+{% include "tables/key-claims.md.j2" %}
+
+{% include "sections/argument-structure.md.j2" %}
+
+{% include "sections/theoretical-lineage.md.j2" %}
+
+### Scope & Limitations
+[What does this source attempt to explain? What does it explicitly not address?]
+
+## Stage 2: Evaluative Analysis
+
+### Internal Coherence
+[Does the argument follow logically? Any contradictions?]
+
+{% include "tables/factual-claims-verified.md.j2" %}
+
+{% include "tables/disconfirming-evidence.md.j2" %}
+
+{% include "tables/internal-tensions.md.j2" %}
+
+{% include "tables/persuasion-techniques.md.j2" %}
+
+{% include "tables/unstated-assumptions.md.j2" %}
+
+### Evidence Assessment
+[Quality and relevance of supporting evidence]
+
+### Credence Assessment
+- **Overall Credence**: [0.0-1.0]
+- **Reasoning**: [why this level?]
+
+## Stage 3: Dialectical Analysis
+
+### Steelmanned Argument
+[Strongest possible version of this position]
+
+### Strongest Counterarguments
+1. [Counter + source if available]
+2. [Counter + source if available]
+
+{% include "tables/supporting-contradicting.md.j2" %}
+
+### Synthesis Notes
+[How does this update our overall understanding?]
+
+### Claims to Cross-Reference
+[Which claims should be checked against other sources?]
+
+---
+
+{% include "tables/claim-summary.md.j2" %}
+
+### Claims to Register
+
+\`\`\`yaml
+claims:
+  - id: "DOMAIN-YYYY-NNN"
+    text: "[Precise claim statement]"
+    type: "[F/T/H/P/A/C/S/X]"
+    domain: "[DOMAIN]"
+    evidence_level: "E[1-6]"
+    credence: 0.XX
+    operationalization: "[How to test/measure this claim]"
+    assumptions: ["..."]
+    falsifiers: ["What would refute this"]
+    source_ids: ["[source-id]"]
+\`\`\`
+
+{% include "sections/confidence-assessment.md.j2" %}
+```
+
+---
+
+{% include "partials/evidence-hierarchy.md.j2" %}
+
+{% include "partials/claim-types.md.j2" %}
+
+{% include "partials/domain-codes.md.j2" %}
+
+{% include "partials/confidence-calibration.md.j2" %}
+
+---
+
+{% include "partials/db-commands.md.j2" %}
+
+---
+
+## Version Control
+
+If running as a global skill (not via plugin), version control is manual:
+
+1. After registration, check for changes in the data project
+2. Stage: `git add data/ analysis/ tracking/ README.md`
+3. Commit: `git commit -m "data: add source(s)"`
+4. Push if desired: `git push`
+
+---
+
+## Continuation Mode
+
+When using `--continue` on an existing analysis:
+
+1. **Find existing analysis**: Look for `analysis/sources/[source-id].md`
+2. **Read current state**: Load the existing analysis and registered claims
+3. **Iterate, don't overwrite**: Add to the existing analysis rather than replacing it
+4. **Focus areas**:
+   - Extract claims that were skipped or noted as "TODO"
+   - Deepen specific sections (more counterfactuals, stronger steelman)
+   - Add evidence that was found after initial analysis
+   - Address questions or gaps identified in the original pass
+   - Cross-reference with newly added claims in the database
+5. **Preserve content**: Append new sections, update claim counts, note what changed
