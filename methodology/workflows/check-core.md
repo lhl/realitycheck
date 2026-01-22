@@ -113,7 +113,7 @@ If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not c
 **End**:
 - Claim Summary table (all claims)
 - Claims to Register (YAML)
-- Confidence in Analysis (0.0-1.0)
+- Credence in Analysis (0.0-1.0)
 
 ---
 
@@ -345,11 +345,11 @@ claims:
 
 **Analysis Date**: [YYYY-MM-DD]
 **Analyst**: [human/claude/gpt/etc.]
-**Confidence in Analysis**: [0.0-1.0]
+**Credence in Analysis**: [0.0-1.0]
 
-**Confidence Reasoning**:
-- [Why this confidence level?]
-- [What would increase/decrease confidence?]
+**Credence Reasoning**:
+- [Why this credence level?]
+- [What would increase/decrease credence?]
 - [Key uncertainties remaining]
 ```
 
@@ -397,23 +397,23 @@ Use this hierarchy to rate **strength of evidential support** for claims.
 | RISK | Risk assessment, failure modes |
 | META | Claims about the framework/analysis itself |
 
-## Confidence Calibration
+## Credence Calibration
 
-To maintain well-calibrated confidence:
+To maintain well-calibrated credence:
 
 | Range | Interpretation |
 |-------|----------------|
 | 0.9-1.0 | Would bet significant resources; very strong evidence |
-| 0.7-0.8 | Confident but acknowledge meaningful uncertainty |
+| 0.7-0.8 | High credence but acknowledge meaningful uncertainty |
 | 0.5-0.6 | Genuine uncertainty; could go either way |
-| 0.3-0.4 | Lean against but not confident |
+| 0.3-0.4 | Lean against but not high credence |
 | 0.1-0.2 | Strongly doubt but can't rule out |
 | 0.0-0.1 | Would bet heavily against; extraordinary evidence needed |
 
 **Aggregation notes**:
-- A theory with many 0.7 confidence claims is not itself 0.7 confidence
-- Confidence in overall theory depends on logical structure and weakest critical links
-- Chain arguments: overall confidence <= weakest link
+- A theory with many 0.7 credence claims is not itself 0.7 credence
+- Credence in overall theory depends on logical structure and weakest critical links
+- Chain arguments: overall credence <= weakest link
 - Explicitly model dependencies when possible
 
 ---

@@ -67,7 +67,7 @@ def export_claims_yaml(db_path: Optional[Path] = None) -> str:
             "type": claim["type"],
             "domain": claim["domain"],
             "evidence_level": claim["evidence_level"],
-            "confidence": float(claim["credence"]),  # Back to 'confidence' for legacy
+            "credence": float(claim["credence"]),
             "source_ids": claim.get("source_ids") or [],
             "first_extracted": claim.get("first_extracted", ""),
             "extracted_by": claim.get("extracted_by", ""),
@@ -89,7 +89,7 @@ def export_claims_yaml(db_path: Optional[Path] = None) -> str:
         chains_dict[chain["id"]] = {
             "name": chain["name"],
             "thesis": chain["thesis"],
-            "confidence": float(chain["credence"]),  # Back to 'confidence'
+            "credence": float(chain["credence"]),
             "claims": chain.get("claims") or [],
             "analysis_file": chain.get("analysis_file") or "",
             "weakest_link": chain.get("weakest_link") or "",

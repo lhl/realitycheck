@@ -56,15 +56,15 @@ claims:
 
 """
 
-CONFIDENCE_SECTION = """---
+CREDENCE_SECTION = """---
 
 **Analysis Date**: [YYYY-MM-DD]
 **Analyst**: [human/claude/gpt/etc.]
-**Confidence in Analysis**: [0.0-1.0]
+**Credence in Analysis**: [0.0-1.0]
 
-**Confidence Reasoning**:
-- [Why this confidence level?]
-- [What would increase/decrease confidence?]
+**Credence Reasoning**:
+- [Why this credence level?]
+- [What would increase/decrease credence?]
 - [Key uncertainties remaining]
 """
 
@@ -183,9 +183,10 @@ def has_claims_yaml(content: str) -> bool:
     return bool(re.search(r"```yaml\s*\nclaims:", content))
 
 
-def has_confidence(content: str) -> bool:
-    """Check if the confidence score exists."""
-    return bool(re.search(r"\*\*Confidence in Analysis\*\*:", content))
+def has_credence(content: str) -> bool:
+    """Check if the credence score exists."""
+    # Support both old "Confidence" and new "Credence" terminology
+    return bool(re.search(r"\*\*(Confidence|Credence) in Analysis\*\*:", content))
 
 
 def find_section_position(content: str, section: str, section_order: list[str]) -> int:
@@ -356,13 +357,13 @@ claims:
 
 def insert_confidence(content: str) -> str:
     """Insert confidence section if missing (full profile only)."""
-    if has_confidence(content):
+    if has_credence(content):
         return content
 
     # Append at the end
     if not content.endswith('\n'):
         content += '\n'
-    return content + CONFIDENCE_SECTION
+    return content + CREDENCE_SECTION
 
 
 def insert_missing_sections(content: str, profile: str) -> str:
@@ -452,9 +453,9 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
         changes.append("Added Claims YAML block")
 
     # Step 6: Insert confidence section (full profile only)
-    if actual_profile == "full" and not has_confidence(content):
+    if actual_profile == "full" and not has_credence(content):
         content = insert_confidence(content)
-        changes.append("Added Confidence in Analysis section")
+        changes.append("Added Credence in Analysis section")
 
     # Clean up multiple consecutive blank lines
     content = re.sub(r'\n{4,}', '\n\n\n', content)

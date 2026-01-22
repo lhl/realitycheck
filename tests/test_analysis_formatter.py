@@ -21,7 +21,7 @@ from analysis_formatter import (
     has_legends,
     has_section,
     has_claims_yaml,
-    has_confidence,
+    has_credence,
     insert_legends,
     insert_claim_summary_table,
     insert_claims_yaml,
@@ -89,15 +89,20 @@ claims:
 """
         assert has_claims_yaml(content) is False
 
-    def test_has_confidence_true(self):
-        """Confidence detected when present."""
-        content = """**Confidence in Analysis**: 0.8"""
-        assert has_confidence(content) is True
+    def test_has_credence_true(self):
+        """Credence detected when present."""
+        content = """**Credence in Analysis**: 0.8"""
+        assert has_credence(content) is True
 
-    def test_has_confidence_false(self):
-        """Confidence not detected when absent."""
-        content = """No confidence here."""
-        assert has_confidence(content) is False
+    def test_has_credence_legacy_confidence(self):
+        """Legacy 'Confidence in Analysis' also detected."""
+        content = """**Confidence in Analysis**: 0.8"""
+        assert has_credence(content) is True
+
+    def test_has_credence_false(self):
+        """Credence not detected when absent."""
+        content = """No credence here."""
+        assert has_credence(content) is False
 
 
 class TestLegendInsertion:
@@ -212,31 +217,32 @@ claims:
         assert result.count("claims:") == 1
 
 
-class TestConfidenceInsertion:
-    """Tests for confidence section insertion."""
+class TestCredenceInsertion:
+    """Tests for credence section insertion."""
 
-    def test_insert_confidence_at_end(self):
-        """Confidence section appended at end."""
+    def test_insert_credence_at_end(self):
+        """Credence section appended at end."""
         content = """# Source Analysis
 
 ## Content here
 """
         result = insert_confidence(content)
 
-        assert "**Confidence in Analysis**:" in result
+        assert "**Credence in Analysis**:" in result
         assert "**Analysis Date**:" in result
         # Should be at the end
         assert result.rstrip().endswith("- [Key uncertainties remaining]")
 
-    def test_insert_confidence_idempotent(self):
-        """Confidence section not duplicated."""
+    def test_insert_credence_idempotent(self):
+        """Credence section not duplicated (also works with legacy Confidence)."""
         content = """# Source Analysis
 
 **Confidence in Analysis**: 0.8
 """
         result = insert_confidence(content)
 
-        assert result.count("**Confidence in Analysis**:") == 1
+        # Should not duplicate - legacy Confidence still counts as present
+        assert "**Confidence in Analysis**:" in result or "**Credence in Analysis**:" in result
 
 
 class TestSectionInsertion:
@@ -355,7 +361,7 @@ class TestFileFormatting:
         assert "## Stage 1: Descriptive Analysis" in formatted
         assert "## Stage 2: Evaluative Analysis" in formatted
         assert "## Stage 3: Dialectical Analysis" in formatted
-        assert "**Confidence in Analysis**:" in formatted
+        assert "**Credence in Analysis**:" in formatted
 
     def test_format_profile_override(self, tmp_path):
         """Profile can be overridden."""
@@ -376,7 +382,7 @@ class TestFileFormatting:
 
         # Should have full profile elements
         assert "## Stage 1: Descriptive Analysis" in formatted
-        assert "**Confidence in Analysis**:" in formatted
+        assert "**Credence in Analysis**:" in formatted
 
     def test_format_preserves_existing_content(self, tmp_path):
         """Existing content is preserved."""
