@@ -16,7 +16,7 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 
 ## Status
 
-**v0.1.0** - Core functionality complete. Extended CLI, Claude Code plugin with full workflow automation, and 137 passing tests.
+**v0.1.3** - Core functionality complete. Extended CLI, integrations for Claude Code, Codex, and Amp, and 137 passing tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
@@ -25,6 +25,7 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 - **Python 3.11+**
 - **[Claude Code](https://github.com/anthropics/claude-code/)** (optional) - For plugin integration
 - **[OpenAI Codex](https://github.com/openai/codex)** (optional) - For skills integration
+- **[Amp](https://ampcode.com)** (optional) - For skills integration
 
 ## Installation
 
@@ -298,6 +299,29 @@ make install-skills-codex
 ```
 
 See `integrations/codex/README.md` for usage and examples.
+
+## Amp Skills
+
+[Amp](https://ampcode.com) is Sourcegraph's AI coding assistant. Reality Check includes skills that activate on natural language triggers.
+
+### Install Skills
+
+```bash
+make install-skills-amp
+```
+
+### Usage
+
+Skills activate automatically based on natural language:
+
+```
+"Analyze this article for claims: https://example.com/article"
+"Search for claims about AI automation"
+"Validate the database"
+"Show database stats"
+```
+
+See `integrations/amp/README.md` for full documentation.
 
 ## Taxonomy Reference
 
