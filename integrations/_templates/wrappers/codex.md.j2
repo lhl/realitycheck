@@ -1,13 +1,14 @@
 {#- OpenAI Codex skill wrapper template -#}
 {#- Variables: name, description, invocation, title, template, related -#}
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
+{#- NOTE: Codex requires frontmatter at the VERY START of file (no comments before ---) -#}
 ---
 name: {{ name }}
 description: "{{ description }}"
 ---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
 
 # {{ title | default(name | title) }} (Codex)
 
