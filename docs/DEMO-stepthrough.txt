@@ -18,7 +18,7 @@ Note: Codex CLI reserves `/...` for built-in commands, so custom slash commands 
 
 --- Install skills (symlink into ~/.codex/skills) ---
 $ cd /home/lhl/github/lhl/realitycheck
-$ make install-codex-skills
+$ make install-skills-codex
 
 Restart Codex to pick up new skills.
 

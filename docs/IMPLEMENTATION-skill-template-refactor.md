@@ -1,6 +1,6 @@
 # Implementation: Skill Template Refactor
 
-**Status**: In Progress
+**Status**: Complete (pending review)
 **Plan**: [PLAN-skill-template-refactor.md](PLAN-skill-template-refactor.md)
 **Related**: [PLAN-quality-regression-fix.md](PLAN-quality-regression-fix.md)
 **Started**: 2026-01-22
@@ -99,17 +99,46 @@ These manual skills don't suffer from the quality regression (they're not method
 - [x] Add `--docs` flag to `assemble.py` for check-core.md generation
 
 ### Phase 10: Validator & Formatter
-- [ ] `_templates/analysis/source-analysis-full.md.j2` - Analysis skeleton template
-- [ ] `_templates/analysis/source-analysis-quick.md.j2` - Quick analysis skeleton
-- [ ] `scripts/analysis_validator.py`
-- [ ] `scripts/analysis_formatter.py`
-- [ ] Tests for validator/formatter
-- [ ] Claude plugin hook integration
-- [ ] Document manual invocation
+- [x] `_templates/analysis/source-analysis-full.md.j2` - Analysis skeleton template
+- [x] `_templates/analysis/source-analysis-quick.md.j2` - Quick analysis skeleton
+- [x] `scripts/analysis_validator.py`
+- [x] `scripts/analysis_formatter.py`
+- [x] Tests for validator/formatter
+- [ ] Claude plugin hook integration (deferred)
+- [ ] Document manual invocation (deferred)
 
 ---
 
 ## Worklog
+
+### 2026-01-22: Phase 10 complete
+
+**Created analysis skeleton templates:**
+- `_templates/analysis/source-analysis-full.md.j2` - Full 3-stage analysis skeleton with all required sections
+- `_templates/analysis/source-analysis-quick.md.j2` - Quick analysis skeleton for cross-reference sources
+
+**Created validator script (`scripts/analysis_validator.py`):**
+- Validates analysis files against Output Contract
+- Detects profile (full/quick) from content
+- Checks required sections, tables, elements
+- Validates claim ID format (DOMAIN-YYYY-NNN)
+- Warns about framework repo paths
+- Supports `--profile`, `--strict`, `--json`, `--quiet` flags
+
+**Created formatter script (`scripts/analysis_formatter.py`):**
+- Inserts missing legends, sections, tables, YAML blocks
+- Idempotent (safe to run multiple times)
+- Preserves existing content
+- Supports `--profile`, `--dry-run`, `--quiet` flags
+
+**Created tests:**
+- `tests/test_analysis_validator.py` (25 tests)
+- `tests/test_analysis_formatter.py` (29 tests)
+
+**Fixed Makefile issues:**
+- Changed `assemble-skills`/`check-skills` to use `uv run python` (jinja2 dependency)
+- Fixed `init` target to require `REALITYCHECK_DATA` env var (prevents footgun)
+- Updated help text for `init` and `clean` targets
 
 ### 2026-01-22: Phase 9 complete
 
@@ -221,7 +250,7 @@ These are **generated outputs** - edit the templates, not these files directly:
 | `integrations/claude/skills/realitycheck/SKILL.md` | Alias skill, different purpose than check |
 | `integrations/codex/skills/realitycheck/SKILL.md` | Utilities wrapper, different from other skills |
 
-## Phase 10 Files (To Create)
+## Phase 10 Files (Created)
 
 | Path | Purpose |
 |------|---------|
@@ -229,7 +258,9 @@ These are **generated outputs** - edit the templates, not these files directly:
 | `integrations/_templates/analysis/source-analysis-quick.md.j2` | Quick analysis skeleton |
 | `scripts/analysis_validator.py` | Output contract checker |
 | `scripts/analysis_formatter.py` | Missing element inserter |
+| `tests/test_analysis_validator.py` | Validator tests (25 tests) |
+| `tests/test_analysis_formatter.py` | Formatter tests (29 tests) |
 
 ---
 
-*Last updated: 2026-01-22 (Phase 1-8 complete, docs fixed)*
+*Last updated: 2026-01-22 (Phase 10 complete)*

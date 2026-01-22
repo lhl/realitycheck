@@ -50,7 +50,7 @@ data/
 *.lance/
 
 # Analysis outputs (should be in realitycheck-data repo, not here)
-analysis/
+/analysis/
 
 # Local development
 .local/

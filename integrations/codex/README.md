@@ -12,7 +12,7 @@ Codex CLI reserves `/...` for built-in commands, so custom slash commands are no
 Install via Makefile:
 
 ```bash
-make install-codex-skills
+make install-skills-codex
 ```
 
 Or run the installer directly:
