@@ -29,8 +29,8 @@ help:
 	@echo "    check-skills             Check if generated skills are up-to-date"
 	@echo "    test                     Run tests (skip embedding tests)"
 	@echo "    test-all                 Run all tests including embeddings"
-	@echo "    init                     Initialize database"
-	@echo "    clean                    Remove generated files"
+	@echo "    init                     Initialize database (requires REALITYCHECK_DATA)"
+	@echo "    clean                    Remove Python caches"
 	@echo ""
 
 # =============================================================================
@@ -39,11 +39,11 @@ help:
 
 assemble-skills:
 	@echo "Generating skills from templates..."
-	@python integrations/assemble.py --docs
+	@uv run python integrations/assemble.py --docs
 
 check-skills:
 	@echo "Checking if skills are up-to-date..."
-	@python integrations/assemble.py --docs --check
+	@uv run python integrations/assemble.py --docs --check
 
 # =============================================================================
 # Skills Installation
@@ -166,10 +166,22 @@ test-all:
 	uv run pytest -v
 
 init:
+	@if [ -z "$(REALITYCHECK_DATA)" ]; then \
+		echo "ERROR: REALITYCHECK_DATA not set."; \
+		echo ""; \
+		echo "This target creates a database for actual analysis data."; \
+		echo "Set REALITYCHECK_DATA to your data repository path:"; \
+		echo ""; \
+		echo "  export REALITYCHECK_DATA=/path/to/realitycheck-data"; \
+		echo "  make init"; \
+		echo ""; \
+		echo "For development/testing, use:"; \
+		echo "  REALITYCHECK_DATA=./data make init"; \
+		exit 1; \
+	fi
 	uv run python scripts/db.py init
 
 clean:
-	rm -rf data/realitycheck.lance
 	rm -rf .pytest_cache
 	rm -rf __pycache__
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
