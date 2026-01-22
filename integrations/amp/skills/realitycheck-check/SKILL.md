@@ -69,7 +69,9 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 7. **Register** - Add source and claims to database
 8. **Validate** - Run integrity checks
 9. **README** - Update data project analysis index
-10. **Report** - Generate summary
+10. **Commit** - Stage and commit changes to data repo
+11. **Push** - Push to remote
+12. **Report** - Generate summary
 
 ---
 
@@ -481,12 +483,26 @@ rc-export markdown source SOURCE_ID -o source.md
 
 ## Version Control
 
-If running as a global skill (not via plugin), version control is manual:
+After registration and validation, commit and push changes to the data repository:
 
-1. After registration, check for changes in the data project
-2. Stage: `git add data/ analysis/ tracking/ README.md`
-3. Commit: `git commit -m "data: add source(s)"`
-4. Push if desired: `git push`
+```bash
+# From the data project root (parent of data/)
+cd "$(dirname "$REALITYCHECK_DATA")"
+
+# Stage all changes
+git add data/ analysis/ tracking/ README.md claims/ reference/
+
+# Commit with descriptive message
+git commit -m "data: add [source-id] - [brief description]"
+
+# Push to remote
+git push
+```
+
+**Important**: Always commit and push after a successful analysis. This ensures:
+- Changes are versioned and recoverable
+- Collaboration is possible
+- Analysis history is preserved
 
 ---
 
