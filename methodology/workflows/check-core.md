@@ -1,19 +1,43 @@
-# Reality Check - Core Analysis Workflow
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/skills/check.md.j2 -->
+<!-- Regenerate: make assemble-skills (with --docs flag) -->
 
-This document defines the shared methodology for the `/check` (Claude) and `$check` (Codex) workflows. Tool-specific wrappers reference this core methodology.
+# Reality Check - Core Analysis Methodology
 
-## Critical: Data Repository vs Framework Repository
+This document is the **read-only reference** for the Reality Check analysis methodology.
+It is generated from the same templates used to build integration skills.
 
-**Always write analysis data to the DATA repository, never to the framework repository.**
+To modify this content, edit the templates in `integrations/_templates/` and regenerate.
 
-- **Framework repo** (`realitycheck`): Contains code, scripts, tests, methodology, integrations. NO data.
-- **Data repo** (e.g., `realitycheck-data`): Contains your knowledge base - `data/`, `analysis/`, `tracking/`, claims, sources.
+---
 
-The `REALITYCHECK_DATA` environment variable points to your data repo's database. Derive `PROJECT_ROOT` from this path - that's where all analysis files go.
+The flagship Reality Check command for rigorous source analysis.
 
-**Red flags you're in the wrong repo**: If you see `scripts/`, `tests/`, `integrations/`, `methodology/` directories, you're in the framework repo. Stop and check `REALITYCHECK_DATA`.
+## Prerequisites
 
-## Data Sources
+### Environment
+
+Set `REALITYCHECK_DATA` to point to your data repository:
+
+```bash
+export REALITYCHECK_DATA=/path/to/realitycheck-data/data/realitycheck.lance
+```
+
+The `PROJECT_ROOT` is derived from this path - all analysis files go there.
+
+### Red Flags: Wrong Repository
+
+**IMPORTANT**: Always write to the DATA repository, never to the framework repository.
+
+If you see these directories, you're in the **framework** repo (wrong place for data):
+- `scripts/`
+- `tests/`
+- `integrations/`
+- `methodology/`
+
+Stop and verify `REALITYCHECK_DATA` is set correctly.
+
+### Data Source of Truth
 
 **LanceDB is the source of truth**, not YAML files.
 
@@ -21,111 +45,313 @@ The `REALITYCHECK_DATA` environment variable points to your data repo's database
 - Query claims: `rc-db claim get <id>` or `rc-db claim list`
 - Search: `rc-db search "query"`
 
-**Ignore YAML files** like `claims/registry.yaml` or `reference/sources.yaml` - these are exports/legacy format, not the live registry.
+**Ignore YAML files** like `claims/registry.yaml` or `reference/sources.yaml` - these are exports/legacy format.
 
-**Analysis files may not exist** for every source. If `analysis/sources/<id>.md` doesn't exist, create it.
+## Workflow Steps
 
----
-
-## Overview
-
-The Reality Check analysis workflow performs rigorous source analysis through a structured pipeline:
-
-1. Fetch source content
-2. Extract source metadata
-3. Three-stage analysis (descriptive → evaluative → dialectical)
-4. Extract and classify claims
-5. Register source and claims to database
-6. Validate data integrity
-7. Update data project README
-8. Generate summary report
+1. **Fetch** - Use `WebFetch` to retrieve source content
+2. **Metadata** - Extract title, author, date, type, generate source-id
+3. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
+4. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence
+5. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
+6. **Extract** - Format claims as YAML
+7. **Register** - Add source and claims to database
+8. **Validate** - Run integrity checks
+9. **README** - Update data project analysis index
+10. **Report** - Generate summary
 
 ---
 
-## Output Contract (Required)
+## Analysis Output Contract
 
-Every `/check` (Claude) / `$check` (Codex) run must produce a **human-auditable analysis** with **explicit claim structure**.
+Every analysis must produce a **human-auditable analysis** file at:
+`PROJECT_ROOT/analysis/sources/<source-id>.md`
 
-At minimum, the workflow must create (or update, in continuation mode) the analysis markdown file:
-
-- `PROJECT_ROOT/analysis/sources/<source-id>.md`
-
-The markdown **must** include:
+The analysis **must** include:
 
 1. **Metadata** (Source ID, URL, author, date/type)
-2. **Three-stage analysis** (Stages 1–3)
-3. **Claim tables with evidence + credence**
-   - A **Key Claims** table (top claims; can be a subset), and
-   - A **Claim Summary** table (all extracted claims)
-4. **Extracted claims artifact**
-   - Either embed a YAML block under “Claims to Register”, or write `analysis/sources/<source-id>.yaml` and reference it
-5. **Continuation notes** (when `--continue` is used)
-   - Preserve existing content; append a short “Continuation Notes” section describing what changed and why
+2. **Legends** (top-of-file quick reference)
+3. **Three-stage analysis** (Stages 1-3)
+4. **Claim tables with evidence + credence**
+5. **Extracted claims artifact** (embedded YAML or separate file)
 
 If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not complete**.
 
-### Key Claims (table template)
+### Required Elements
 
-| # | Claim | Claim ID | Type | Domain | Evidence | Credence | Verified? | Falsifiable By |
-|---|-------|----------|------|--------|----------|----------:|-----------|----------------|
-| 1 | … | DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1–E6 | 0.00 | ✓/? | … |
+**Stage 1 (Descriptive)**:
+- Source Metadata table
+- Core Thesis (1-3 sentences)
+- Key Claims table (with Verified? and Falsifiable By columns)
+- Argument Structure diagram
+- Theoretical Lineage
+- Scope & Limitations
 
-### Claim Summary (table template)
+**Stage 2 (Evaluative)**:
+- Key Factual Claims Verified (with Crux? column)
+- Disconfirming Evidence Search
+- Internal Tensions / Self-Contradictions
+- Persuasion Techniques
+- Unstated Assumptions
+- Evidence Assessment
+- Credence Assessment
 
-| ID | Type | Domain | Evidence | Credence | Claim |
-|----|------|--------|----------|----------:|-------|
-| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1–E6 | 0.00 | … |
+**Stage 3 (Dialectical)**:
+- Steelmanned Argument
+- Strongest Counterarguments
+- Supporting Theories (with source IDs)
+- Contradicting Theories (with source IDs)
+- Synthesis Notes
+- Claims to Cross-Reference
+
+**End**:
+- Claim Summary table (all claims)
+- Claims to Register (YAML)
+- Confidence in Analysis (0.0-1.0)
 
 ---
 
-## Source Metadata
+## Analysis Template
 
-Extract and confirm source metadata before analysis:
+Use this structure for analysis documents:
+
+```markdown
+# Source Analysis: [Title]
+
+> **Claim types**: `[F]` fact, `[T]` theory, `[H]` hypothesis, `[P]` prediction, `[A]` assumption, `[C]` counterfactual, `[S]` speculation, `[X]` contradiction
+> **Evidence**: **E1** systematic review/meta-analysis; **E2** peer-reviewed/official stats; **E3** expert consensus/preprint; **E4** credible journalism/industry; **E5** opinion/anecdote; **E6** unsupported/speculative
+
+## Metadata
 
 | Field | Value |
 |-------|-------|
-| **Title** | [extracted from page] |
-| **Author** | [extracted or "Unknown"] |
-| **Date** | [publication date if available] |
-| **Type** | [PAPER/ARTICLE/BLOG/REPORT/etc.] |
-| **Source ID** | [auto-generated: author-year-slug] |
+| **Source ID** | [author-year-shorttitle] |
+| **Title** | [extracted from source] |
+| **Author(s)** | [name(s)] |
+| **Date** | [YYYY-MM-DD or YYYY] |
+| **Type** | [PAPER/ARTICLE/BLOG/REPORT/INTERVIEW/etc.] |
+| **URL** | [source URL] |
+| **Reliability** | [0.0-1.0] |
+| **Rigor Level** | [SPITBALL/DRAFT/REVIEWED/CANONICAL] |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+[1-3 sentence summary of main argument]
+
+### Key Claims
+
+| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|------|----------|-----------|----------------|
+| 1 | [claim text] | DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| 2 | | | | | | | | |
+| 3 | | | | | | | | |
+
+**Column guide**:
+- **Claim**: Concise statement of the claim
+- **Claim ID**: Format `DOMAIN-YYYY-NNN` (e.g., TECH-2026-001)
+- **Type**: `[F]` fact, `[T]` theory, `[H]` hypothesis, `[P]` prediction, `[A]` assumption, `[C]` counterfactual, `[S]` speculation, `[X]` contradiction
+- **Domain**: Primary domain code (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)
+- **Evid**: Evidence level E1-E6
+- **Credence**: Probability estimate 0.00-1.00
+- **Verified?**: Source reference if verified, `?` if unverified
+- **Falsifiable By**: What evidence would refute this claim
+
+### Argument Structure
+
+[Is this a chain argument? What's the logical flow?]
+
+```
+[Claim A]
+    | implies
+    v
+[Claim B]
+    | requires
+    v
+[Claim C]
+    | leads to
+    v
+[Conclusion]
+```
+
+**Chain Analysis** (if applicable):
+- **Weakest Link**: [Which step?]
+- **Why Weak**: [Explanation]
+- **If Link Breaks**: [What happens to conclusion?]
+- **Alternative Paths**: [Can conclusion be reached differently?]
+
+### Theoretical Lineage
+
+[What traditions/thinkers does this build on?]
+
+- **Primary influences**: [List key thinkers, schools of thought]
+- **Builds on**: [Specific theories or frameworks this extends]
+- **Departs from**: [Where this diverges from its intellectual predecessors]
+- **Novel contributions**: [What's genuinely new here]
+
+### Scope & Limitations
+[What does this source attempt to explain? What does it explicitly not address?]
+
+## Stage 2: Evaluative Analysis
+
+### Internal Coherence
+[Does the argument follow logically? Any contradictions?]
+
+### Key Factual Claims Verified
+
+> **Requirement**: Must include >=1 **crux claim** (central to thesis), not just peripheral numerics.
+
+| Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Status |
+|---------------------|-------|-------------|--------|-----------------|--------|
+| [e.g., "China makes 50% of X"] | N | [assertion] | [verified value] | [URL/ref] | ok / x / ? |
+| [e.g., "Elite consensus on Y"] | **Y** | [assertion] | [verified or ?] | [URL/ref] | ok / x / ? |
+
+**Column guide**:
+- **Claim**: Paraphrased factual claim from the source
+- **Crux?**: Is this claim central to the argument? Mark crux claims with **Y**
+- **Source Says**: What the source asserts
+- **Actual**: What verification found (or `?` if unverified)
+- **External Source**: URL or reference used for verification
+- **Status**: `ok` = verified, `x` = refuted, `?` = unverified
+
+### Disconfirming Evidence Search
+
+> For top 2-3 claims, actively search for counterevidence or alternative explanations (even 5 min changes behavior).
+
+| Claim | Counterevidence Found | Alternative Explanation | Search Notes |
+|-------|----------------------|-------------------------|--------------|
+| [top claim 1] | [what contradicts it, or "none found"] | [other way to explain the data] | [what you searched] |
+| [top claim 2] | [what contradicts it, or "none found"] | [other way to explain the data] | [what you searched] |
+| [top claim 3] | [what contradicts it, or "none found"] | [other way to explain the data] | [what you searched] |
+
+**Purpose**: Combat confirmation bias by explicitly searching for evidence against the source's claims.
+
+### Internal Tensions / Self-Contradictions
+
+| Tension | Parts in Conflict | Implication |
+|---------|-------------------|-------------|
+| [description of tension] | [Premise A] vs [Conclusion B] | [what it means for validity] |
+| | | |
+
+**Purpose**: Identify logical inconsistencies within the source's own argument.
+
+### Persuasion Techniques
+
+| Technique | Example from Source | Effect on Reader |
+|-----------|---------------------|------------------|
+| [e.g., Composition fallacy] | [quote or paraphrase] | [how it biases interpretation] |
+| [e.g., Appeal to authority] | [quote or paraphrase] | [how it biases interpretation] |
+| | | |
+
+**Common techniques to watch for**:
+- Composition/division fallacies
+- Appeal to authority/emotion
+- Cherry-picking data
+- Motte-and-bailey
+- Strawmanning alternatives
+- False dichotomies
+- Weasel words / hedging
+- Anchoring with extreme examples
+
+### Unstated Assumptions
+
+| Assumption | Claim ID | Critical? | Problematic? |
+|------------|----------|-----------|--------------|
+| [assumption text] | [which claim depends on this] | Y/N | Y/N |
+| | | | |
+
+**Column guide**:
+- **Assumption**: The unstated premise underlying the argument
+- **Claim ID**: Which claim(s) depend on this assumption
+- **Critical?**: Would the argument fail if this assumption is false?
+- **Problematic?**: Is this assumption questionable or likely false?
+
+**Purpose**: Surface hidden premises that may not be shared by all readers.
+
+### Evidence Assessment
+[Quality and relevance of supporting evidence]
+
+### Credence Assessment
+- **Overall Credence**: [0.0-1.0]
+- **Reasoning**: [why this level?]
+
+## Stage 3: Dialectical Analysis
+
+### Steelmanned Argument
+[Strongest possible version of this position]
+
+### Strongest Counterarguments
+1. [Counter + source if available]
+2. [Counter + source if available]
+
+### Supporting Theories
+
+| Theory/Framework | Source ID | How It Supports |
+|------------------|-----------|-----------------|
+| [theory name] | [source-id] | [brief explanation of alignment] |
+| | | |
+
+### Contradicting Theories
+
+| Theory/Framework | Source ID | Point of Conflict |
+|------------------|-----------|-------------------|
+| [theory name] | [source-id] | [brief explanation of conflict] |
+| | | |
+
+**Purpose**: Place this source in the broader theoretical landscape. Link to existing analyses where available.
+
+### Synthesis Notes
+[How does this update our overall understanding?]
+
+### Claims to Cross-Reference
+[Which claims should be checked against other sources?]
 
 ---
 
-## Three-Stage Analysis
+### Claim Summary
 
-### Stage 1: Descriptive Analysis
+| ID | Type | Domain | Evidence | Credence | Claim |
+|----|------|--------|----------|----------|-------|
+| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00 | [claim text] |
 
-Neutral extraction of content without judgment:
+**Notes**:
+- All claims extracted from the source should appear in this table
+- Use this for the complete claim inventory
+- Key Claims table (above) highlights the most significant claims with additional columns
 
-1. **Summary**: Neutral 2-3 paragraph summary of the source
-2. **Key Claims**: List all claims with preliminary type classification
-3. **Predictions**: Any explicit or implicit predictions with timeframes
-4. **Assumptions**: Stated and unstated premises
-5. **Key Terms**: Define ambiguous terms with operational proxies
+### Claims to Register
 
-### Stage 2: Evaluative Analysis
+\`\`\`yaml
+claims:
+  - id: "DOMAIN-YYYY-NNN"
+    text: "[Precise claim statement]"
+    type: "[F/T/H/P/A/C/S/X]"
+    domain: "[DOMAIN]"
+    evidence_level: "E[1-6]"
+    credence: 0.XX
+    operationalization: "[How to test/measure this claim]"
+    assumptions: ["..."]
+    falsifiers: ["What would refute this"]
+    source_ids: ["[source-id]"]
+\`\`\`
 
-Critical assessment of claims and evidence:
+---
 
-1. **Internal Coherence**: Check for logical consistency
-2. **Evidence Quality**: Rate using Evidence Hierarchy (E1-E6)
-3. **Unfalsifiable Claims**: Flag untestable claims
-4. **Disconfirming Evidence**: Actively search for contradictions
-5. **Persuasion Techniques**: Note rhetorical devices
+**Analysis Date**: [YYYY-MM-DD]
+**Analyst**: [human/claude/gpt/etc.]
+**Confidence in Analysis**: [0.0-1.0]
 
-### Stage 3: Dialectical Analysis
-
-Synthesis and contextualization:
-
-1. **Steelman**: Present the strongest version of the argument
-2. **Counterarguments**: Best objections from opposing viewpoints
-3. **Base Rates**: Historical analogs and reference classes
-4. **Synthesis**: Where does this fit in the broader discourse?
+**Confidence Reasoning**:
+- [Why this confidence level?]
+- [What would increase/decrease confidence?]
+- [Key uncertainties remaining]
+```
 
 ---
 
 ## Evidence Hierarchy
+
+Use this hierarchy to rate **strength of evidential support** for claims.
 
 | Level | Strength | Description | Credence Range |
 |-------|----------|-------------|----------------|
@@ -135,8 +361,6 @@ Synthesis and contextualization:
 | **E4** | Weak Theoretical | Industry reports, credible journalism | 0.3-0.5 |
 | **E5** | Opinion/Forecast | Personal observation, anecdote, expert opinion | 0.2-0.4 |
 | **E6** | Unsupported | Pure speculation, unfalsifiable claims | 0.0-0.2 |
-
----
 
 ## Claim Types
 
@@ -151,27 +375,7 @@ Synthesis and contextualization:
 | Speculation | `[S]` | Unfalsifiable or untestable claim |
 | Contradiction | `[X]` | Identified logical inconsistency |
 
----
-
-## Claim Extraction Format
-
-Format claims for database registration:
-
-```yaml
-claims:
-  - id: "[DOMAIN]-[YYYY]-[NNN]"
-    text: "[Precise claim statement]"
-    type: "[F/T/H/P/A/C/S/X]"
-    domain: "[DOMAIN]"
-    evidence_level: "E[1-6]"
-    credence: 0.XX
-    operationalization: "[How to test/measure this claim]"
-    assumptions: ["..."]
-    falsifiers: ["What would refute this"]
-    source_ids: ["[source-id]"]
-```
-
-### Domain Codes
+## Domain Codes
 
 | Code | Description |
 |------|-------------|
@@ -187,64 +391,97 @@ claims:
 | RISK | Risk assessment, failure modes |
 | META | Claims about the framework/analysis itself |
 
----
+## Confidence Calibration
 
-## Updating the Data Project README
+To maintain well-calibrated confidence:
 
-After completing an analysis, update the data project's `README.md` analysis index:
+| Range | Interpretation |
+|-------|----------------|
+| 0.9-1.0 | Would bet significant resources; very strong evidence |
+| 0.7-0.8 | Confident but acknowledge meaningful uncertainty |
+| 0.5-0.6 | Genuine uncertainty; could go either way |
+| 0.3-0.4 | Lean against but not confident |
+| 0.1-0.2 | Strongly doubt but can't rule out |
+| 0.0-0.1 | Would bet heavily against; extraordinary evidence needed |
 
-1. **Add to Source Analyses table**: Insert a new row **at the top** of the table (reverse chronological order - newest first):
-
-```markdown
-| Date | Document | Status | Summary |
-|------|----------|--------|---------|
-| YYYY-MM-DD | [Author "Title"](analysis/sources/source-id.md) | `[REVIEWED]` | Brief 1-line summary |  <- INSERT HERE (top of table)
-| ... existing rows below ... |
-```
-
-**Status values:**
-- `[REVIEWED]` - Analysis complete, claims extracted and registered
-- `[DRAFT]` - In progress
-- `[PENDING]` - Awaiting analysis
-
-2. **Stats table**: The counts table at the top is auto-generated (via hooks or `update-readme-stats.sh`).
+**Aggregation notes**:
+- A theory with many 0.7 confidence claims is not itself 0.7 confidence
+- Confidence in overall theory depends on logical structure and weakest critical links
+- Chain arguments: overall confidence <= weakest link
+- Explicitly model dependencies when possible
 
 ---
 
-## Summary Report Format
+## Database Commands
 
-Generate a summary report after completing the workflow:
+Use installed commands if available, otherwise fall back to uv:
 
+```bash
+# Check database stats
+rc-db stats
+# or: uv run python scripts/db.py stats
+
+# Register source
+rc-db source add \
+  --id "SOURCE_ID" \
+  --title "TITLE" \
+  --type "TYPE" \
+  --author "AUTHOR" \
+  --year YEAR \
+  --url "URL"
+
+# Register claim
+rc-db claim add \
+  --id "CLAIM_ID" \
+  --text "CLAIM_TEXT" \
+  --type "[TYPE]" \
+  --domain "DOMAIN" \
+  --evidence-level "EX" \
+  --credence 0.XX \
+  --source-ids "SOURCE_ID"
+
+# Search claims
+rc-db search "query" --limit 10
+
+# Get specific record
+rc-db claim get CLAIM_ID
+rc-db source get SOURCE_ID
+
+# List records
+rc-db claim list --domain TECH
+rc-db source list --type ARTICLE
 ```
-## Analysis Summary
 
-**Source**: [title] ([source-id])
-**Claims Extracted**: X
-**Domains**: [list]
+### Validation
 
-### Claim Summary
-
-| ID | Type | Credence | Evidence |
-|----|------|----------|----------|
-| ... | ... | ... | ... |
-
-### Key Findings
-- [Most significant insight]
-- [Notable assumption or gap]
-- [Relationship to existing claims]
-
-### Validation Status
-- All claims registered
-- Source linked
-- Embeddings generated
-- README index updated
+```bash
+rc-validate
+# or: uv run python scripts/validate.py
 ```
+
+### Export
+
+```bash
+rc-export yaml claims -o claims.yaml
+rc-export markdown source SOURCE_ID -o source.md
+```
+
+---
+
+## Version Control
+
+If running as a global skill (not via plugin), version control is manual:
+
+1. After registration, check for changes in the data project
+2. Stage: `git add data/ analysis/ tracking/ README.md`
+3. Commit: `git commit -m "data: add source(s)"`
+4. Push if desired: `git push`
 
 ---
 
 ## Continuation Mode
 
-When continuing an existing analysis (rather than starting fresh):
+When using `--continue` on an existing analysis:
 
 1. **Find existing analysis**: Look for `analysis/sources/[source-id].md`
 2. **Read current state**: Load the existing analysis and registered claims
@@ -255,5 +492,5 @@ When continuing an existing analysis (rather than starting fresh):
    - Add evidence that was found after initial analysis
    - Address questions or gaps identified in the original pass
    - Cross-reference with newly added claims in the database
+5. **Preserve content**: Append new sections, update claim counts, note what changed
 
-**Important**: Preserve all existing content. Append new sections, update claim counts, and note what was added in this pass.

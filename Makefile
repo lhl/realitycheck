@@ -124,11 +124,11 @@ test-all:
 # Skill generation from templates
 assemble-skills:
 	@echo "Generating skills from templates..."
-	@python integrations/assemble.py
+	@python integrations/assemble.py --docs
 
 check-skills:
 	@echo "Checking if skills are up-to-date..."
-	@python integrations/assemble.py --check
+	@python integrations/assemble.py --docs --check
 
 # Database
 init:

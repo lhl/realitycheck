@@ -93,9 +93,10 @@ These manual skills don't suffer from the quality regression (they're not method
 - [x] Generated file header markers
 
 ### Phase 9: Cleanup & Documentation
-- [ ] Update `integrations/README.md`
-- [ ] Update `CONTRIBUTING.md`
-- [ ] Generate `methodology/workflows/check-core.md` from templates (read-only reference)
+- [x] Update `integrations/README.md`
+- [x] Update `CONTRIBUTING.md`
+- [x] Generate `methodology/workflows/check-core.md` from templates (read-only reference)
+- [x] Add `--docs` flag to `assemble.py` for check-core.md generation
 
 ### Phase 10: Validator & Formatter
 - [ ] `_templates/analysis/source-analysis-full.md.j2` - Analysis skeleton template
@@ -109,6 +110,14 @@ These manual skills don't suffer from the quality regression (they're not method
 ---
 
 ## Worklog
+
+### 2026-01-22: Phase 9 complete
+
+- Updated `integrations/README.md` with template system documentation
+- Updated `CONTRIBUTING.md` with skill development guide
+- Added `--docs` flag to `assemble.py` to generate `methodology/workflows/check-core.md`
+- `check-core.md` is now generated from templates (read-only reference)
+- Updated Makefile to include `--docs` flag in assemble targets
 
 ### 2026-01-22: Documentation fixes
 

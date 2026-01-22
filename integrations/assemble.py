@@ -8,6 +8,7 @@ Usage:
     python assemble.py                    # Generate all skills for all integrations
     python assemble.py --integration claude  # Generate only Claude skills
     python assemble.py --skill check      # Generate only the 'check' skill
+    python assemble.py --docs             # Also generate methodology/workflows/check-core.md
     python assemble.py --dry-run          # Show what would be generated
     python assemble.py --diff             # Show diffs vs existing files
     python assemble.py --check            # Exit non-zero if files would change
@@ -23,8 +24,10 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
 # Paths relative to this script
 SCRIPT_DIR = Path(__file__).parent
+REPO_ROOT = SCRIPT_DIR.parent
 TEMPLATES_DIR = SCRIPT_DIR / "_templates"
 CONFIG_FILE = SCRIPT_DIR / "_config" / "skills.yaml"
+CHECK_CORE_PATH = REPO_ROOT / "methodology" / "workflows" / "check-core.md"
 
 INTEGRATIONS = ["amp", "claude", "codex"]
 
@@ -152,6 +155,55 @@ def write_skill(
     return changed
 
 
+def generate_check_core(
+    env: Environment,
+    dry_run: bool = False,
+    diff: bool = False,
+    check: bool = False,
+) -> bool:
+    """Generate methodology/workflows/check-core.md from templates.
+
+    This creates a standalone methodology reference document.
+    Returns True if file was changed.
+    """
+    # Render the check skill template directly (no wrapper)
+    try:
+        template = env.get_template("skills/check.md.j2")
+    except TemplateNotFound:
+        print("Warning: skills/check.md.j2 not found", file=sys.stderr)
+        return False
+
+    # Minimal context for standalone rendering
+    context = {
+        "invocation_prefix": "/",  # Use Claude-style for docs
+    }
+
+    try:
+        skill_content = template.render(**context)
+    except Exception as e:
+        print(f"Error rendering check-core.md: {e}", file=sys.stderr)
+        return False
+
+    # Build the full document with header
+    content = f"""<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/skills/check.md.j2 -->
+<!-- Regenerate: make assemble-skills (with --docs flag) -->
+
+# Reality Check - Core Analysis Methodology
+
+This document is the **read-only reference** for the Reality Check analysis methodology.
+It is generated from the same templates used to build integration skills.
+
+To modify this content, edit the templates in `integrations/_templates/` and regenerate.
+
+---
+
+{skill_content}
+"""
+
+    return write_skill(CHECK_CORE_PATH, content, dry_run, diff, check)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate Reality Check skills from templates"
@@ -185,6 +237,11 @@ def main():
         "--verbose", "-v",
         action="store_true",
         help="Verbose output",
+    )
+    parser.add_argument(
+        "--docs",
+        action="store_true",
+        help="Also generate methodology/workflows/check-core.md",
     )
     args = parser.parse_args()
 
@@ -251,8 +308,23 @@ def main():
                 total_changed += 1
                 any_changed = True
 
+    # Generate check-core.md if requested
+    if args.docs:
+        if args.verbose:
+            print("\n=== DOCS ===")
+        docs_changed = generate_check_core(
+            env,
+            dry_run=args.dry_run,
+            diff=args.diff,
+            check=args.check,
+        )
+        total_generated += 1
+        if docs_changed:
+            total_changed += 1
+            any_changed = True
+
     # Summary
-    print(f"\nGenerated: {total_generated} skills, {total_changed} changed")
+    print(f"\nGenerated: {total_generated} files, {total_changed} changed")
 
     # Exit with error if --check and files changed
     if args.check and any_changed:

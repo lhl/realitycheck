@@ -173,16 +173,57 @@ realitycheck/
 ├── tests/             # pytest test suite
 │   ├── conftest.py    # Shared fixtures
 │   └── test_*.py      # Test files
-├── plugin/            # Claude Code plugin
-│   ├── .claude-plugin/
-│   ├── commands/      # Slash commands
-│   └── scripts/       # Shell wrappers
+├── integrations/      # Tool integrations
+│   ├── _templates/    # Jinja2 templates (SOURCE OF TRUTH)
+│   ├── _config/       # Skill definitions
+│   ├── assemble.py    # Skill generator
+│   ├── amp/skills/    # Generated Amp skills
+│   ├── claude/        # Claude plugin + skills
+│   └── codex/skills/  # Generated Codex skills
 ├── methodology/       # Analysis methodology
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md
 │   └── templates/
 ├── docs/              # Documentation
 └── examples/          # Example data
+```
+
+## Skill Development
+
+Skills are **generated from Jinja2 templates** - do not edit `SKILL.md` files directly.
+
+### Modifying Skills
+
+1. Edit templates in `integrations/_templates/`
+2. Regenerate: `make assemble-skills`
+3. Commit both templates and generated files
+
+### Template Locations
+
+| What to Edit | Location |
+|--------------|----------|
+| Evidence hierarchy, claim types | `_templates/partials/` |
+| Analysis tables (Key Claims, etc.) | `_templates/tables/` |
+| Analysis sections | `_templates/sections/` |
+| Skill-specific content | `_templates/skills/` |
+| Integration wrappers | `_templates/wrappers/` |
+| Skill definitions | `_config/skills.yaml` |
+
+### Adding a New Skill
+
+1. Create `_templates/skills/newskill.md.j2`
+2. Add entry to `_config/skills.yaml` with per-integration metadata
+3. Run `make assemble-skills`
+4. Update install scripts if needed
+
+### Checking Skills
+
+```bash
+# Regenerate all skills
+make assemble-skills
+
+# Check if generated files are up-to-date (CI)
+make check-skills
 ```
 
 ## Reporting Issues
