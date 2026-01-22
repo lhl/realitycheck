@@ -39,6 +39,8 @@ skills:
         - "Bash(uv run python scripts/validate.py *)"
         - "Bash(rc-db *)"
         - "Bash(rc-validate *)"
+        - "Bash(curl -L -sS * | rc-html-extract *)"
+        - "Bash(rc-html-extract *)"
 
     codex:
       invocation: "$check <url>"
@@ -62,6 +64,8 @@ skills:
         - "Read"
         - "Write"
         - "Bash(uv run python scripts/db.py *)"
+        - "Bash(curl -L -sS * | rc-html-extract *)"
+        - "Bash(rc-html-extract *)"
 
     codex:
       invocation: "$analyze <url>"
@@ -84,6 +88,8 @@ skills:
         - "WebFetch"
         - "Read"
         - "Write"
+        - "Bash(curl -L -sS * | rc-html-extract *)"
+        - "Bash(rc-html-extract *)"
 
     codex:
       invocation: "$extract <source>"

@@ -49,7 +49,11 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 
 ## Workflow Steps
 
-1. **Fetch** - Use `WebFetch` to retrieve source content
+1. **Fetch** - Retrieve and parse source content
+   - Primary: `WebFetch` for most URLs
+   - Alternative: `curl -L -sS "URL" | rc-html-extract - --format json`
+   - `rc-html-extract` returns structured `{title, published, text, headings, word_count}`
+   - Use the extract tool when you need clean metadata or main text extraction
 2. **Metadata** - Extract title, author, date, type, generate source-id
 3. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
 4. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence

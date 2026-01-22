@@ -53,6 +53,13 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 
 **Ignore YAML files** like `claims/registry.yaml` or `reference/sources.yaml` - these are exports/legacy format.
 
+## Fetching Content
+
+To retrieve and parse source content:
+- Primary: `WebFetch` for most URLs
+- Alternative: `curl -L -sS "URL" | rc-html-extract - --format json`
+- `rc-html-extract` returns structured `{title, published, text, headings, word_count}`
+
 ## Methodology
 
 ### Stage 1: Descriptive Analysis

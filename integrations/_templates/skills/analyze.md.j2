@@ -4,6 +4,13 @@ Perform a full 3-stage analysis following the Reality Check methodology. Use thi
 
 {% include "partials/prerequisites.md.j2" %}
 
+## Fetching Content
+
+To retrieve and parse source content:
+- Primary: `WebFetch` for most URLs
+- Alternative: `curl -L -sS "URL" | rc-html-extract - --format json`
+- `rc-html-extract` returns structured `{title, published, text, headings, word_count}`
+
 ## Methodology
 
 ### Stage 1: Descriptive Analysis

@@ -6,7 +6,7 @@
 name: extract
 description: Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources.
 argument-hint: "<source>"
-allowed-tools: ["WebFetch", "Read", "Write"]
+allowed-tools: ["WebFetch", "Read", "Write", "Bash(curl -L -sS * | rc-html-extract *)", "Bash(rc-html-extract *)"]
 ---
 
 # /extract - Quick Claim Extraction
