@@ -26,6 +26,8 @@ Other scripts:
 - `migrate.py` - Migrate from legacy YAML
 - `embed.py` - Generate/re-generate missing embeddings
 - `html_extract.py` - Extract `{title, published, text}` from HTML (useful pre-processing for analysis)
+- `resolve-project.sh` - Find project root and set `REALITYCHECK_DATA` env var
+- `update-readme-stats.sh` - Update data repo README.md with current database statistics
 
 ## Project Setup
 
