@@ -351,8 +351,8 @@ Test metadata.
         stage_errors = [e for e in result.errors if "Stage" in e]
         assert len(stage_errors) >= 3  # Stage 1, 2, 3
 
-    def test_full_profile_requires_confidence(self, tmp_path):
-        """Full profile requires Confidence in Analysis."""
+    def test_full_profile_requires_credence(self, tmp_path):
+        """Full profile requires Credence in Analysis."""
         content = """# Source Analysis: Test
 
 > **Claim types**: `[F]` fact
@@ -394,6 +394,6 @@ claims:
 
         result = validate_file(test_file, profile="full")
 
-        # Should be missing Confidence in Analysis
-        confidence_errors = [e for e in result.errors if "Confidence in Analysis" in e]
-        assert len(confidence_errors) >= 1
+        # Should be missing Credence in Analysis
+        credence_errors = [e for e in result.errors if "Credence in Analysis" in e]
+        assert len(credence_errors) >= 1

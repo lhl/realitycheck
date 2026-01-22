@@ -238,7 +238,7 @@ class TestYamlValidation:
 
         findings = validate_yaml(sample_yaml_sources)
 
-        conf_errors = [f for f in findings if f.code == "CLAIM_CONFIDENCE_INVALID"]
+        conf_errors = [f for f in findings if f.code == "CLAIM_CREDENCE_INVALID"]
         assert len(conf_errors) >= 1
 
     def test_missing_source_reference_in_yaml(self, sample_yaml_sources):

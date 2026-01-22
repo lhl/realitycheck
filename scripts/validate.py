@@ -339,11 +339,11 @@ def validate_yaml(repo_root: Path, strict_paths: bool = False) -> list[Finding]:
             findings.append(Finding("ERROR", "CLAIM_EVIDENCE_INVALID",
                 f"{claim_id}: Invalid evidence_level '{claim.get('evidence_level')}'"))
 
-        # Confidence (YAML still uses 'confidence')
-        conf = claim.get("confidence")
+        # Credence (legacy YAML may use 'confidence', new uses 'credence')
+        conf = claim.get("credence") or claim.get("confidence")
         if not _is_probability(conf):
-            findings.append(Finding("ERROR", "CLAIM_CONFIDENCE_INVALID",
-                f"{claim_id}: Invalid confidence '{conf}'"))
+            findings.append(Finding("ERROR", "CLAIM_CREDENCE_INVALID",
+                f"{claim_id}: Invalid credence '{conf}'"))
 
         # Source refs
         for sid in claim.get("source_ids", []) or []:

@@ -61,8 +61,8 @@ FULL_PROFILE_REQUIRED = {
         (r">\s*\*\*Evidence\*\*:", "Evidence legend"),
         # Claims YAML block
         (r"```yaml\s*\nclaims:", "Claims YAML block"),
-        # Confidence in Analysis
-        (r"\*\*Confidence in Analysis\*\*:", "Confidence in Analysis score"),
+        # Credence in Analysis (also accept legacy "Confidence")
+        (r"\*\*(Credence|Confidence) in Analysis\*\*:", "Credence in Analysis score"),
     ],
 }
 

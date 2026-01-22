@@ -67,8 +67,8 @@ class TestYamlExport:
 
         assert data["counters"]["TECH"] >= 1
 
-    def test_export_claims_yaml_credence_to_confidence(self, initialized_db, temp_db_path, sample_claim, sample_source):
-        """Exported YAML uses 'confidence' (legacy name)."""
+    def test_export_claims_yaml_uses_credence(self, initialized_db, temp_db_path, sample_claim, sample_source):
+        """Exported YAML uses 'credence' (standardized name)."""
         add_source(sample_source, initialized_db, generate_embedding=False)
         add_claim(sample_claim, initialized_db, generate_embedding=False)
 
@@ -80,9 +80,9 @@ class TestYamlExport:
         data = yaml.safe_load(yaml_content)
 
         claim = data["claims"]["TECH-2026-001"]
-        assert "confidence" in claim
-        assert "credence" not in claim
-        assert claim["confidence"] == pytest.approx(0.75, rel=0.01)
+        assert "credence" in claim
+        assert "confidence" not in claim
+        assert claim["credence"] == pytest.approx(0.75, rel=0.01)
 
     def test_export_sources_yaml_structure(self, initialized_db, temp_db_path, sample_source):
         """Exported sources YAML has correct structure."""
@@ -309,7 +309,7 @@ class TestExportRoundTrip:
         claim = data["claims"]["TECH-2026-001"]
 
         # Check types
-        assert isinstance(claim["confidence"], float)
+        assert isinstance(claim["credence"], float)
         assert isinstance(claim["version"], int)
         assert isinstance(claim["source_ids"], list)
         assert isinstance(claim["supports"], list)
