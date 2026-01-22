@@ -427,3 +427,44 @@ After methodology is restored:
 
 - 2026-01-22: Initial analysis and documentation
 - 2026-01-22: Added reprocessing queue based on quality audit
+- 2026-01-22: Templates restored in Codex skill; updated audit results below
+
+## Updated Quality Audit (2026-01-22)
+
+| Analysis | Key Claims | Crux? | Counterevidence | Tensions | Persuasion | Confidence | Status |
+|----------|:----------:|:-----:|:---------------:|:--------:|:----------:|:----------:|--------|
+| doctorow-2026-reverse-centaur | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| teortaxes-2026-greenland-endgame | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| perera-2026-chinas-trillion-dollar-illusion | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| ronacher-2026-agent-psychosis | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **OK** |
+| carney-2026-davos-wef-speech | ✓ | ✓ | ✓ | ✓ | ✓ | - | **OK** |
+| **openai-value-intelligence** | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | **FIXED** |
+| jre-2404-elon-musk-2025-ai-woke-mind-virus | ✓ | ✗ | ✓ | ✗ | Partial | ✗ | Partial |
+| stross-2025-the-pivot-1 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | **Needs Work** |
+| chatterjee-2024-anz-copilot-study | ✓ | - | - | - | - | - | Quick/OK |
+| peng-2023-copilot-productivity | ✓ | - | - | - | - | - | Quick/OK |
+
+### Summary
+
+- **Templates are correct**: The Codex `$check` skill now includes all required Stage 2 evaluation tables with explicit templates and column guides
+- **openai-value-intelligence**: Reprocessed and now complete ✓
+- **jre-2404-elon-musk**: Partial - has Disconfirming Evidence and some Persuasion notes, but missing formal tables (Key Factual Claims Verified with Crux?, Internal Tensions table, Unstated Assumptions table, Confidence score)
+- **stross-2025-the-pivot-1**: Still needs work - has good 3-stage structure but missing all formal Stage 2 evaluation tables
+
+### Root Cause Analysis
+
+The issue is **adherence**, not missing templates:
+1. The skill now contains explicit templates with all required tables
+2. Models may skip tables when they seem redundant or when the source doesn't easily fit the table format
+3. Prose summaries are sometimes substituted for formal tables
+
+### Remaining Reprocessing Queue
+
+**Priority 1** (missing most required tables):
+- [ ] `stross-2025-the-pivot-1` - Needs formal Stage 2 tables added
+
+**Priority 2** (missing some tables):
+- [ ] `jre-2404-elon-musk-2025-ai-woke-mind-virus` - Add Key Factual Claims Verified (Crux?), Internal Tensions, Unstated Assumptions, Confidence
+
+**Completed**:
+- [x] `openai-value-intelligence` - All Stage 2 tables now present
