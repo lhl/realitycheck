@@ -488,15 +488,13 @@ After registration and validation, update the data project's README.md:
 
 ### 1. Add Source Analyses Table Entry
 
-**Manually** add a new row to the "Source Analyses" table in `$PROJECT_ROOT/README.md`:
+**Edit `$PROJECT_ROOT/README.md` now.** Find the "Source Analyses" table and insert a new row:
 
 ```markdown
-| Date | Document | Status | Summary |
-|------|----------|--------|---------|
 | YYYY-MM-DD | [Title](analysis/sources/<source-id>.md) | `[REVIEWED]` | Brief summary |
 ```
 
-Insert the new row at the **top** of the table (most recent first).
+Insert at the **top** of the table (below header row), keeping entries reverse-chronological.
 
 ### 2. Update Stats Tables
 
