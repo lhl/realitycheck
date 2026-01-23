@@ -189,9 +189,25 @@ claims:
 
 ---
 
-## Update README Stats
+## Update README (REQUIRED)
 
-After registration and validation, update the data project's README.md with current statistics:
+After registration and validation, update the data project's README.md:
+
+### 1. Add Source Analyses Table Entry
+
+**Manually** add a new row to the "Source Analyses" table in `$PROJECT_ROOT/README.md`:
+
+```markdown
+| Date | Document | Status | Summary |
+|------|----------|--------|---------|
+| YYYY-MM-DD | [Title](analysis/sources/<source-id>.md) | `[REVIEWED]` | Brief summary |
+```
+
+Insert the new row at the **top** of the table (most recent first).
+
+### 2. Update Stats Tables
+
+Run the stats update script to refresh claim/source counts:
 
 ```bash
 # From the realitycheck framework directory
@@ -199,16 +215,16 @@ scripts/update-readme-stats.sh "$PROJECT_ROOT"
 # or: bash scripts/update-readme-stats.sh "$(dirname "$REALITYCHECK_DATA")"
 ```
 
-This updates the "Current Status" and "Claim Domains" tables in the data repo's README.md.
+This updates the "Current Status" and "Claim Domains" tables automatically.
 
 ---
 
-## Version Control
+## Commit and Push (REQUIRED)
 
-After updating README stats, commit and push changes to the data repository:
+**You MUST commit and push after every successful analysis.** This is not optional.
 
 ```bash
-# From the data project root (parent of data/)
+# From the data project root
 cd "$(dirname "$REALITYCHECK_DATA")"
 
 # Stage all changes
@@ -221,10 +237,7 @@ git commit -m "data: add [source-id] - [brief description]"
 git push
 ```
 
-**Important**: Always commit and push after a successful analysis. This ensures:
-- Changes are versioned and recoverable
-- Collaboration is possible
-- Analysis history is preserved
+**Do not stop until changes are committed and pushed.** The analysis is incomplete without version control.
 
 ---
 
