@@ -454,6 +454,8 @@ realitycheck-data/
 
 Track detailed metadata for each analysis session:
 
+- See `docs/PLAN-audit-log.md` for the full spec/plan.
+- Progress tracking: `docs/IMPLEMENTATION-audit-log.md`
 - [ ] Token usage per stage (descriptive, evaluative, dialectical)
 - [ ] Cost estimation ($) per analysis with running totals
 - [ ] Model/agent attribution (which model performed which step)
