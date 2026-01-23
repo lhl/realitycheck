@@ -36,7 +36,7 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 pip install realitycheck
 
 # Or with uv (faster)
-uv pip install realitycheck
+uv pip install realitycheck  # installs to active venv or system Python
 
 # Verify installation
 rc-db --help
