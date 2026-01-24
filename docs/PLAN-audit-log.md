@@ -110,7 +110,7 @@ analysis_logs:
   tool: "codex"        # claude-code|codex|amp|manual|other
   command: "check"     # optional: check|analyze|extract|...
   model: "gpt-5.2"     # optional
-  framework_version: "0.1.3"  # optional (package version)
+  framework_version: "0.1.4"  # optional (package version)
   methodology_version: "check-core@<hash-or-date>"  # optional/TBD
   started_at: "2026-01-22T10:00:00Z"
   completed_at: "2026-01-22T10:08:00Z"
