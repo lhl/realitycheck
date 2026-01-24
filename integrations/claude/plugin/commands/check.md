@@ -41,7 +41,7 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 7. **README** - Update data project analysis index
 8. **Report** - Generate summary
 
-If the prompt includes **multiple sources** (compare/contrast), run `/reality:synthesize` after completing the per-source analyses.
+If the prompt includes **multiple sources** (compare/contrast), produce the per-source analyses **and** write a single synthesis document in `analysis/syntheses/` as part of the same `/reality:check` run. Use `/reality:synthesize` later for standalone/iterative syntheses.
 
 ## Database Commands
 
