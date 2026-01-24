@@ -19,8 +19,12 @@ from typing import Any, Optional
 import lancedb
 import pyarrow as pa
 
-from analysis_log_writer import upsert_analysis_log_section
-from usage_capture import estimate_cost_usd, parse_usage_from_source
+if __package__:
+    from .analysis_log_writer import upsert_analysis_log_section
+    from .usage_capture import estimate_cost_usd, parse_usage_from_source
+else:
+    from analysis_log_writer import upsert_analysis_log_section
+    from usage_capture import estimate_cost_usd, parse_usage_from_source
 
 # Configuration
 DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
