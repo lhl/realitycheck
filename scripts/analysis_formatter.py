@@ -16,6 +16,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 
 # =============================================================================
 # Template Snippets (from Jinja2 templates)
@@ -159,6 +161,26 @@ QUICK_SECTION_ORDER = [
     "### Claims to Register",
 ]
 
+LEGACY_HEADING_REWRITES: list[tuple[re.Pattern[str], str]] = [
+    # Stage headings (legacy variants)
+    (re.compile(r"^##\s*Stage\s*1:\s*Descriptive\s*Summary\s*$", re.IGNORECASE | re.MULTILINE),
+     "## Stage 1: Descriptive Analysis"),
+    (re.compile(r"^##\s*Stage\s*2:\s*Evaluation(?:\s*Analysis)?\s*$", re.IGNORECASE | re.MULTILINE),
+     "## Stage 2: Evaluative Analysis"),
+    (re.compile(r"^##\s*Stage\s*2:\s*Evaluative\s*$", re.IGNORECASE | re.MULTILINE),
+     "## Stage 2: Evaluative Analysis"),
+    (re.compile(r"^##\s*Stage\s*3:\s*Dialectical\s*Synthesis\s*$", re.IGNORECASE | re.MULTILINE),
+     "## Stage 3: Dialectical Analysis"),
+    # Common subsection aliases
+    (re.compile(r"^###\s*Steelman\s*$", re.IGNORECASE | re.MULTILINE),
+     "### Steelmanned Argument"),
+    (re.compile(r"^###\s*Counterarguments\s*$", re.IGNORECASE | re.MULTILINE),
+     "### Strongest Counterarguments"),
+    # Claim summary sometimes appears as a level-2 heading in legacy analyses
+    (re.compile(r"^##\s*Claim\s+Summary\b.*$", re.IGNORECASE | re.MULTILINE),
+     "### Claim Summary"),
+]
+
 
 def detect_profile(content: str) -> str:
     """Detect the analysis profile from the content."""
@@ -187,6 +209,221 @@ def has_credence(content: str) -> bool:
     """Check if the credence score exists."""
     # Support both old "Confidence" and new "Credence" terminology
     return bool(re.search(r"\*\*(Confidence|Credence) in Analysis\*\*:", content))
+
+
+def normalize_legacy_headings(content: str) -> tuple[str, list[str]]:
+    """Normalize common legacy headings to match the Output Contract.
+
+    Returns:
+        Tuple of (updated_content, list_of_changes_made)
+    """
+    changes: list[str] = []
+    updated = content
+    for pattern, replacement in LEGACY_HEADING_REWRITES:
+        if pattern.search(updated):
+            updated = pattern.sub(replacement, updated)
+            changes.append(f"Normalized heading to: {replacement}")
+    return updated, changes
+
+
+def _split_md_table_row(line: str) -> list[str]:
+    """Split a Markdown table row into cells (best-effort)."""
+    if not line.strip().startswith("|"):
+        return []
+    parts = [p.strip() for p in line.strip().strip("|").split("|")]
+    return parts
+
+
+def _is_table_separator_row(cells: list[str]) -> bool:
+    """Heuristic: markdown separator row is mostly dashes/colons."""
+    if not cells:
+        return False
+    for cell in cells:
+        stripped = cell.replace(":", "").replace("-", "").strip()
+        if stripped:
+            return False
+    return True
+
+
+def extract_claims_from_key_claims_table(content: str) -> list[dict]:
+    """Extract claim records from the first 'Key Claims' table found in the content.
+
+    Returns a list of dicts with keys: id, text, type, domain, evidence_level, credence.
+    """
+    lines = content.splitlines()
+    header_idx = None
+    for i, line in enumerate(lines):
+        if re.search(r"^\|\s*#\s*\|.*\|\s*Claim\s+ID\s*\|", line, re.IGNORECASE):
+            header_idx = i
+            break
+    if header_idx is None or header_idx + 2 >= len(lines):
+        return []
+
+    header_cells = _split_md_table_row(lines[header_idx])
+    sep_cells = _split_md_table_row(lines[header_idx + 1])
+    if not _is_table_separator_row(sep_cells):
+        return []
+
+    def norm(name: str) -> str:
+        return re.sub(r"\s+", " ", name.strip().lower())
+
+    col_map = {norm(name): idx for idx, name in enumerate(header_cells)}
+    claim_idx = col_map.get("claim")
+    claim_id_idx = col_map.get("claim id")
+    type_idx = col_map.get("type")
+    domain_idx = col_map.get("domain")
+    evidence_idx = col_map.get("evid", col_map.get("evidence"))
+    credence_idx = col_map.get("credence", col_map.get("conf"))
+
+    if claim_idx is None or claim_id_idx is None or type_idx is None or domain_idx is None:
+        return []
+
+    extracted: list[dict] = []
+    for line in lines[header_idx + 2:]:
+        if not line.strip().startswith("|"):
+            break
+        row_cells = _split_md_table_row(line)
+        if not row_cells or len(row_cells) < len(header_cells):
+            continue
+
+        claim_id = row_cells[claim_id_idx].strip()
+        if not re.fullmatch(r"[A-Z]+-\d{4}-\d{3}", claim_id):
+            continue
+
+        claim_text = row_cells[claim_idx].strip()
+        claim_type = row_cells[type_idx].strip()
+        domain = row_cells[domain_idx].strip()
+        evidence_level = row_cells[evidence_idx].strip() if evidence_idx is not None else ""
+        credence_raw = row_cells[credence_idx].strip() if credence_idx is not None else ""
+
+        credence: float | None = None
+        try:
+            credence = float(credence_raw)
+        except Exception:
+            credence = None
+
+        extracted.append(
+            {
+                "id": claim_id,
+                "text": claim_text,
+                "type": claim_type,
+                "domain": domain,
+                "evidence_level": evidence_level,
+                "credence": credence,
+            }
+        )
+
+    return extracted
+
+
+def _collapse_ws(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def build_claim_summary_table(claims: list[dict]) -> str:
+    """Build a Claim Summary table.
+
+    Falls back to placeholder if claims is empty.
+    """
+    if not claims:
+        return CLAIM_SUMMARY_TABLE
+
+    lines = [
+        "| ID | Type | Domain | Evidence | Credence | Claim |",
+        "|----|------|--------|----------|----------:|-------|",
+    ]
+    for claim in claims:
+        claim_id = str(claim.get("id", "")).strip()
+        claim_type = str(claim.get("type", "")).strip()
+        domain = str(claim.get("domain", "")).strip()
+        evidence = str(claim.get("evidence_level", "")).strip()
+        credence_val = claim.get("credence", None)
+        credence = f"{credence_val:.2f}" if isinstance(credence_val, (int, float)) else ""
+        text = _collapse_ws(str(claim.get("text", "")).strip()).replace("|", "\\|")
+        lines.append(f"| {claim_id} | {claim_type} | {domain} | {evidence} | {credence} | {text} |")
+
+    return "### Claim Summary\n\n" + "\n".join(lines) + "\n\n"
+
+
+def _extract_claims_block_from_yaml_file(yaml_path: Path) -> str | None:
+    """Extract the top-level 'claims:' block from a YAML file, if present."""
+    try:
+        text = yaml_path.read_text()
+    except Exception:
+        return None
+
+    match = re.search(r"^claims:\s*$", text, re.MULTILINE)
+    if not match:
+        return None
+    return text[match.start():].rstrip() + "\n"
+
+
+def derive_claims(path: Path, content: str) -> tuple[list[dict], str | None]:
+    """Derive claim records and (optionally) a YAML claims block for embedding.
+
+    Returns:
+        (claims_list, yaml_claims_block_or_none)
+    """
+    yaml_path = path.with_suffix(".yaml")
+    yaml_block = _extract_claims_block_from_yaml_file(yaml_path) if yaml_path.exists() else None
+
+    if yaml_block:
+        try:
+            parsed = yaml.safe_load(yaml_block) or {}
+            claims = parsed.get("claims") or []
+            if isinstance(claims, list):
+                normalized: list[dict] = []
+                for item in claims:
+                    if not isinstance(item, dict):
+                        continue
+                    normalized.append(
+                        {
+                            "id": item.get("id"),
+                            "text": _collapse_ws(str(item.get("text", ""))),
+                            "type": item.get("type"),
+                            "domain": item.get("domain"),
+                            "evidence_level": item.get("evidence_level"),
+                            "credence": item.get("credence"),
+                        }
+                    )
+                return normalized, yaml_block
+        except Exception:
+            # Fall through to key-claims parsing
+            pass
+
+    return extract_claims_from_key_claims_table(content), None
+
+
+def build_claims_yaml_block(claims: list[dict], source_id: str) -> str:
+    """Build a minimal claims YAML block for embedding (used when no sibling YAML exists)."""
+    if not claims:
+        return CLAIMS_YAML_BLOCK
+
+    payload: dict = {"claims": []}
+    for claim in claims:
+        claim_id = str(claim.get("id", "")).strip()
+        claim_text = _collapse_ws(str(claim.get("text", "")).strip())
+        payload["claims"].append(
+            {
+                "id": claim_id,
+                "text": claim_text,
+                "type": str(claim.get("type", "")).strip(),
+                "domain": str(claim.get("domain", "")).strip(),
+                "evidence_level": str(claim.get("evidence_level", "")).strip(),
+                "credence": claim.get("credence"),
+                "source_ids": [source_id],
+            }
+        )
+
+    yaml_text = yaml.safe_dump(
+        payload,
+        sort_keys=False,
+        default_flow_style=False,
+        allow_unicode=True,
+        width=88,
+        indent=2,
+    )
+    return "### Claims to Register\n\n```yaml\n" + yaml_text.rstrip() + "\n```\n\n"
 
 
 def find_section_position(content: str, section: str, section_order: list[str]) -> int:
@@ -282,7 +519,7 @@ def insert_key_claims_table(content: str) -> str:
     return content[:pos] + "\n" + KEY_CLAIMS_TABLE + content[pos:]
 
 
-def insert_claim_summary_table(content: str) -> str:
+def insert_claim_summary_table(content: str, claims: list[dict] | None = None) -> str:
     """Insert Claim Summary table if missing."""
     if re.search(r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", content, re.IGNORECASE):
         return content
@@ -309,50 +546,43 @@ def insert_claim_summary_table(content: str) -> str:
                     match = re.search(r"### Claim Summary\s*\n", content, re.IGNORECASE)
                     if match:
                         insert_pos = match.end()
-            table_content = """
-| ID | Type | Domain | Evidence | Credence | Claim |
-|----|------|--------|----------|----------|-------|
-| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00 | [claim text] |
-
-"""
+            table_content = "\n" + build_claim_summary_table(claims or []).replace("### Claim Summary\n\n", "", 1)
             return content[:insert_pos] + table_content + content[insert_pos:]
 
     # Need to create the section
     profile = detect_profile(content)
     section_order = QUICK_SECTION_ORDER if profile == "quick" else FULL_SECTION_ORDER
     pos = find_section_position(content, "### Claim Summary", section_order)
-    return content[:pos] + "\n" + CLAIM_SUMMARY_TABLE + content[pos:]
+    return content[:pos] + "\n" + build_claim_summary_table(claims or []) + content[pos:]
 
 
-def insert_claims_yaml(content: str) -> str:
+def insert_claims_yaml(
+    content: str,
+    claims_yaml: str | None = None,
+    claims: list[dict] | None = None,
+    source_id: str | None = None,
+) -> str:
     """Insert Claims YAML block if missing."""
     if has_claims_yaml(content):
         return content
+
+    yaml_body = claims_yaml
+    if yaml_body is None:
+        yaml_body = build_claims_yaml_block(claims or [], source_id or "[source-id]").split("```yaml\n", 1)[-1].rsplit("\n```", 1)[0] + "\n"
 
     if has_section(content, "### Claims to Register"):
         match = re.search(r"### Claims to Register\s*\n", content, re.IGNORECASE)
         if match:
             insert_pos = match.end()
-            yaml_content = """
-```yaml
-claims:
-  - id: "DOMAIN-YYYY-NNN"
-    text: "[Precise claim statement]"
-    type: "[F/T/H/P/A/C/S/X]"
-    domain: "[DOMAIN]"
-    evidence_level: "E[1-6]"
-    credence: 0.XX
-    source_ids: ["[source-id]"]
-```
-
-"""
+            yaml_content = "\n```yaml\n" + yaml_body.rstrip() + "\n```\n\n"
             return content[:insert_pos] + yaml_content + content[insert_pos:]
 
     # Need to create the section - append at end before confidence
     profile = detect_profile(content)
     section_order = QUICK_SECTION_ORDER if profile == "quick" else FULL_SECTION_ORDER
     pos = find_section_position(content, "### Claims to Register", section_order)
-    return content[:pos] + "\n" + CLAIMS_YAML_BLOCK + content[pos:]
+    block = "### Claims to Register\n\n```yaml\n" + yaml_body.rstrip() + "\n```\n\n"
+    return content[:pos] + "\n" + block + content[pos:]
 
 
 def insert_confidence(content: str) -> str:
@@ -409,9 +639,15 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
 
     original = content
 
+    # Step 0: Normalize legacy headings to reduce duplication and meet the contract.
+    content, normalized_changes = normalize_legacy_headings(content)
+    changes.extend(normalized_changes)
+
     # Detect or use specified profile
     detected_profile = detect_profile(content)
     actual_profile = profile or detected_profile
+    source_id = path.stem
+    derived_claims, claims_yaml = derive_claims(path, content)
 
     # Step 1: Insert legends if missing
     if not has_legends(content):
@@ -419,22 +655,13 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
         changes.append("Added claim types and evidence legends")
 
     # Step 2: Insert missing sections based on profile
-    for section in (QUICK_SECTION_ORDER if actual_profile == "quick" else FULL_SECTION_ORDER):
-        if not has_section(content, section):
-            content = insert_missing_sections(content, actual_profile)
-            changes.append(f"Added missing section: {section}")
-            break  # Re-check after each insertion to maintain order
-
-    # Re-run section insertion until all are present
-    while True:
-        sections_needed = QUICK_SECTION_ORDER if actual_profile == "quick" else FULL_SECTION_ORDER
-        missing = [s for s in sections_needed if not has_section(content, s)]
-        if not missing:
-            break
+    sections_needed = QUICK_SECTION_ORDER if actual_profile == "quick" else FULL_SECTION_ORDER
+    missing_sections = [s for s in sections_needed if not has_section(content, s)]
+    if missing_sections:
         content = insert_missing_sections(content, actual_profile)
-        for s in missing:
-            if has_section(content, s):
-                changes.append(f"Added missing section: {s}")
+        for section in missing_sections:
+            if has_section(content, section):
+                changes.append(f"Added missing section: {section}")
 
     # Step 3: Insert Key Claims table (full profile only)
     if actual_profile == "full":
@@ -444,12 +671,12 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
 
     # Step 4: Insert Claim Summary table
     if not re.search(r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", content, re.IGNORECASE):
-        content = insert_claim_summary_table(content)
+        content = insert_claim_summary_table(content, derived_claims)
         changes.append("Added Claim Summary table")
 
     # Step 5: Insert Claims YAML block
     if not has_claims_yaml(content):
-        content = insert_claims_yaml(content)
+        content = insert_claims_yaml(content, claims_yaml=claims_yaml, claims=derived_claims, source_id=source_id)
         changes.append("Added Claims YAML block")
 
     # Step 6: Insert confidence section (full profile only)

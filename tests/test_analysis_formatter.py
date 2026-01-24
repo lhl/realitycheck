@@ -22,6 +22,7 @@ from analysis_formatter import (
     has_section,
     has_claims_yaml,
     has_credence,
+    normalize_legacy_headings,
     insert_legends,
     insert_claim_summary_table,
     insert_claims_yaml,
@@ -436,6 +437,122 @@ claims:
         assert formatted == ""
         assert len(changes) >= 1
         assert any("Error" in c for c in changes)
+
+
+class TestLegacyNormalization:
+    """Tests for legacy heading normalization."""
+
+    def test_normalize_common_legacy_headings(self):
+        content = """## Stage 1: Descriptive Summary
+
+### Steelman
+
+## Stage 2: Evaluation
+
+## Stage 3: Dialectical Synthesis
+
+### Counterarguments
+
+## Claim Summary (All Extracted Claims)
+"""
+        normalized, changes = normalize_legacy_headings(content)
+
+        assert "## Stage 1: Descriptive Analysis" in normalized
+        assert "## Stage 1: Descriptive Summary" not in normalized
+        assert "## Stage 2: Evaluative Analysis" in normalized
+        assert "## Stage 3: Dialectical Analysis" in normalized
+        assert "### Steelmanned Argument" in normalized
+        assert "### Strongest Counterarguments" in normalized
+        assert "### Claim Summary" in normalized
+        assert len(changes) >= 1
+
+
+class TestClaimSummaryAndYamlGeneration:
+    """Tests for generating Claim Summary and YAML blocks from existing data."""
+
+    def test_format_generates_claim_summary_and_yaml_from_key_claims(self, tmp_path):
+        content = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+Test thesis.
+
+### Key Claims
+
+| # | Claim | Claim ID | Type | Domain | Evid | Conf | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|------|------|-----------|----------------|
+| 1 | Test claim text | TECH-2026-001 | [F] | TECH | E2 | 0.75 | ? | N/A |
+
+## Stage 2: Evaluative Analysis
+### Key Factual Claims Verified
+### Disconfirming Evidence Search
+### Internal Tensions
+### Persuasion Techniques
+### Unstated Assumptions
+## Stage 3: Dialectical Analysis
+### Steelmanned Argument
+### Strongest Counterarguments
+### Supporting Theories
+### Contradicting Theories
+"""
+        test_file = tmp_path / "test-source.md"
+        test_file.write_text(content)
+
+        formatted, _changes = format_file(test_file, profile="full")
+
+        assert "### Claim Summary" in formatted
+        assert "TECH-2026-001" in formatted
+        assert "DOMAIN-YYYY-NNN" not in formatted
+        assert "```yaml" in formatted
+        assert "claims:" in formatted
+        assert "source_ids" in formatted
+        assert "test-source" in formatted
+
+    def test_format_embeds_claims_from_sibling_yaml(self, tmp_path):
+        md = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | yaml-source |
+
+## Stage 1: Descriptive Analysis
+### Core Thesis
+Test thesis.
+### Key Claims
+| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|------|----------|-----------|----------------|
+| 1 | Test claim text | TECH-2026-001 | [F] | TECH | E2 | 0.80 | ? | N/A |
+
+### Claims to Register
+"""
+        yaml_text = """claims:
+  - id: "TECH-2026-001"
+    text: "Test claim from yaml"
+    type: "[F]"
+    domain: "TECH"
+    evidence_level: "E2"
+    credence: 0.80
+    source_ids: ["yaml-source"]
+"""
+        md_file = tmp_path / "yaml-source.md"
+        yaml_file = tmp_path / "yaml-source.yaml"
+        md_file.write_text(md)
+        yaml_file.write_text(yaml_text)
+
+        formatted, _changes = format_file(md_file, profile="full")
+
+        assert "```yaml" in formatted
+        assert 'text: "Test claim from yaml"' in formatted
+        assert "TECH-2026-001" in formatted
 
 
 class TestProfileDetection:
