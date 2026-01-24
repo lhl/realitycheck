@@ -3,14 +3,14 @@ allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh *)"]
 description: Check database integrity and referential consistency
 ---
 
-# /validate - Data Integrity Check
+# /reality:validate - Data Integrity Check
 
 Check database integrity and referential consistency.
 
 ## Usage
 
 ```
-/validate [--strict] [--json]
+/reality:validate [--strict] [--json]
 ```
 
 ## CLI Invocation
@@ -76,14 +76,14 @@ WARN [CHAIN_CREDENCE_EXCEEDS_MIN] CHAIN-2026-001: Chain credence 0.8 > min claim
 ## Examples
 
 ```
-/validate
-/validate --strict
-/validate --json
-/validate --mode yaml --repo-root /path/to/data-repo
+/reality:validate
+/reality:validate --strict
+/reality:validate --json
+/reality:validate --mode yaml --repo-root /path/to/data-repo
 ```
 
 ## Related Commands
 
-- `/export` - Export data
-- `/stats` - Database statistics
-- `/check` - Full analysis workflow
+- `/reality:export` - Export data
+- `/reality:stats` - Database statistics
+- `/reality:check` - Full analysis workflow

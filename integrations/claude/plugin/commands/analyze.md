@@ -2,14 +2,14 @@
 description: Perform a full 3-stage analysis of a source following the Reality Check methodology
 ---
 
-# /analyze - Source Analysis
+# /reality:analyze - Source Analysis
 
 Perform a full 3-stage analysis of a source following the Reality Check methodology.
 
 ## Usage
 
 ```
-/analyze <url_or_source_id>
+/reality:analyze <url_or_source_id>
 ```
 
 ## Arguments
@@ -74,7 +74,7 @@ After analysis, register sources and claims using the CLI:
   --source-ids "source-id"
 ```
 
-For fully automated analysis + registration, use `/check` instead.
+For fully automated analysis + registration, use `/reality:check` instead.
 
 ## Template
 
@@ -83,13 +83,13 @@ Uses `methodology/templates/source-analysis.md`
 ## Examples
 
 ```
-/analyze https://example.com/ai-labor-report
-/analyze epoch-2024-training
+/reality:analyze https://example.com/ai-labor-report
+/reality:analyze epoch-2024-training
 ```
 
 ## Related Commands
 
-- `/check` - Full automated analysis workflow
-- `/extract` - Quick claim extraction
-- `/search` - Semantic search
-- `/stats` - Database statistics
+- `/reality:check` - Full automated analysis workflow
+- `/reality:extract` - Quick claim extraction
+- `/reality:search` - Semantic search
+- `/reality:stats` - Database statistics

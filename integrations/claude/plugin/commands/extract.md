@@ -2,14 +2,14 @@
 description: Quick claim extraction from a source without full 3-stage analysis
 ---
 
-# /extract - Claim Extraction
+# /reality:extract - Claim Extraction
 
 Quick claim extraction from a source without full 3-stage analysis.
 
 ## Usage
 
 ```
-/extract <source>
+/reality:extract <source>
 ```
 
 ## Arguments
@@ -46,7 +46,7 @@ After extraction, register claims using the CLI:
 uv run python scripts/db.py claim add [OPTIONS]
 ```
 
-See `/check` for fully automated analysis + registration workflow.
+See `/reality:check` for fully automated analysis + registration workflow.
 
 ## Claim Types
 
@@ -68,13 +68,13 @@ Uses `methodology/templates/claim-extraction.md`
 ## Examples
 
 ```
-/extract https://arxiv.org/abs/2301.xxxxx
-/extract "AI will automate 50% of jobs by 2030"
+/reality:extract https://arxiv.org/abs/2301.xxxxx
+/reality:extract "AI will automate 50% of jobs by 2030"
 ```
 
 ## Related Commands
 
-- `/check` - Full automated analysis workflow
-- `/analyze` - Full 3-stage analysis
-- `/search` - Semantic search
-- `/stats` - Database statistics
+- `/reality:check` - Full automated analysis workflow
+- `/reality:analyze` - Full 3-stage analysis
+- `/reality:search` - Semantic search
+- `/reality:stats` - Database statistics
