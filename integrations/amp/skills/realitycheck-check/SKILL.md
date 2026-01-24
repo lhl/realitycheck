@@ -77,12 +77,16 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 
 ## Multi-source Requests (Compare / Contrast)
 
-If the prompt includes **multiple sources** (multiple URLs/repos/papers) or explicitly asks for **compare/contrast**, the expected workflow is:
+If the prompt includes **multiple sources** (multiple URLs/repos/papers) or explicitly asks for **compare/contrast**, `$check` is responsible for the **full** multi-source workflow **end-to-end**:
 
-1. Run this `$check` workflow **once per source** (one `analysis/sources/<source-id>.md` per source)
-2. Then run `$synthesize` to write a single cross-source synthesis at `analysis/syntheses/<synth-id>.md`
+1. Run the source-analysis workflow **once per source** (one `analysis/sources/<source-id>.md` per source)
+2. Then, **in the same run**, also write a single cross-source synthesis at `analysis/syntheses/<synth-id>.md`
 
 The synthesis should link back to the relevant source analyses and resolve (or clearly frame) points of agreement and disagreement.
+
+Use `$synthesize` as a standalone command when you want to:
+- create a synthesis later from existing source analyses
+- update/refine an existing synthesis without re-running checks
 
 ---
 
@@ -105,7 +109,7 @@ If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not c
 
 For multi-source requests, produce:
 - **One** source analysis per source: `analysis/sources/<source-id>.md`
-- **One** synthesis (if requested/needed): `analysis/syntheses/<synth-id>.md` (see `$synthesize`)
+- **One** synthesis (required unless the user explicitly asks not to): `analysis/syntheses/<synth-id>.md`
 
 ### Required Elements
 

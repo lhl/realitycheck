@@ -4,6 +4,8 @@ Create a **cross-source synthesis** across multiple source analyses and existing
 
 Use this after running `{{ invocation_prefix }}check` on multiple sources (or when you already have relevant source analyses and want a higher-level conclusion).
 
+Note: For multi-source prompts, `{{ invocation_prefix }}check` should typically produce the synthesis automatically; `{{ invocation_prefix }}synthesize` is the standalone/iterative version of that workflow.
+
 {% include "partials/prerequisites.md.j2" %}
 
 ## When to Use
@@ -62,4 +64,3 @@ Write a synthesis document to:
   - ...
 - **Claims Referenced**: TECH-2026-001, ...
 ```
-

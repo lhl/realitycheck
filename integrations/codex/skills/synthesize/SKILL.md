@@ -23,6 +23,8 @@ Create a **cross-source synthesis** across multiple source analyses and existing
 
 Use this after running `$check` on multiple sources (or when you already have relevant source analyses and want a higher-level conclusion).
 
+Note: For multi-source prompts, `$check` should typically produce the synthesis automatically; `$synthesize` is the standalone/iterative version of that workflow.
+
 ## Prerequisites
 
 ### Environment
@@ -113,7 +115,6 @@ Write a synthesis document to:
   - ...
 - **Claims Referenced**: TECH-2026-001, ...
 ```
-
 
 ---
 
