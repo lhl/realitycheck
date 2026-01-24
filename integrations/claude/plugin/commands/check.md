@@ -37,9 +37,10 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 3. **Analysis** - Perform 3-stage analysis (see methodology)
 4. **Extract** - Format claims as YAML (see methodology)
 5. **Register** - Add source and claims to database
-6. **Validate** - Run integrity checks
-7. **README** - Update data project analysis index
-8. **Report** - Generate summary
+6. **Audit Log** - Append in-document Analysis Log + register `analysis_logs` row
+7. **Validate** - Run integrity checks
+8. **README** - Update data project analysis index
+9. **Report** - Generate summary
 
 If the prompt includes **multiple sources** (compare/contrast), produce the per-source analyses **and** write a single synthesis document in `analysis/syntheses/` as part of the same `/reality:check` run. Use `/reality:synthesize` later for standalone/iterative syntheses.
 
@@ -64,6 +65,19 @@ If the prompt includes **multiple sources** (compare/contrast), produce the per-
   --evidence-level "EX" \
   --credence 0.XX \
   --source-ids "SOURCE_ID"
+```
+
+## Audit Log
+
+After registration, add an analysis log entry:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" analysis add \
+  --source-id "SOURCE_ID" \
+  --tool claude-code \
+  --cmd check \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --notes "Initial analysis + registration"
 ```
 
 ## Validation

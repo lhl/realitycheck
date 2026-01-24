@@ -10,6 +10,7 @@ Tests cover:
 import pytest
 import yaml
 from pathlib import Path
+import subprocess
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -376,3 +377,49 @@ class TestAnalysisLogsExport:
         assert "**Total Logs**: 2" in md_str
         assert "**Total Tokens**: 8,700" in md_str
         assert "$0.20" in md_str  # 0.08 + 0.12
+
+
+class TestExportCLI:
+    """CLI tests for scripts/export.py."""
+
+    def test_cli_md_analysis_logs(self, initialized_db, temp_db_path, sample_analysis_log):
+        """`rc-export md analysis-logs` exports analysis logs in Markdown."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/export.py",
+                "--db-path",
+                str(temp_db_path),
+                "md",
+                "analysis-logs",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert "# Analysis Logs" in result.stdout
+
+    def test_cli_yaml_analysis_logs(self, initialized_db, temp_db_path, sample_analysis_log):
+        """`rc-export yaml analysis-logs` exports analysis logs in YAML."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "scripts/export.py",
+                "--db-path",
+                str(temp_db_path),
+                "yaml",
+                "analysis-logs",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode == 0, result.stderr
+        assert "analysis_logs:" in result.stdout

@@ -37,6 +37,16 @@ rc-db source get SOURCE_ID
 # List records
 rc-db claim list --domain TECH
 rc-db source list --type ARTICLE
+
+# Analysis audit log
+rc-db analysis add \
+  --source-id "SOURCE_ID" \
+  --tool codex \
+  --cmd check \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --notes "Initial analysis + registration"
+rc-db analysis list --source-id "SOURCE_ID"
+rc-db analysis get ANALYSIS-YYYY-NNN
 ```
 
 ### Validation
@@ -50,5 +60,8 @@ rc-validate
 
 ```bash
 rc-export yaml claims -o claims.yaml
-rc-export markdown source SOURCE_ID -o source.md
+rc-export yaml sources -o sources.yaml
+rc-export yaml analysis-logs -o analysis-logs.yaml
+rc-export md summary -o summary.md
+rc-export md analysis-logs -o analysis-logs.md
 ```

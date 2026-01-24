@@ -579,7 +579,7 @@ def main():
     yaml_parser = subparsers.add_parser("yaml", help="Export to YAML format")
     yaml_parser.add_argument(
         "type",
-        choices=["claims", "sources", "all"],
+        choices=["claims", "sources", "analysis-logs", "all"],
         help="What to export"
     )
     yaml_parser.add_argument(
@@ -592,7 +592,7 @@ def main():
     md_parser = subparsers.add_parser("md", help="Export to Markdown format")
     md_parser.add_argument(
         "type",
-        choices=["claim", "chain", "predictions", "summary"],
+        choices=["claim", "chain", "predictions", "summary", "analysis-logs"],
         help="What to export"
     )
     md_parser.add_argument(
@@ -632,6 +632,8 @@ def main():
             content = export_claims_yaml(args.db_path)
         elif args.type == "sources":
             content = export_sources_yaml(args.db_path)
+        elif args.type == "analysis-logs":
+            content = export_analysis_logs_yaml(args.db_path)
         else:  # all
             content = export_claims_yaml(args.db_path) + "\n---\n\n" + export_sources_yaml(args.db_path)
         output_result(content, args.output)
@@ -649,6 +651,8 @@ def main():
             content = export_chain_md(args.id, args.db_path)
         elif args.type == "predictions":
             content = export_predictions_md(args.db_path)
+        elif args.type == "analysis-logs":
+            content = export_analysis_logs_md(args.db_path)
         else:  # summary
             content = export_summary_md(args.db_path)
         output_result(content, args.output)

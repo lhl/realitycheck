@@ -68,11 +68,12 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 5. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
 6. **Extract** - Format claims as YAML
 7. **Register** - Add source and claims to database
-8. **Validate** - Run integrity checks
-9. **README** - Update data project analysis index
-10. **Commit** - Stage and commit changes to data repo
-11. **Push** - Push to remote
-12. **Report** - Generate summary
+8. **Audit Log** - Append in-document log + register `analysis_logs` row
+9. **Validate** - Run integrity checks
+10. **README** - Update data project analysis index
+11. **Commit** - Stage and commit changes to data repo
+12. **Push** - Push to remote
+13. **Report** - Generate summary
 
 ---
 
@@ -103,6 +104,7 @@ The analysis **must** include:
 3. **Three-stage analysis** (Stages 1-3)
 4. **Claim tables with evidence + credence**
 5. **Extracted claims artifact** (embedded YAML or separate file)
+6. **Analysis Log** (append-only pass history + tool/model/tokens/cost when available)
 
 If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not complete**.
 
@@ -380,6 +382,19 @@ claims:
 - [Why this credence level?]
 - [What would increase/decrease credence?]
 - [Key uncertainties remaining]
+
+---
+
+## Analysis Log
+
+| Pass | Date | Tool | Model | Duration | Tokens | Cost | Notes |
+|------|------|------|-------|----------|--------|------|-------|
+| 1 | YYYY-MM-DD HH:MM | codex | gpt-5.2 | 8m | ? | ? | Initial 3-stage analysis |
+
+### Revision Notes
+
+**Pass 1**: [What changed in this pass? What was added/updated and why?]
+
 ```
 
 ---
@@ -485,6 +500,16 @@ rc-db source get SOURCE_ID
 # List records
 rc-db claim list --domain TECH
 rc-db source list --type ARTICLE
+
+# Analysis audit log
+rc-db analysis add \
+  --source-id "SOURCE_ID" \
+  --tool codex \
+  --cmd check \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --notes "Initial analysis + registration"
+rc-db analysis list --source-id "SOURCE_ID"
+rc-db analysis get ANALYSIS-YYYY-NNN
 ```
 
 ### Validation
@@ -498,7 +523,10 @@ rc-validate
 
 ```bash
 rc-export yaml claims -o claims.yaml
-rc-export markdown source SOURCE_ID -o source.md
+rc-export yaml sources -o sources.yaml
+rc-export yaml analysis-logs -o analysis-logs.yaml
+rc-export md summary -o summary.md
+rc-export md analysis-logs -o analysis-logs.md
 ```
 
 ---

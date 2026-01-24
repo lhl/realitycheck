@@ -456,33 +456,15 @@ Track detailed metadata for each analysis session:
 
 - See `docs/PLAN-audit-log.md` for the full spec/plan.
 - Progress tracking: `docs/IMPLEMENTATION-audit-log.md`
-- [ ] Token usage per stage (descriptive, evaluative, dialectical)
-- [ ] Cost estimation ($) per analysis with running totals
-- [ ] Model/agent attribution (which model performed which step)
-- [ ] Timestamp and duration tracking
-- [ ] Store audit log in LanceDB `analysis_logs` table
-- [ ] CLI command: `rc-db analysis list` / `rc-db analysis get <id>`
-- [ ] Export audit data for cost reporting
+- [ ] Token usage per stage (descriptive, evaluative, dialectical) (deferred automation; stored as `stages_json` when available)
+- [x] Cost + token totals reporting (manual entry; rollups via `rc-export md analysis-logs`)
+- [x] Model/agent attribution (tool + model fields)
+- [x] Timestamp and duration tracking (fields + CLI flags)
+- [x] Store audit log in LanceDB `analysis_logs` table
+- [x] CLI commands: `rc-db analysis add/list/get`
+- [x] Export audit data for reporting (`rc-export yaml analysis-logs`, `rc-export md analysis-logs`)
 
-**Schema draft:**
-```yaml
-analysis_logs:
-  id: "ANALYSIS-2026-001"
-  source_id: "author-2026-title"
-  started_at: "2026-01-21T10:00:00Z"
-  completed_at: "2026-01-21T10:05:00Z"
-  stages:
-    - name: "descriptive"
-      model: "claude-sonnet-4"
-      tokens_in: 2500
-      tokens_out: 1200
-      cost_usd: 0.012
-    - name: "evaluative"
-      ...
-  total_tokens: 8500
-  total_cost_usd: 0.045
-  claims_extracted: ["TECH-2026-001", "TECH-2026-002"]
-```
+**Implemented schema**: see `docs/SCHEMA.md` (`analysis_logs` table) and `docs/PLAN-audit-log.md` (rationale).
 
 ### Multi-Pass Analysis & Agent SDK Integration
 

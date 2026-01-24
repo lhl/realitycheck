@@ -17,6 +17,7 @@ The `db.py` script (or `rc-db` if installed via pip) provides all database opera
 | `db.py source add/get/list` | Source CRUD operations |
 | `db.py chain add/get/list` | Chain CRUD operations |
 | `db.py prediction add/list` | Prediction operations |
+| `db.py analysis add/get/list` | Analysis audit log operations |
 | `db.py related <claim-id>` | Find related claims |
 | `db.py import <file>` | Bulk import from YAML |
 
@@ -240,6 +241,41 @@ uv run python scripts/validate.py --mode yaml --repo-root /path/to/data
 3. **Logical Consistency**: Chain credences, prediction links
 4. **Data Quality**: No empty text, embeddings present (warning)
 
+## Analysis Audit Log Workflow
+
+After completing an analysis (and registering the source/claims), record an audit log entry:
+
+```bash
+# Minimal (pass auto-computed)
+uv run python scripts/db.py analysis add \
+  --source-id test-source-001 \
+  --tool codex \
+  --cmd check \
+  --analysis-file analysis/sources/test-source-001.md \
+  --notes "Initial 3-stage analysis + registration"
+
+# Optional: manual timestamps + token/cost entry (when available)
+uv run python scripts/db.py analysis add \
+  --source-id test-source-001 \
+  --tool codex \
+  --status completed \
+  --started-at 2026-01-23T10:00:00Z \
+  --completed-at 2026-01-23T10:08:00Z \
+  --duration 480 \
+  --tokens-in 2500 \
+  --tokens-out 1200 \
+  --total-tokens 3700 \
+  --cost-usd 0.08 \
+  --claims-extracted TECH-2026-001,TECH-2026-002 \
+  --notes "Updated credences after disconfirming evidence search"
+```
+
+Then validate:
+
+```bash
+uv run python scripts/validate.py
+```
+
 ## Export Workflow
 
 ### Export to YAML
@@ -252,7 +288,10 @@ uv run python scripts/export.py yaml claims -o claims.yaml
 uv run python scripts/export.py yaml sources -o sources.yaml
 
 # Export all
-uv run python scripts/export.py yaml all -o data/
+uv run python scripts/export.py yaml all -o full-export.yaml
+
+# Export analysis logs
+uv run python scripts/export.py yaml analysis-logs -o analysis-logs.yaml
 ```
 
 ### Export to Markdown
@@ -266,6 +305,9 @@ uv run python scripts/export.py md chain --id CHAIN-2026-001
 
 # Dashboard summary
 uv run python scripts/export.py md summary -o dashboard.md
+
+# Analysis logs
+uv run python scripts/export.py md analysis-logs -o analysis-logs.md
 ```
 
 ## Migration Workflow

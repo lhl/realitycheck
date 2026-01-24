@@ -23,6 +23,7 @@ from db import (
     drop_tables,
     add_claim,
     add_source,
+    add_analysis_log,
     get_claim,
     search_claims,
     get_stats,
@@ -33,6 +34,8 @@ from export import (
     export_claims_yaml,
     export_sources_yaml,
     export_summary_md,
+    export_analysis_logs_yaml,
+    export_analysis_logs_md,
 )
 
 
@@ -252,6 +255,29 @@ class TestExportImportConsistency:
         assert "epoch-2024-training" in yaml_output
         assert "How Much Does It Cost" in yaml_output
         assert "Epoch AI" in yaml_output
+
+
+class TestAuditLogWorkflow:
+    """End-to-end tests for analysis audit log integration."""
+
+    def test_audit_log_validate_export_cycle(self, temp_db_path, sample_source, sample_claim, sample_analysis_log):
+        """E2E: init → add source/claim → add analysis log → validate → export."""
+        db = get_db(temp_db_path)
+        init_tables(db)
+
+        add_source(sample_source, db, generate_embedding=False)
+        add_claim(sample_claim, db, generate_embedding=False)
+        add_analysis_log(sample_analysis_log, db)
+
+        findings = validate_db(temp_db_path)
+        errors = [f for f in findings if f.level == "ERROR"]
+        assert errors == []
+
+        md_out = export_analysis_logs_md(temp_db_path)
+        assert "# Analysis Logs" in md_out
+
+        yaml_out = export_analysis_logs_yaml(temp_db_path)
+        assert "analysis_logs:" in yaml_out
 
 
 class TestErrorHandling:
