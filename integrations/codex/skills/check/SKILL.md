@@ -391,10 +391,11 @@ claims:
 |------|------|------|-------|----------|--------|------|-------|
 | 1 | YYYY-MM-DD HH:MM | codex | gpt-5.2 | 8m | ? | ? | Initial 3-stage analysis |
 
+Tip: If you run `rc-db analysis add --analysis-file ...`, the CLI will **update this table** best-effort. If you provide `--usage-from ... --estimate-cost`, it can populate tokens/cost automatically.
+
 ### Revision Notes
 
 **Pass 1**: [What changed in this pass? What was added/updated and why?]
-
 ```
 
 ---
@@ -507,6 +508,9 @@ rc-db analysis add \
   --tool codex \
   --cmd check \
   --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --model "gpt-4o" \
+  --usage-from codex:"/path/to/rollout-*.jsonl" \
+  --estimate-cost \
   --notes "Initial analysis + registration"
 rc-db analysis list --source-id "SOURCE_ID"
 rc-db analysis get ANALYSIS-YYYY-NNN

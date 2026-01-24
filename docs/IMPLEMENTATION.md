@@ -458,6 +458,7 @@ Track detailed metadata for each analysis session:
 - Progress tracking: `docs/IMPLEMENTATION-audit-log.md`
 - [ ] Token usage per stage (descriptive, evaluative, dialectical) (deferred automation; stored as `stages_json` when available)
 - [x] Cost + token totals reporting (manual entry; rollups via `rc-export md analysis-logs`)
+- [x] Token/cost auto-capture (optional): `rc-db analysis add --usage-from <provider>:<path> [--window-start/--window-end] --estimate-cost`
 - [x] Model/agent attribution (tool + model fields)
 - [x] Timestamp and duration tracking (fields + CLI flags)
 - [x] Store audit log in LanceDB `analysis_logs` table
