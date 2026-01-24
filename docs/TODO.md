@@ -2,6 +2,38 @@
 
 Tracking future work items.
 
+## Epistemic Provenance / Reasoning Trails (Major Feature)
+
+**Plan**: [PLAN-epistemic-provenance.md](PLAN-epistemic-provenance.md)
+
+**Problem**: Reality Check extracts claims and assigns credence, but lacks structured traceability for *why* a claim has a given credence. We risk becoming a source of unconfirmable bias.
+
+**Solution**:
+- `evidence_links` table: Explicit links between claims and supporting/contradicting sources
+- `reasoning_trails` table: Capture the reasoning chain for credence assignments
+- Rendered markdown: Per-claim reasoning docs browsable in data repo
+- Validation: Enforce that high-credence claims (≥0.7) have explicit backing
+- Workflow integration: Evidence linking + reasoning capture in `/check`
+
+**Scope**: Large feature sprint - schema changes, CLI, validation, rendering, workflow updates.
+
+**Status**: Planning - see PLAN doc for full design.
+
+---
+
+## Analysis Audit Log
+
+**Plan**: [PLAN-audit-log.md](PLAN-audit-log.md)
+**Implementation**: [IMPLEMENTATION-audit-log.md](IMPLEMENTATION-audit-log.md)
+
+**Problem**: No durable record of *how* an analysis was produced (who/what/when/cost).
+
+**Solution**: `analysis_logs` table + in-document "Analysis Log" section.
+
+**Status**: Ready for implementation (tests first).
+
+---
+
 ## Installation: `uv tool install` / `pipx` support
 
 **Context:** Currently we recommend `uv pip install realitycheck` which installs to the active venv or system Python. A user suggested using `uv tool install realitycheck` instead, which creates an isolated venv and adds CLI tools to PATH (similar to `pipx`).
