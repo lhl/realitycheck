@@ -1,6 +1,6 @@
 # Implementation: Agent Ergonomics (Upsert, Doctor, Repair, Actionable Errors)
 
-**Status**: Not started
+**Status**: Implemented (pending commit)
 **Plan**: [PLAN-agent-ergonomics.md](PLAN-agent-ergonomics.md)
 **Started**: 2026-01-24
 
@@ -17,44 +17,45 @@ Reduce operational friction for analysis agents by adding:
 
 ### Phase 1: Tests (write FIRST per Spec→Plan→Test→Implement)
 
-- [ ] Add import conflict-policy tests (sources + claims) (`tests/test_db.py`)
-- [ ] Add repair command tests (backlinks + prediction stubs) (`tests/test_db.py`)
-- [ ] Add validate output “remediation command” tests (`tests/test_validate.py`)
-- [ ] (Optional) Add doctor path detection tests (pure filesystem) (`tests/test_*`)
+- [x] Add import conflict-policy tests (sources + claims) (`tests/test_db.py`)
+- [x] Add repair command tests (backlinks + prediction stubs) (`tests/test_db.py`)
+- [x] Add validate output “remediation command” tests (`tests/test_validate.py`)
+- [x] Add doctor path detection tests (pure filesystem) (`tests/test_db.py`)
+- [x] Add validate/export auto-detect tests (`tests/test_validate.py`, `tests/test_export.py`)
 
 ### Phase 2: `--on-conflict` for import and key adds
 
-- [ ] Add duplicate ID detection for `add_source()` (currently missing)
-- [ ] Implement conflict policy for sources during import: error|skip|update
-- [ ] Implement conflict policy for claims during import: error|skip|update
-- [ ] Wire `--on-conflict` into `rc-db import` CLI
+- [x] Add duplicate ID detection for `add_source()` (currently missing)
+- [x] Implement conflict policy for sources during import: error|skip|update
+- [x] Implement conflict policy for claims during import: error|skip|update
+- [x] Wire `--on-conflict` into `rc-db import` CLI
 - [ ] Decide and implement whether `rc-db source add` / `rc-db claim add` get `--on-conflict`
-- [ ] Update docs/examples for reruns and `--continue` workflows
+- [x] Update docs/examples for reruns and `--continue` workflows
 
 ### Phase 3: `rc-db repair` (safe/idempotent)
 
-- [ ] Implement `rc-db repair` CLI skeleton + help text
-- [ ] Implement backlinks recomputation (`sources.claims_extracted` from `claims.source_ids`)
-- [ ] Implement `[P]` prediction stub enforcement (status `[P?]`)
+- [x] Implement `rc-db repair` CLI skeleton + help text
+- [x] Implement backlinks recomputation (`sources.claims_extracted` from `claims.source_ids`)
+- [x] Implement `[P]` prediction stub enforcement (status `[P?]`)
 - [ ] Implement duplicate ID report mode (at least detect + report)
 - [ ] Optional: dedupe-identical mode (report-first; conservative)
 
 ### Phase 4: Doctor + auto-detect DB path
 
-- [ ] Implement shared project path detection helper (module TBD)
-- [ ] Add `rc-db doctor` output with copy-paste fix commands
-- [ ] Improve “DB missing” errors across `rc-db`, `rc-validate`, `rc-export`
+- [x] Implement shared project path detection helper
+- [x] Add `rc-db doctor` output with copy-paste fix commands
+- [x] Improve “DB missing” errors across `rc-db`, `rc-validate`, `rc-export`
 
 ### Phase 5: Actionable validation errors
 
-- [ ] Add remediation command suggestions to validation findings output
-- [ ] Prefer suggesting `rc-db repair` when the fix is mechanical
-- [ ] Document common remediation patterns in `docs/WORKFLOWS.md`
+- [x] Add remediation command suggestions to validation findings output
+- [x] Prefer suggesting `rc-db repair` when the fix is mechanical
+- [x] Document common remediation patterns in `docs/WORKFLOWS.md`
 
 ### Phase 6: Documentation and integration sync
 
-- [ ] Update `docs/WORKFLOWS.md` with `--on-conflict`, `doctor`, `repair`
-- [ ] Update `docs/SCHEMA.md` invariants section (no schema changes expected)
+- [x] Update `docs/WORKFLOWS.md` with `--on-conflict`, `doctor`, `repair`
+- [x] Update `docs/SCHEMA.md` invariants section (no schema changes expected)
 - [ ] Update skills/templates only if command shapes change materially
 
 ## Worklog
@@ -65,3 +66,9 @@ Reduce operational friction for analysis agents by adding:
 - Added `docs/PLAN-ergonomics-todecide.md` (deferred decisions)
 - Created this implementation punchlist/worklog
 
+### 2026-01-24: Implemented core ergonomics
+
+- Added `--on-conflict {error,skip,update}` to `rc-db import` (sources + claims)
+- Added `rc-db doctor` (project/DB auto-detection) and auto-detection in `rc-db`, `rc-export`, `rc-validate`
+- Added `rc-db repair` to recompute backlinks and ensure `[P]` prediction stubs
+- Made `rc-validate` output include actionable remediation commands

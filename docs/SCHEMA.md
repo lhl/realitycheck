@@ -259,7 +259,8 @@ The `rc-validate` command checks:
 5. **Type Values**: Only allowed type symbols
 6. **Chain Credence**: Chain credence ≤ MIN(claim credences)
 7. **Prediction Links**: All `[P]` claims have prediction records
-8. **Analysis Log Integrity**:
+8. **Source↔Claim Backlinks**: `sources.claims_extracted` matches `claims.source_ids` (repairable via `rc-db repair`)
+9. **Analysis Log Integrity**:
    - `status` and `tool` must be valid enum values
    - If `status=completed`, `source_id` must exist in sources
    - If `status != draft`, `claims_extracted` and `claims_updated` must reference existing claims

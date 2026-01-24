@@ -1367,6 +1367,188 @@ class TestImportCLI:
         preds = json.loads(pred_list.stdout)
         assert any(p.get("claim_id") == "IMPORT-2026-004" and p.get("status") == "[P?]" for p in preds)
 
+    def test_import_yaml_on_conflict_skip_update_and_error(self, temp_db_path: Path, tmp_path: Path):
+        """import supports `--on-conflict` for reruns (skip/update/error)."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        import yaml
+
+        base = {
+            "sources": [
+                {
+                    "id": "test-source",
+                    "title": "Imported Source",
+                    "type": "REPORT",
+                    "author": ["Test Author"],
+                    "year": 2026,
+                    "claims_extracted": [],
+                }
+            ],
+            "claims": [
+                {
+                    "id": "IMPORT-2026-010",
+                    "text": "Imported claim",
+                    "type": "[F]",
+                    "domain": "TECH",
+                    "evidence_level": "E3",
+                    "credence": 0.7,
+                    "source_ids": ["test-source"],
+                    "first_extracted": "2026-01-20",
+                    "extracted_by": "test",
+                    "version": 1,
+                    "last_updated": "2026-01-20",
+                }
+            ],
+        }
+        yaml_file = tmp_path / "all.yaml"
+        with open(yaml_file, "w") as f:
+            yaml.dump(base, f)
+
+        initial = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "import", str(yaml_file),
+                "--type", "all",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(initial)
+
+        updated = {
+            **base,
+            "sources": [{**base["sources"][0], "title": "Updated Source"}],
+            "claims": [{**base["claims"][0], "text": "Updated claim"}],
+        }
+        yaml_file2 = tmp_path / "all-updated.yaml"
+        with open(yaml_file2, "w") as f:
+            yaml.dump(updated, f)
+
+        # Default: error on conflicts
+        conflict_err = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "import", str(yaml_file2),
+                "--type", "all",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(conflict_err, expected_code=1)
+
+        # Skip: keep existing values
+        conflict_skip = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "import", str(yaml_file2),
+                "--type", "all",
+                "--no-embedding",
+                "--on-conflict", "skip",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(conflict_skip)
+
+        source_get = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "get", "test-source"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_get)
+        source = json.loads(source_get.stdout)
+        assert source["title"] == "Imported Source"
+
+        claim_get = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "get", "IMPORT-2026-010"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(claim_get)
+        claim = json.loads(claim_get.stdout)
+        assert claim["text"] == "Imported claim"
+
+        # Update: apply incoming values
+        conflict_update = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "import", str(yaml_file2),
+                "--type", "all",
+                "--no-embedding",
+                "--on-conflict", "update",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(conflict_update)
+
+        source_get2 = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "get", "test-source"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_get2)
+        source2 = json.loads(source_get2.stdout)
+        assert source2["title"] == "Updated Source"
+
+        claim_get2 = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "get", "IMPORT-2026-010"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(claim_get2)
+        claim2 = json.loads(claim_get2.stdout)
+        assert claim2["text"] == "Updated claim"
+
+        # No duplicates should be introduced.
+        claim_list = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "list"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(claim_list)
+        claims = json.loads(claim_list.stdout)
+        assert len(claims) == 1
+
+        source_list = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "list"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_list)
+        sources = json.loads(source_list.stdout)
+        assert len(sources) == 1
+
     def test_import_handles_missing_file(self, temp_db_path: Path):
         """import returns error for missing file."""
         env = os.environ.copy()
@@ -1389,6 +1571,168 @@ class TestImportCLI:
 
         assert_cli_success(result, expected_code=1)
         assert "not found" in result.stderr.lower() or "error" in result.stderr.lower()
+
+
+class TestRepairCLI:
+    """Tests for repair CLI subcommand."""
+
+    def test_repair_fixes_backlinks_and_prediction_stubs(self, temp_db_path: Path):
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        # Create a backlink mismatch: add claim before source so add_claim can't upsert.
+        claim_add = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "add",
+                "--id", "TECH-2026-010",
+                "--text", "Backlink mismatch claim",
+                "--type", "[F]",
+                "--domain", "TECH",
+                "--evidence-level", "E3",
+                "--source-ids", "test-source",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(claim_add)
+
+        source_add = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "source", "add",
+                "--id", "test-source",
+                "--title", "Test Source",
+                "--type", "REPORT",
+                "--author", "Test Author",
+                "--year", "2026",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_add)
+
+        # Create a missing prediction stub: add [P] claim then delete its prediction row.
+        p_claim_add = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "add",
+                "--id", "TECH-2026-011",
+                "--text", "Prediction claim",
+                "--type", "[P]",
+                "--domain", "TECH",
+                "--evidence-level", "E3",
+                "--source-ids", "test-source",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(p_claim_add)
+
+        pred_delete = subprocess.run(
+            [
+                "uv", "run", "python", "-c",
+                "import sys; from pathlib import Path; sys.path.insert(0, 'scripts'); "
+                "from db import get_db; db = get_db(); "
+                "db.open_table('predictions').delete(\"claim_id = 'TECH-2026-011'\")",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(pred_delete)
+
+        pred_list_before = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "prediction", "list"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(pred_list_before)
+        preds_before = json.loads(pred_list_before.stdout)
+        assert not any(p.get("claim_id") == "TECH-2026-011" for p in preds_before)
+
+        repair = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "repair"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(repair)
+
+        source_get = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "get", "test-source"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_get)
+        source = json.loads(source_get.stdout)
+        assert "TECH-2026-010" in (source.get("claims_extracted") or [])
+
+        pred_list_after = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "prediction", "list"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(pred_list_after)
+        preds_after = json.loads(pred_list_after.stdout)
+        assert any(p.get("claim_id") == "TECH-2026-011" and p.get("status") == "[P?]" for p in preds_after)
+
+
+class TestDoctorCLI:
+    """Tests for doctor CLI subcommand."""
+
+    def test_doctor_detects_project_root_from_subdir(self, tmp_path: Path):
+        project_path = tmp_path / "test-project"
+
+        init_project = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "init-project",
+                "--path", str(project_path),
+                "--no-git",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(init_project)
+
+        cwd = project_path / "analysis" / "sources"
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).parent.parent / "scripts" / "db.py"), "doctor"],
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+        assert_cli_success(result)
+
+        combined = (result.stdout or "") + (result.stderr or "")
+        assert str(project_path) in combined
+        assert "REALITYCHECK_DATA" in combined
 
 
 class TestInitProjectCLI:

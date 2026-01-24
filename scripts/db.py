@@ -672,6 +672,74 @@ def update_claim(claim_id: str, updates: dict, db: Optional[lancedb.DBConnection
     return True
 
 
+def _replace_claim_row_for_import(
+    claim_id: str,
+    incoming: dict,
+    db: lancedb.DBConnection,
+    *,
+    generate_embedding: bool,
+) -> None:
+    """Replace an existing claim row during import without bumping version/last_updated.
+
+    Semantics: merge the incoming fields onto the existing claim record, then write the
+    merged record back to the DB, syncing backlinks and ensuring [P] prediction stubs.
+    """
+    existing = get_claim(claim_id, db)
+    if not existing:
+        raise ValueError(f"Claim not found: {claim_id}")
+
+    existing_py = _ensure_python_types(existing)
+    old_source_ids = list(existing_py.get("source_ids") or [])
+
+    merged = dict(existing_py)
+    merged.update(incoming)
+    merged["id"] = claim_id
+
+    # Normalize list fields.
+    for list_field in ["source_ids", "supports", "contradicts", "depends_on", "modified_by", "assumptions", "falsifiers"]:
+        if merged.get(list_field) is None:
+            merged[list_field] = []
+
+    incoming_embedding_provided = "embedding" in incoming and incoming.get("embedding") is not None
+    text_changed = merged.get("text") != existing_py.get("text")
+
+    # Keep embeddings consistent with the text when possible.
+    if generate_embedding:
+        if not incoming_embedding_provided and (text_changed or merged.get("embedding") is None):
+            merged["embedding"] = embed_text(str(merged.get("text") or ""))
+    else:
+        # Avoid keeping a stale embedding when the text changed but we aren't allowed to regenerate.
+        if text_changed and not incoming_embedding_provided:
+            merged["embedding"] = None
+
+    new_source_ids = list(merged.get("source_ids") or [])
+
+    table = db.open_table("claims")
+    target_schema = table.schema
+
+    arrays = []
+    for field in target_schema:
+        value = merged.get(field.name)
+        if pa.types.is_list(field.type):
+            if value is None or len(value) == 0:
+                arr = pa.array([[]], type=field.type)
+            else:
+                arr = pa.array([value], type=field.type)
+        elif pa.types.is_fixed_size_list(field.type):
+            arr = pa.array([value], type=field.type)
+        else:
+            arr = pa.array([value], type=field.type)
+        arrays.append(arr)
+
+    pa_table = pa.Table.from_arrays(arrays, schema=target_schema)
+
+    table.delete(f"id = '{claim_id}'")
+    table.add(pa_table)
+
+    _sync_source_claim_backlinks(claim_id, old_source_ids, new_source_ids, db)
+    _ensure_prediction_for_claim(merged, db)
+
+
 def delete_claim(claim_id: str, db: Optional[lancedb.DBConnection] = None) -> bool:
     """Delete a claim by ID."""
     if db is None:
@@ -795,6 +863,13 @@ def add_source(source: dict, db: Optional[lancedb.DBConnection] = None, generate
         db = get_db()
 
     table = db.open_table("sources")
+
+    # Check for duplicate ID
+    source_id = source.get("id")
+    if source_id:
+        existing = table.search().where(f"id = '{source_id}'", prefilter=True).limit(1).to_list()
+        if existing:
+            raise ValueError(f"Source with ID '{source_id}' already exists. Use update_source() to modify or delete first.")
 
     # Generate embedding from title + bias_notes
     if generate_embedding and source.get("embedding") is None:
@@ -1120,6 +1195,72 @@ def _project_root_from_db_path(db_path: Path) -> Path:
     return resolved.parent
 
 
+def find_project_root(start_dir: Optional[Path] = None) -> Optional[Path]:
+    """Find a Reality Check data project root by searching upward from start_dir.
+
+    Project markers (first match wins):
+    - `.realitycheck.yaml` (preferred)
+    - `data/realitycheck.lance` (default DB location; requires basic project structure)
+    """
+    current = (start_dir or Path.cwd()).expanduser().resolve()
+    while True:
+        if (current / ".realitycheck.yaml").is_file():
+            return current
+        db_dir = current / "data" / "realitycheck.lance"
+        if db_dir.is_dir():
+            # Avoid false positives in arbitrary directories by requiring some minimal
+            # project structure alongside the DB directory.
+            if any((current / name).exists() for name in ["analysis", "tracking", "inbox", ".git"]):
+                return current
+        if current.parent == current:
+            return None
+        current = current.parent
+
+
+def resolve_db_path_from_project_root(project_root: Path) -> Path:
+    """Resolve the LanceDB path for a data project root (best-effort)."""
+    config_path = project_root / ".realitycheck.yaml"
+    if config_path.is_file():
+        try:
+            import yaml
+
+            data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+            db_path = data.get("db_path")
+            if isinstance(db_path, str) and db_path.strip():
+                candidate = (project_root / db_path.strip()).expanduser()
+                return candidate.resolve()
+        except Exception:
+            pass
+    return (project_root / "data" / "realitycheck.lance").resolve()
+
+
+def _maybe_autodetect_db_path(command: Optional[str]) -> bool:
+    """If REALITYCHECK_DATA is unset, try to auto-detect and set it.
+
+    Returns True if a DB path was detected and set.
+    """
+    global DB_PATH
+
+    if os.getenv("REALITYCHECK_DATA"):
+        return True
+
+    project_root = find_project_root(Path.cwd())
+    if not project_root:
+        return False
+
+    detected_db = resolve_db_path_from_project_root(project_root)
+    os.environ["REALITYCHECK_DATA"] = str(detected_db)
+    DB_PATH = Path(str(detected_db))
+
+    # Avoid noisy output for commands that already print their own guidance.
+    if command not in {"doctor"}:
+        print(
+            f"Note: REALITYCHECK_DATA is not set; auto-detected database at '{detected_db}'.",
+            file=sys.stderr,
+        )
+    return True
+
+
 def get_analysis_log(log_id: str, db: Optional[lancedb.DBConnection] = None) -> Optional[dict]:
     """Get an analysis log by ID."""
     if db is None:
@@ -1314,6 +1455,27 @@ Examples:
     subparsers.add_parser("init", help="Initialize database tables")
     subparsers.add_parser("stats", help="Show database statistics")
     subparsers.add_parser("reset", help="Drop all tables and reinitialize")
+    subparsers.add_parser("doctor", help="Detect project root and print DB setup guidance")
+
+    repair_parser = subparsers.add_parser(
+        "repair",
+        help="Repair database invariants (safe, idempotent)",
+    )
+    repair_parser.add_argument(
+        "--backlinks",
+        action="store_true",
+        help="Recompute sources.claims_extracted from claims.source_ids",
+    )
+    repair_parser.add_argument(
+        "--predictions",
+        action="store_true",
+        help="Ensure stub prediction rows exist for [P] claims",
+    )
+    repair_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned changes without writing",
+    )
 
     # init-project command
     init_project_parser = subparsers.add_parser(
@@ -1578,6 +1740,12 @@ Examples:
     import_parser = subparsers.add_parser("import", help="Import data from YAML file")
     import_parser.add_argument("file", help="YAML file to import")
     import_parser.add_argument("--type", choices=["claims", "sources", "all"], default="all", help="Type of data to import")
+    import_parser.add_argument(
+        "--on-conflict",
+        choices=["error", "skip", "update"],
+        default="error",
+        help="Behavior when an imported ID already exists (default: error)",
+    )
     import_parser.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
 
     # -------------------------------------------------------------------------
@@ -1610,12 +1778,19 @@ Examples:
         if not command:
             return
 
+        if command == "doctor":
+            return
+
         if os.getenv("REALITYCHECK_DATA"):
             return
 
         default_db = Path("data/realitycheck.lance")
 
         if command == "init-project":
+            return
+
+        # If we're inside a data project, auto-detect its DB and proceed.
+        if _maybe_autodetect_db_path(command):
             return
 
         if command in {"init", "reset"}:
@@ -1846,6 +2021,111 @@ rc-validate
         print(f"  export REALITYCHECK_DATA=\"{db_path}\"")
         print(f"  rc-db claim add --text \"...\" --type \"[F]\" --domain \"TECH\" --evidence-level \"E3\"")
         sys.stdout.flush()
+
+    elif args.command == "doctor":
+        project_root = find_project_root(Path.cwd())
+        if not project_root:
+            print("No Reality Check project detected from the current directory.", file=sys.stderr)
+            print("Create one with:", file=sys.stderr)
+            print("  rc-db init-project --path /path/to/project", file=sys.stderr)
+            sys.exit(1)
+
+        db_path = resolve_db_path_from_project_root(project_root)
+        try:
+            rel_db_path = db_path.relative_to(project_root)
+        except ValueError:
+            rel_db_path = None
+
+        print(f"Project root: {project_root}")
+        print(f"Database: {db_path}")
+        print("\nTo use this project:")
+        print(f"  cd {project_root}")
+        if rel_db_path is not None:
+            print(f"  export REALITYCHECK_DATA=\"{rel_db_path.as_posix()}\"")
+        else:
+            print(f"  export REALITYCHECK_DATA=\"{db_path}\"")
+        sys.stdout.flush()
+
+    elif args.command == "repair":
+        db = get_db()
+
+        do_backlinks = bool(getattr(args, "backlinks", False))
+        do_predictions = bool(getattr(args, "predictions", False))
+        if not do_backlinks and not do_predictions:
+            do_backlinks = True
+            do_predictions = True
+
+        dry_run = bool(getattr(args, "dry_run", False))
+
+        updated_sources = 0
+        created_prediction_stubs = 0
+
+        claims_cache: Optional[list[dict]] = None
+
+        if do_backlinks:
+            claims_cache = list_claims(limit=100000, db=db)
+            expected_by_source: dict[str, set[str]] = {}
+            for claim in claims_cache:
+                claim_id = claim.get("id")
+                if not claim_id:
+                    continue
+                for source_id in claim.get("source_ids") or []:
+                    if not source_id:
+                        continue
+                    expected_by_source.setdefault(str(source_id), set()).add(str(claim_id))
+
+            sources = list_sources(limit=100000, db=db)
+            sources_table = db.open_table("sources")
+            for source in sources:
+                source_id = source.get("id")
+                if not source_id:
+                    continue
+
+                expected_claims = sorted(expected_by_source.get(str(source_id), set()))
+                current_claims = sorted(list((_ensure_python_types(source).get("claims_extracted") or [])))
+
+                if current_claims == expected_claims:
+                    continue
+
+                updated_sources += 1
+                if not dry_run:
+                    # LanceDB update can error when setting list fields to an empty list.
+                    value: list[str] | None = expected_claims if expected_claims else None
+                    sources_table.update(where=f"id = '{source_id}'", values={"claims_extracted": value})
+
+        if do_predictions:
+            if claims_cache is None:
+                claims_cache = list_claims(limit=100000, db=db)
+
+            for claim in claims_cache:
+                claim_py = _ensure_python_types(claim)
+                claim_id = claim_py.get("id")
+                if not claim_id:
+                    continue
+                if claim_py.get("type") != "[P]":
+                    continue
+
+                if get_prediction(str(claim_id), db):
+                    continue
+
+                if dry_run:
+                    created_prediction_stubs += 1
+                    continue
+
+                before = get_prediction(str(claim_id), db)
+                _ensure_prediction_for_claim(claim_py, db)
+                after = get_prediction(str(claim_id), db)
+                if before is None and after is not None:
+                    created_prediction_stubs += 1
+
+        if dry_run:
+            print("Repair dry-run:", flush=True)
+            print(f"  Would update sources: {updated_sources}", flush=True)
+            print(f"  Would create prediction stubs: {created_prediction_stubs}", flush=True)
+        else:
+            print("Repair complete:", flush=True)
+            print(f"  Updated sources: {updated_sources}", flush=True)
+            print(f"  Created prediction stubs: {created_prediction_stubs}", flush=True)
 
     elif args.command == "search":
         results = search_claims(args.query, limit=args.limit, domain=args.domain)
@@ -2302,8 +2582,25 @@ rc-validate
         with open(args.file, "r") as f:
             data = yaml.safe_load(f)
 
-        imported_claims = 0
-        imported_sources = 0
+        created_claims = 0
+        created_sources = 0
+        updated_claims = 0
+        updated_sources = 0
+        skipped_claims = 0
+        skipped_sources = 0
+
+        def handle_conflict(kind: str, record_id: str) -> str:
+            policy = getattr(args, "on_conflict", "error")
+            if policy == "skip":
+                return "skip"
+            if policy == "update":
+                return "update"
+            print(
+                f"Error: {kind} with ID '{record_id}' already exists. "
+                "Re-run with --on-conflict skip or --on-conflict update.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
         # Import sources
         if args.type in ["sources", "all"] and "sources" in data:
@@ -2324,8 +2621,32 @@ rc-validate
                 source.setdefault("topics", [])
                 source.setdefault("domains", [])
 
-                add_source(source, db, generate_embedding=should_generate_embedding(args))
-                imported_sources += 1
+                source_id = source.get("id")
+                if not source_id:
+                    print("Error: source missing required field 'id'", file=sys.stderr)
+                    sys.exit(1)
+
+                existing = get_source(str(source_id), db)
+                if existing:
+                    action = handle_conflict("Source", str(source_id))
+                    if action == "skip":
+                        skipped_sources += 1
+                        continue
+
+                    updates = {k: v for k, v in source.items() if k != "id"}
+                    ok = update_source(
+                        str(source_id),
+                        updates,
+                        db=db,
+                        generate_embedding=should_generate_embedding(args),
+                    )
+                    if not ok:
+                        print(f"Error: failed to update source '{source_id}'", file=sys.stderr)
+                        sys.exit(1)
+                    updated_sources += 1
+                else:
+                    add_source(source, db, generate_embedding=should_generate_embedding(args))
+                    created_sources += 1
 
         # Import claims
         if args.type in ["claims", "all"] and "claims" in data:
@@ -2348,11 +2669,41 @@ rc-validate
                 claim.setdefault("version", 1)
                 claim.setdefault("last_updated", str(date.today()))
                 claim.setdefault("credence", 0.5)
+                claim_id = claim.get("id")
+                if not claim_id:
+                    print("Error: claim missing required field 'id'", file=sys.stderr)
+                    sys.exit(1)
 
-                add_claim(claim, db, generate_embedding=should_generate_embedding(args))
-                imported_claims += 1
+                existing = get_claim(str(claim_id), db)
+                if existing:
+                    action = handle_conflict("Claim", str(claim_id))
+                    if action == "skip":
+                        skipped_claims += 1
+                        continue
 
-        print(f"Imported {imported_claims} claims, {imported_sources} sources", flush=True)
+                    _replace_claim_row_for_import(
+                        str(claim_id),
+                        claim,
+                        db,
+                        generate_embedding=should_generate_embedding(args),
+                    )
+                    updated_claims += 1
+                else:
+                    add_claim(claim, db, generate_embedding=should_generate_embedding(args))
+                    created_claims += 1
+
+        total_claims = created_claims + updated_claims
+        total_sources = created_sources + updated_sources
+        print(f"Imported {total_claims} claims, {total_sources} sources", flush=True)
+        if any([updated_claims, updated_sources, skipped_claims, skipped_sources]):
+            print(
+                f"  Sources: {created_sources} created, {updated_sources} updated, {skipped_sources} skipped",
+                flush=True,
+            )
+            print(
+                f"  Claims: {created_claims} created, {updated_claims} updated, {skipped_claims} skipped",
+                flush=True,
+            )
 
     else:
         parser.print_help()
