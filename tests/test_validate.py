@@ -29,6 +29,7 @@ from db import (
     add_source,
     add_chain,
     add_prediction,
+    add_analysis_log,
 )
 
 
@@ -277,3 +278,102 @@ class TestFinding:
 
         with pytest.raises(AttributeError):
             f.level = "WARN"
+
+
+class TestAnalysisLogsValidation:
+    """Tests for analysis logs validation."""
+
+    def test_analysis_log_completed_requires_source(self, initialized_db, temp_db_path, sample_source, sample_analysis_log):
+        """Completed analysis logs require source_id to exist."""
+        # Don't add the source - analysis log should fail validation
+        log = sample_analysis_log.copy()
+        log["status"] = "completed"
+        log["source_id"] = "nonexistent-source"
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        source_errors = [f for f in findings if f.code == "ANALYSIS_SOURCE_MISSING"]
+        assert len(source_errors) >= 1
+
+    def test_analysis_log_draft_allows_missing_source(self, initialized_db, temp_db_path, sample_analysis_log):
+        """Draft analysis logs don't require source_id to exist."""
+        log = sample_analysis_log.copy()
+        log["status"] = "draft"
+        log["source_id"] = "nonexistent-source"
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        source_errors = [f for f in findings if f.code == "ANALYSIS_SOURCE_MISSING"]
+        assert len(source_errors) == 0
+
+    def test_analysis_log_claims_must_exist_when_not_draft(self, initialized_db, temp_db_path, sample_source, sample_analysis_log):
+        """Non-draft analysis logs require claims to exist."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        log = sample_analysis_log.copy()
+        log["status"] = "completed"
+        log["claims_extracted"] = ["NONEXISTENT-2026-001"]
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        claim_errors = [f for f in findings if f.code == "ANALYSIS_CLAIM_MISSING"]
+        assert len(claim_errors) >= 1
+
+    def test_analysis_log_draft_allows_missing_claims(self, initialized_db, temp_db_path, sample_analysis_log):
+        """Draft analysis logs allow missing claims."""
+        log = sample_analysis_log.copy()
+        log["status"] = "draft"
+        log["claims_extracted"] = ["NONEXISTENT-2026-001"]
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        claim_errors = [f for f in findings if f.code == "ANALYSIS_CLAIM_MISSING"]
+        assert len(claim_errors) == 0
+
+    def test_analysis_log_valid_json_stages(self, initialized_db, temp_db_path, sample_source, sample_analysis_log):
+        """Valid JSON in stages_json passes."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        log = sample_analysis_log.copy()
+        log["stages_json"] = '{"descriptive": {"tokens": 100}}'
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        json_errors = [f for f in findings if f.code == "ANALYSIS_STAGES_INVALID_JSON"]
+        assert len(json_errors) == 0
+
+    def test_analysis_log_invalid_json_stages_detected(self, initialized_db, temp_db_path, sample_source, sample_analysis_log):
+        """Invalid JSON in stages_json produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        log = sample_analysis_log.copy()
+        log["stages_json"] = "not valid json {"
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        json_errors = [f for f in findings if f.code == "ANALYSIS_STAGES_INVALID_JSON"]
+        assert len(json_errors) >= 1
+
+    def test_analysis_log_negative_duration_detected(self, initialized_db, temp_db_path, sample_source, sample_analysis_log):
+        """Negative duration produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        log = sample_analysis_log.copy()
+        log["duration_seconds"] = -100
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        duration_errors = [f for f in findings if f.code == "ANALYSIS_DURATION_NEGATIVE"]
+        assert len(duration_errors) >= 1
+
+    def test_analysis_log_negative_cost_detected(self, initialized_db, temp_db_path, sample_source, sample_analysis_log):
+        """Negative cost produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        log = sample_analysis_log.copy()
+        log["cost_usd"] = -5.0
+        add_analysis_log(log, initialized_db)
+
+        findings = validate_db(temp_db_path)
+        cost_errors = [f for f in findings if f.code == "ANALYSIS_COST_NEGATIVE"]
+        assert len(cost_errors) >= 1

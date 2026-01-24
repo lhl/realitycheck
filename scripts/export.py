@@ -32,6 +32,7 @@ from db import (
     list_predictions,
     list_contradictions,
     list_definitions,
+    list_analysis_logs,
     get_claim,
     get_source,
     get_chain,
@@ -421,6 +422,138 @@ def export_summary_md(db_path: Optional[Path] = None) -> str:
 
     for chain in chains:
         lines.append(f"- **{chain['id']}**: {chain['name']} (credence: {chain['credence']:.2f})")
+
+    return "\n".join(lines)
+
+
+# =============================================================================
+# Analysis Logs Export
+# =============================================================================
+
+def export_analysis_logs_yaml(db_path: Optional[Path] = None) -> str:
+    """Export analysis logs to YAML format."""
+    db = get_db(db_path)
+    logs = list_analysis_logs(limit=100000, db=db)
+
+    # Convert to serializable format
+    logs_list = []
+    for log in sorted(logs, key=lambda x: x.get("created_at", "")):
+        log_data = {
+            "id": log["id"],
+            "source_id": log["source_id"],
+            "analysis_file": log.get("analysis_file"),
+            "pass": log.get("pass"),
+            "status": log["status"],
+            "tool": log["tool"],
+            "command": log.get("command"),
+            "model": log.get("model"),
+            "framework_version": log.get("framework_version"),
+            "methodology_version": log.get("methodology_version"),
+            "started_at": log.get("started_at"),
+            "completed_at": log.get("completed_at"),
+            "duration_seconds": log.get("duration_seconds"),
+            "tokens_in": log.get("tokens_in"),
+            "tokens_out": log.get("tokens_out"),
+            "total_tokens": log.get("total_tokens"),
+            "cost_usd": float(log["cost_usd"]) if log.get("cost_usd") is not None else None,
+            "stages_json": log.get("stages_json"),
+            "claims_extracted": list(log.get("claims_extracted") or []),
+            "claims_updated": list(log.get("claims_updated") or []),
+            "notes": log.get("notes"),
+            "git_commit": log.get("git_commit"),
+            "created_at": log.get("created_at"),
+        }
+        logs_list.append(log_data)
+
+    output = {
+        "analysis_logs": logs_list,
+    }
+
+    header = f"# Reality Check Analysis Logs Export\n# Generated: {date.today().isoformat()}\n\n"
+    return header + yaml.dump(output, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+
+def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
+    """Export analysis logs to Markdown format with summary totals."""
+    db = get_db(db_path)
+    logs = list_analysis_logs(limit=100000, db=db)
+
+    lines = [
+        "# Analysis Logs",
+        "",
+        f"*Exported: {date.today().isoformat()}*",
+        "",
+    ]
+
+    if not logs:
+        lines.append("*No analysis logs found.*")
+        return "\n".join(lines)
+
+    # Summary table
+    lines.extend([
+        "## Log Entries",
+        "",
+        "| Pass | Date | Source | Tool | Model | Duration | Tokens | Cost | Notes |",
+        "|------|------|--------|------|-------|----------|--------|------|-------|",
+    ])
+
+    total_tokens = 0
+    total_cost = 0.0
+
+    for log in sorted(logs, key=lambda x: x.get("created_at", "")):
+        pass_num = log.get("pass", "?")
+        date_str = (log.get("started_at") or log.get("created_at") or "")[:10]
+        source_id = log.get("source_id", "")[:20]
+        tool = log.get("tool", "")
+        model = log.get("model") or "?"
+        duration = log.get("duration_seconds")
+        duration_str = f"{duration // 60}m{duration % 60}s" if duration else "?"
+        tokens = log.get("total_tokens")
+        tokens_str = f"{tokens:,}" if tokens else "?"
+        cost = log.get("cost_usd")
+        cost_str = f"${cost:.4f}" if cost is not None else "?"
+        notes = (log.get("notes") or "")[:30]
+
+        if tokens:
+            total_tokens += tokens
+        if cost is not None:
+            total_cost += cost
+
+        lines.append(f"| {pass_num} | {date_str} | {source_id} | {tool} | {model} | {duration_str} | {tokens_str} | {cost_str} | {notes} |")
+
+    # Totals
+    lines.extend([
+        "",
+        "## Summary Totals",
+        "",
+        f"- **Total Logs**: {len(logs)}",
+        f"- **Total Tokens**: {total_tokens:,}",
+        f"- **Total Cost**: ${total_cost:.4f}",
+    ])
+
+    # Breakdown by tool
+    tool_counts: dict[str, int] = {}
+    tool_tokens: dict[str, int] = {}
+    tool_costs: dict[str, float] = {}
+    for log in logs:
+        tool = log.get("tool", "unknown")
+        tool_counts[tool] = tool_counts.get(tool, 0) + 1
+        if log.get("total_tokens"):
+            tool_tokens[tool] = tool_tokens.get(tool, 0) + log["total_tokens"]
+        if log.get("cost_usd") is not None:
+            tool_costs[tool] = tool_costs.get(tool, 0.0) + log["cost_usd"]
+
+    lines.extend([
+        "",
+        "### By Tool",
+        "",
+        "| Tool | Logs | Tokens | Cost |",
+        "|------|------|--------|------|",
+    ])
+    for tool in sorted(tool_counts.keys()):
+        tokens_str = f"{tool_tokens.get(tool, 0):,}"
+        cost_str = f"${tool_costs.get(tool, 0.0):.4f}"
+        lines.append(f"| {tool} | {tool_counts[tool]} | {tokens_str} | {cost_str} |")
 
     return "\n".join(lines)
 

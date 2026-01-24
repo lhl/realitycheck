@@ -118,6 +118,36 @@ Working definitions for key terms.
 | `domain` | string | No | Domain this definition applies to |
 | `analysis_id` | string | No | Source analysis where defined |
 
+### analysis_logs
+
+Audit trail for analysis passes.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique ID: `ANALYSIS-[YYYY]-[NNN]` |
+| `source_id` | string | Yes | Reference to sources table |
+| `analysis_file` | string | No | Path to analysis markdown file |
+| `pass` | int32 | Yes | Pass number for this source (auto-computed) |
+| `status` | string | Yes | started/completed/failed/canceled/draft |
+| `tool` | string | Yes | claude-code/codex/amp/manual/other |
+| `command` | string | No | Command used (check/analyze/extract) |
+| `model` | string | No | Model used (e.g., claude-sonnet-4) |
+| `framework_version` | string | No | Reality Check version |
+| `methodology_version` | string | No | Methodology version hash |
+| `started_at` | string | No | ISO timestamp of start |
+| `completed_at` | string | No | ISO timestamp of completion |
+| `duration_seconds` | int32 | No | Duration in seconds |
+| `tokens_in` | int32 | No | Input tokens (nullable) |
+| `tokens_out` | int32 | No | Output tokens (nullable) |
+| `total_tokens` | int32 | No | Total tokens (nullable) |
+| `cost_usd` | float32 | No | Cost in USD (nullable) |
+| `stages_json` | string | No | JSON-encoded per-stage metrics |
+| `claims_extracted` | list[string] | No | Claim IDs extracted in this pass |
+| `claims_updated` | list[string] | No | Claim IDs updated in this pass |
+| `notes` | string | No | Freeform notes on what changed |
+| `git_commit` | string | No | Git commit SHA (data repo) |
+| `created_at` | string | Yes | ISO timestamp of log creation |
+
 ## Domains
 
 Valid domain codes:
@@ -229,3 +259,9 @@ The `rc-validate` command checks:
 5. **Type Values**: Only allowed type symbols
 6. **Chain Credence**: Chain credence ≤ MIN(claim credences)
 7. **Prediction Links**: All `[P]` claims have prediction records
+8. **Analysis Log Integrity**:
+   - `status` and `tool` must be valid enum values
+   - If `status=completed`, `source_id` must exist in sources
+   - If `status != draft`, `claims_extracted` and `claims_updated` must reference existing claims
+   - `stages_json` must be valid JSON (if present)
+   - `duration_seconds` and `cost_usd` must be non-negative (if present)

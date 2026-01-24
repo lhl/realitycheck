@@ -367,6 +367,38 @@ DEFINITIONS_SCHEMA = pa.schema([
     pa.field("analysis_id", pa.string(), nullable=True),
 ])
 
+ANALYSIS_LOGS_SCHEMA = pa.schema([
+    pa.field("id", pa.string(), nullable=False),  # ANALYSIS-YYYY-NNN
+    pa.field("source_id", pa.string(), nullable=False),
+    pa.field("analysis_file", pa.string(), nullable=True),
+    pa.field("pass", pa.int32(), nullable=False),  # Pass number for this source
+    pa.field("status", pa.string(), nullable=False),  # started|completed|failed|canceled|draft
+    pa.field("tool", pa.string(), nullable=False),  # claude-code|codex|amp|manual|other
+    pa.field("command", pa.string(), nullable=True),  # check|analyze|extract|...
+    pa.field("model", pa.string(), nullable=True),
+    pa.field("framework_version", pa.string(), nullable=True),
+    pa.field("methodology_version", pa.string(), nullable=True),
+    pa.field("started_at", pa.string(), nullable=True),  # ISO timestamp
+    pa.field("completed_at", pa.string(), nullable=True),  # ISO timestamp
+    pa.field("duration_seconds", pa.int32(), nullable=True),
+    pa.field("tokens_in", pa.int32(), nullable=True),
+    pa.field("tokens_out", pa.int32(), nullable=True),
+    pa.field("total_tokens", pa.int32(), nullable=True),
+    pa.field("cost_usd", pa.float32(), nullable=True),
+    pa.field("stages_json", pa.string(), nullable=True),  # JSON-encoded per-stage metrics
+    pa.field("claims_extracted", pa.list_(pa.string()), nullable=True),
+    pa.field("claims_updated", pa.list_(pa.string()), nullable=True),
+    pa.field("notes", pa.string(), nullable=True),
+    pa.field("git_commit", pa.string(), nullable=True),
+    pa.field("created_at", pa.string(), nullable=False),  # ISO timestamp
+])
+
+# Valid analysis log statuses
+VALID_ANALYSIS_STATUSES = {"started", "completed", "failed", "canceled", "draft"}
+
+# Valid analysis log tools
+VALID_ANALYSIS_TOOLS = {"claude-code", "codex", "amp", "manual", "other"}
+
 # Domain mapping for migration (old -> new)
 DOMAIN_MIGRATION = {
     "VALUE": "ECON",
@@ -405,6 +437,7 @@ def init_tables(db: Optional[lancedb.DBConnection] = None) -> dict[str, Any]:
         ("predictions", PREDICTIONS_SCHEMA),
         ("contradictions", CONTRADICTIONS_SCHEMA),
         ("definitions", DEFINITIONS_SCHEMA),
+        ("analysis_logs", ANALYSIS_LOGS_SCHEMA),
     ]
 
     existing_tables = get_table_names(db)
@@ -423,7 +456,7 @@ def drop_tables(db: Optional[lancedb.DBConnection] = None) -> None:
         db = get_db()
 
     existing_tables = get_table_names(db)
-    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions"]:
+    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs"]:
         if table_name in existing_tables:
             db.drop_table(table_name)
 
@@ -859,6 +892,119 @@ def list_definitions(domain: Optional[str] = None, limit: int = 100, db: Optiona
 
 
 # =============================================================================
+# CRUD Operations - Analysis Logs
+# =============================================================================
+
+def _generate_analysis_id(db: Optional[lancedb.DBConnection] = None) -> str:
+    """Generate the next analysis log ID."""
+    if db is None:
+        db = get_db()
+
+    year = date.today().year
+    existing = list_analysis_logs(limit=10000, db=db)
+
+    max_counter = 0
+    prefix = f"ANALYSIS-{year}-"
+    for log in existing:
+        if log["id"].startswith(prefix):
+            try:
+                counter = int(log["id"].split("-")[-1])
+                max_counter = max(max_counter, counter)
+            except ValueError:
+                pass
+
+    return f"ANALYSIS-{year}-{max_counter + 1:03d}"
+
+
+def _compute_pass_number(source_id: str, db: Optional[lancedb.DBConnection] = None) -> int:
+    """Compute the next pass number for a source_id."""
+    if db is None:
+        db = get_db()
+
+    existing = list_analysis_logs(source_id=source_id, limit=10000, db=db)
+    if not existing:
+        return 1
+
+    max_pass = max(log.get("pass", 0) for log in existing)
+    return max_pass + 1
+
+
+def add_analysis_log(
+    log: dict,
+    db: Optional[lancedb.DBConnection] = None,
+    auto_pass: bool = True,
+) -> str:
+    """Add an analysis log to the database. Returns the log ID.
+
+    If auto_pass is True and 'pass' is not provided, automatically computes
+    the next pass number for the source_id.
+    """
+    if db is None:
+        db = get_db()
+
+    table = db.open_table("analysis_logs")
+
+    # Generate ID if not provided
+    if not log.get("id"):
+        log["id"] = _generate_analysis_id(db)
+
+    # Auto-compute pass number if not provided
+    if auto_pass and log.get("pass") is None:
+        log["pass"] = _compute_pass_number(log["source_id"], db)
+
+    # Set created_at if not provided
+    if not log.get("created_at"):
+        from datetime import datetime
+        log["created_at"] = datetime.utcnow().isoformat() + "Z"
+
+    # Ensure list fields are lists
+    for list_field in ["claims_extracted", "claims_updated"]:
+        if log.get(list_field) is None:
+            log[list_field] = []
+
+    table.add([log])
+    return log["id"]
+
+
+def get_analysis_log(log_id: str, db: Optional[lancedb.DBConnection] = None) -> Optional[dict]:
+    """Get an analysis log by ID."""
+    if db is None:
+        db = get_db()
+
+    table = db.open_table("analysis_logs")
+    results = table.search().where(f"id = '{log_id}'", prefilter=True).limit(1).to_list()
+    return results[0] if results else None
+
+
+def list_analysis_logs(
+    source_id: Optional[str] = None,
+    tool: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 100,
+    db: Optional[lancedb.DBConnection] = None,
+) -> list[dict]:
+    """List analysis logs with optional filters."""
+    if db is None:
+        db = get_db()
+
+    table = db.open_table("analysis_logs")
+    query = table.search()
+
+    filters = []
+    if source_id:
+        filters.append(f"source_id = '{source_id}'")
+    if tool:
+        filters.append(f"tool = '{tool}'")
+    if status:
+        filters.append(f"status = '{status}'")
+
+    if filters:
+        query = query.where(" AND ".join(filters), prefilter=True)
+
+    return query.limit(limit).to_list()
+
+
+# =============================================================================
 # Statistics
 # =============================================================================
 
@@ -869,7 +1015,7 @@ def get_stats(db: Optional[lancedb.DBConnection] = None) -> dict:
 
     stats = {}
     existing_tables = get_table_names(db)
-    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions"]:
+    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs"]:
         if table_name in existing_tables:
             table = db.open_table(table_name)
             stats[table_name] = table.count_rows()
@@ -932,6 +1078,18 @@ def _format_record_text(record: dict, record_type: str = "claim") -> str:
     elif record_type == "prediction":
         lines.append(f"[{record['claim_id']}] Status: {record['status']}")
         lines.append(f"  Source: {record['source_id']} | Target: {record.get('target_date', 'N/A')}")
+    elif record_type == "analysis_log":
+        lines.append(f"[{record['id']}] Source: {record['source_id']} | Pass: {record.get('pass', 'N/A')}")
+        lines.append(f"  Tool: {record['tool']} | Status: {record['status']}")
+        if record.get('model'):
+            lines.append(f"  Model: {record['model']}")
+        tokens = record.get('total_tokens')
+        cost = record.get('cost_usd')
+        tokens_str = str(tokens) if tokens is not None else "?"
+        cost_str = f"${cost:.4f}" if cost is not None else "?"
+        lines.append(f"  Tokens: {tokens_str} | Cost: {cost_str}")
+        if record.get("notes"):
+            lines.append(f"  Notes: {record['notes']}")
     return "\n".join(lines)
 
 
@@ -1153,6 +1311,46 @@ Examples:
     prediction_list.add_argument("--status", help="Filter by status")
     prediction_list.add_argument("--limit", type=int, default=100, help="Max results")
     prediction_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # -------------------------------------------------------------------------
+    # Analysis log commands
+    # -------------------------------------------------------------------------
+    analysis_parser = subparsers.add_parser("analysis", help="Analysis log operations")
+    analysis_subparsers = analysis_parser.add_subparsers(dest="analysis_command")
+
+    # analysis add
+    analysis_add = analysis_subparsers.add_parser("add", help="Add an analysis log entry")
+    analysis_add.add_argument("--source-id", required=True, help="Source ID that was analyzed")
+    analysis_add.add_argument("--tool", required=True, help="Tool used (claude-code/codex/amp/manual/other)")
+    analysis_add.add_argument("--status", default="completed", help="Status (started/completed/failed/canceled/draft)")
+    analysis_add.add_argument("--pass", type=int, dest="pass_num", help="Pass number (auto-computed if omitted)")
+    analysis_add.add_argument("--cmd", dest="analysis_cmd", help="Command used (check/analyze/extract/etc.)")
+    analysis_add.add_argument("--model", help="Model used")
+    analysis_add.add_argument("--analysis-file", help="Path to analysis markdown file")
+    analysis_add.add_argument("--started-at", help="Start timestamp (ISO format)")
+    analysis_add.add_argument("--completed-at", help="Completion timestamp (ISO format)")
+    analysis_add.add_argument("--duration", type=int, help="Duration in seconds")
+    analysis_add.add_argument("--tokens-in", type=int, help="Input tokens")
+    analysis_add.add_argument("--tokens-out", type=int, help="Output tokens")
+    analysis_add.add_argument("--total-tokens", type=int, help="Total tokens")
+    analysis_add.add_argument("--cost-usd", type=float, help="Cost in USD")
+    analysis_add.add_argument("--claims-extracted", help="Comma-separated list of extracted claim IDs")
+    analysis_add.add_argument("--claims-updated", help="Comma-separated list of updated claim IDs")
+    analysis_add.add_argument("--notes", help="Notes about this analysis pass")
+    analysis_add.add_argument("--git-commit", help="Git commit SHA")
+
+    # analysis get
+    analysis_get = analysis_subparsers.add_parser("get", help="Get an analysis log by ID")
+    analysis_get.add_argument("analysis_id", help="Analysis log ID")
+    analysis_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # analysis list
+    analysis_list = analysis_subparsers.add_parser("list", help="List analysis logs")
+    analysis_list.add_argument("--source-id", help="Filter by source ID")
+    analysis_list.add_argument("--tool", help="Filter by tool")
+    analysis_list.add_argument("--status", help="Filter by status")
+    analysis_list.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
+    analysis_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
 
     # -------------------------------------------------------------------------
     # Related command
@@ -1647,6 +1845,66 @@ rc-validate
 
         else:
             prediction_parser.print_help()
+
+    # Analysis log commands
+    elif args.command == "analysis":
+        db = get_db()
+
+        if args.analysis_command == "add":
+            log = {
+                "source_id": args.source_id,
+                "tool": args.tool,
+                "status": args.status,
+                "command": getattr(args, "analysis_cmd", None),
+                "model": args.model,
+                "analysis_file": getattr(args, "analysis_file", None),
+                "started_at": getattr(args, "started_at", None),
+                "completed_at": getattr(args, "completed_at", None),
+                "duration_seconds": args.duration,
+                "tokens_in": getattr(args, "tokens_in", None),
+                "tokens_out": getattr(args, "tokens_out", None),
+                "total_tokens": getattr(args, "total_tokens", None),
+                "cost_usd": getattr(args, "cost_usd", None),
+                "notes": args.notes,
+                "git_commit": getattr(args, "git_commit", None),
+                "framework_version": None,
+                "methodology_version": None,
+                "stages_json": None,
+            }
+
+            # Handle pass number
+            if args.pass_num is not None:
+                log["pass"] = args.pass_num
+
+            # Handle comma-separated claim lists
+            if args.claims_extracted:
+                log["claims_extracted"] = [c.strip() for c in args.claims_extracted.split(",")]
+            if args.claims_updated:
+                log["claims_updated"] = [c.strip() for c in args.claims_updated.split(",")]
+
+            result_id = add_analysis_log(log, db, auto_pass=(args.pass_num is None))
+            print(f"Created analysis log: {result_id}", flush=True)
+
+        elif args.analysis_command == "get":
+            result = get_analysis_log(args.analysis_id, db)
+            if result:
+                _output_result(result, args.format, "analysis_log")
+            else:
+                print(f"Analysis log not found: {args.analysis_id}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.analysis_command == "list":
+            results = list_analysis_logs(
+                source_id=getattr(args, "source_id", None),
+                tool=args.tool,
+                status=args.status,
+                limit=args.limit,
+                db=db,
+            )
+            _output_result(results, args.format, "analysis_log")
+
+        else:
+            analysis_parser.print_help()
 
     # Related command
     elif args.command == "related":
