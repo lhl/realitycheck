@@ -56,7 +56,7 @@ An **analysis audit log** provides a durable, structured record that is:
 ### Data integrity
 
 - When a run is marked `completed`, `source_id` should exist in `sources`.
-- When claim IDs are listed, they should exist in `claims` (or the log should be explicitly marked `unregistered`/`draft`).
+- When claim IDs are listed, they should exist in `claims` (or the log should have `status=draft`).
 - Audit logs must be exportable (YAML/Markdown) without requiring DB access.
 
 ### UX / workflow fit
@@ -153,7 +153,7 @@ Add `rc-db analysis` subcommands:
 Extend `scripts/validate.py` to validate `analysis_logs`:
 
 - When `status=completed`, require `source_id` exists in `sources`
-- When `claims_extracted` / `claims_updated` present, require those IDs exist in `claims`
+- When `claims_extracted` / `claims_updated` present and `status != draft`, require those IDs exist in `claims`
 - Flag malformed `stages_json` and impossible metrics (negative duration/cost)
 
 ### 6) Export
@@ -168,27 +168,33 @@ Extend export support to include audit logs (TBD interface):
 ```text
 docs/
   PLAN-audit-log.md                 # this document (new)
+  IMPLEMENTATION-audit-log.md       # implementation tracking (new)
   IMPLEMENTATION.md                 # link from Future Work (update)
   SCHEMA.md                         # document analysis_logs table (update)
   WORKFLOWS.md                      # document audit logging workflow (update)
 
 scripts/
   db.py                             # new table + rc-db analysis subcommands
-  validate.py                        # analysis_logs integrity checks
-  export.py                          # export analysis_logs
+  validate.py                       # analysis_logs integrity checks
+  export.py                         # export analysis_logs
 
 tests/
-  test_db.py                         # rc-db analysis CLI tests
-  test_validate.py                   # validate analysis_logs references
-  test_export.py                     # export analysis_logs
-  test_e2e.py                        # end-to-end audit log workflow
+  test_db.py                        # rc-db analysis CLI tests
+  test_validate.py                  # validate analysis_logs references
+  test_export.py                    # export analysis_logs
+  test_e2e.py                       # end-to-end audit log workflow
 
-integrations/_templates/
-  skills/check.md.j2                 # add audit log requirement + template snippet
-  partials/analysis-log.md.j2        # (new) shared in-document audit section
+integrations/
+  _templates/skills/check.md.j2     # add audit log requirement + template snippet
+  _templates/partials/analysis-log.md.j2  # (new) shared in-document audit section
+  claude/plugin/commands/check.md   # reference audit step (update)
+  claude/skills/check/SKILL.md      # regenerated
+  codex/skills/check/SKILL.md       # regenerated
+  amp/skills/realitycheck-check/SKILL.md  # regenerated
+
+methodology/
+  workflows/check-core.md           # regenerated
 ```
-
-(Plus regenerated skill artifacts under `integrations/*/skills/` and `methodology/workflows/check-core.md`.)
 
 ## Test plan (must be written first)
 
