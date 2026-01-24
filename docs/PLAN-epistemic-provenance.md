@@ -77,10 +77,13 @@ evidence_links:
   claim_id: "TECH-2026-042"           # The claim being supported/contradicted
   source_id: "author-2026-title"      # The source providing evidence
   direction: "supports"               # supports|contradicts|weakens|strengthens
+  status: "active"                    # active|superseded|retracted
+  supersedes_id: null                 # OPTIONAL: pointer for corrections
   strength: 0.8                       # OPTIONAL: coarse impact estimate (avoid false precision)
   location: "Table 3, p.15"           # Specific location in source (optional)
   quote: "The study found..."         # Relevant excerpt (optional, short)
   reasoning: "This directly measures X, which is what the claim asserts"
+  analysis_log_id: "ANALYSIS-2026-001"  # OPTIONAL: link to audit-log pass (once implemented)
   created_at: "2026-01-24T10:00:00Z"
   created_by: "claude-code"           # Tool/user that created this link
 ```
@@ -95,6 +98,8 @@ Capture the reasoning chain for a claim's credence assignment.
 reasoning_trails:
   id: "REASON-2026-001"
   claim_id: "TECH-2026-042"
+  status: "active"                    # active|superseded
+  supersedes_id: null                 # OPTIONAL: pointer for corrections
   credence_at_time: 0.75              # The credence this reasoning produced
   evidence_level_at_time: "E2"        # Evidence level assigned under this reasoning
   evidence_summary: "E2 based on 2 supporting sources, 1 weak counter"
@@ -117,9 +122,19 @@ reasoning_trails:
   
   # Meta
   analysis_pass: 1                    # Which analysis pass produced this
+  analysis_log_id: "ANALYSIS-2026-001"  # OPTIONAL: link to audit-log pass (once implemented)
   created_at: "2026-01-24T10:00:00Z"
   created_by: "claude-code"
 ```
+
+### 2b) Immutability + disagreement semantics (v1)
+
+To preserve epistemic provenance over time (and across agents), both `evidence_links` and `reasoning_trails` should be **append-only**:
+
+- **No in-place edits for meaning changes**: correcting/adjusting a link or trail creates a new row and sets `supersedes_id` on the new row.
+- **Current view is a projection**: "active" rows are the default for rendering and validation; history remains queryable.
+- **Reasoning cites stable evidence IDs**: a trail references specific `evidence_links` rows; later corrections produce new evidence links and (optionally) a new trail.
+- **Agent disagreement is first-class**: multiple trails can exist for a claim; `analysis_log_id` (when available) attributes trails to specific tool/model/pass for later bias/consensus analysis.
 
 ### 3) Rendered artifacts in data repo
 
@@ -142,7 +157,7 @@ analysis/
 
 **Per-claim reasoning file** (`reasoning/TECH-2026-042.md`):
 
-```markdown
+````markdown
 # Reasoning: TECH-2026-042
 
 > **Claim**: [The claim text]
@@ -179,7 +194,40 @@ Assigned 0.75 credence because:
 | Date | Credence | Pass | Tool | Notes |
 |------|----------|------|------|-------|
 | 2026-01-24 | 0.75 | 1 | claude-code | Initial analysis |
+
+## Data (portable)
+
+```yaml
+claim_id: "TECH-2026-042"
+reasoning_trail_id: "REASON-2026-001"
+credence_at_time: 0.75
+evidence_level_at_time: "E2"
+supporting_evidence: ["EVLINK-2026-001", "EVLINK-2026-002"]
+contradicting_evidence: ["EVLINK-2026-003"]
 ```
+````
+
+### 3b) Portability exports (v1)
+
+Rendered markdown is for humans; portability should not depend on LanceDB internals.
+
+Add export support so a data repo can regenerate (or share) provenance without bespoke tooling:
+
+- **YAML/JSON export**: `rc-export yaml provenance` (or similar) to dump `evidence_links` + `reasoning_trails` (and later `analysis_logs`) in a stable, diff-friendly format.
+- **Deterministic rendering**: exporters must sort consistently (e.g., by `claim_id`, then `created_at`, then `id`) so reruns are stable when DB state is unchanged.
+- **Embed a minimal machine block**: per-claim reasoning markdown includes a small YAML block (as above) that points to the canonical IDs and current credence/evidence level.
+
+### 3c) Future: Evidence snapshots (ArchiveBox / other)
+
+Long-term epistemic robustness requires protecting against link rot and "moving targets" (updated web pages, deleted PDFs, etc.).
+
+Future direction (out of scope for v1):
+
+- **Snapshot sources**: when a `sources.url` exists, capture an immutable snapshot (e.g., via ArchiveBox, singlefile, wget, perma.cc, etc.).
+- **Store in the data repo**: keep snapshots under a stable path (e.g., `evidence/snapshots/<source-id>/...`) so collaborators can verify without the network.
+- **Record snapshot metadata**: extend `sources` with fields like `snapshot_paths`, `snapshot_captured_at`, `snapshot_tool`, `snapshot_hash` (or equivalent), and render links in `analysis/sources/<source-id>.md`.
+- **Link evidence to snapshots**: allow `evidence_links` to reference a specific snapshot artifact when relevant (so "Table 3" points to the captured copy).
+- **Validation (later)**: optionally require snapshots for high-credence claims supported by URL-based sources.
 
 ### 4) Analysis MD linking
 
@@ -221,7 +269,11 @@ rc-db reasoning get --claim-id TECH-2026-042
 rc-db reasoning history --claim-id TECH-2026-042  # Show credence evolution
 
 # Rendering
-rc-export render-reasoning [--claim-id X] [--all]  # Generate markdown files
+rc-export md reasoning --claim-id TECH-2026-042 --output-dir analysis/reasoning
+rc-export md reasoning --all --output-dir analysis/reasoning
+
+# Portability export
+rc-export yaml provenance -o analysis/provenance.yaml
 ```
 
 ### 6) Validation extensions
@@ -235,6 +287,7 @@ New checks:
 - **Evidence integrity**: All `evidence_links.claim_id` and `source_id` must exist
 - **Evidence specificity (for high-credence claims)**: supporting evidence links must include at least a locator (`location`) and a non-empty `reasoning`
 - **Reasoning freshness**: Warn if claim credence/evidence level differs from latest reasoning trail (`credence_at_time` / `evidence_level_at_time`)
+- **Audit-log linkage (optional)**: If `analysis_log_id` is present, it must exist in `analysis_logs` (once that table ships)
 
 ### 7) Workflow integration
 
@@ -292,6 +345,7 @@ methodology/
    - Renders claim reasoning markdown with correct structure
    - Renders evidence-by-source index
    - Links are relative and valid
+   - Exports provenance YAML/JSON deterministically
 
 4. **E2E** (`tests/test_e2e.py`)
    - init → add source → add claim → add evidence link → add reasoning → validate → render
@@ -302,21 +356,24 @@ methodology/
 2. **Schema + CRUD**: `evidence_links` and `reasoning_trails` tables
 3. **CLI**: `rc-db evidence ...` and `rc-db reasoning ...` subcommands
 4. **Validation**: High-credence backing checks
-5. **Export/Render**: `rc-export render-reasoning`
+5. **Export/Render**: `rc-export md reasoning` + `rc-export yaml provenance`
+   - Prefer integrating into existing `rc-export md ...` / `rc-export yaml ...` interfaces; keep `render-reasoning` only as an optional alias if desired
 6. **Workflow integration**: Update skills to include evidence/reasoning steps
 7. **Docs**: SCHEMA.md, WORKFLOWS.md, methodology
 
 ## Open questions
 
 - **Granularity**: Should evidence links be per-source or per-source-location? (Current: per-source with optional location field)
-- **Versioning**: When claim credence changes, keep old reasoning trails or update? (Current: append-only, history preserved)
+- **Versioning**: Do we model `status`/`supersedes_id` explicitly (as above), or rely on timestamps alone?
 - **Auto-linking**: Can we infer evidence links from `source_ids` + analysis context? (Risky - may want explicit only)
-- **Rendering trigger**: Render on every change, or on-demand? (Current: on-demand via `rc-export render-reasoning`)
+- **Rendering trigger**: Render on every change, or on-demand? (Current: on-demand via `rc-export md reasoning --all`)
 - **Storage**: Should `reasoning_text` be stored in DB or rendered from structured fields? (Current: explicit text + structured components)
+- **Output contract compatibility**: Should we update `scripts/analysis_formatter.py` to accept markdown-linked IDs like `[TECH-2026-001](...)` in tables (to enable linkification without breaking extraction)?
+- **Evidence snapshots**: How should we store durable snapshots of URLs (ArchiveBox / other) and link them from `sources` / `evidence_links`?
 
 ## Relationship to other features
 
-- **Audit Log** (`PLAN-audit-log.md`): Tracks *process* (who/when/how analyzed); this tracks *epistemics* (why we believe X)
+- **Audit Log** (`PLAN-audit-log.md`): Tracks *process* (who/when/how analyzed); this tracks *epistemics* (why we believe X). Linking via `analysis_log_id` enables later analysis of agent/model disagreement and drift over passes.
 - **Argument Chains** (existing): Chains link claims in argument sequences; evidence_links connect claims to sources
 - **Contradictions** (existing): Existing table for claim-vs-claim conflicts; evidence_links can show source-level conflicts
 

@@ -13,6 +13,8 @@ Tracking future work items.
 - `reasoning_trails` table: Capture the reasoning chain for credence assignments
 - Rendered markdown: Per-claim reasoning docs browsable in data repo
 - Validation: Enforce that high-credence claims (≥0.7) have explicit backing
+- Portability export: Deterministic YAML/JSON dump of provenance (regen from DB)
+- Audit-log linkage: Attribute evidence/reasoning to specific analysis passes (tool/model)
 - Workflow integration: Evidence linking + reasoning capture in `/check`
 
 **Scope**: Large feature sprint - schema changes, CLI, validation, rendering, workflow updates.
