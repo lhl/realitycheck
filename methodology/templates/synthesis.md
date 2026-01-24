@@ -8,11 +8,15 @@ Cross-cutting analysis across multiple sources and claims.
 
 - **Synthesis ID**: `SYNTH-[YYYY]-[NNN]`
 - **Topic**:
-- **Sources Analyzed**: [list source IDs]
+- **Source Analyses**:
+  - [source-id](../sources/source-id.md)
+  - ...
 - **Claims Referenced**: [list claim IDs]
 - **Date**:
 
 ---
+
+**Provenance note**: A synthesis should usually be grounded in existing source analyses. If relevant sources exist but no `analysis/sources/...` files are available yet, either create them first (preferred) or explicitly record the gap. In rare cases a synthesis may be based on claim/evidence artifacts without analyzable sources; document that clearly.
 
 ## Landscape Overview
 

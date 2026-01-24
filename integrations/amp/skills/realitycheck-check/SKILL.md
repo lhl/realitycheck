@@ -75,6 +75,17 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 
 ---
 
+## Multi-source Requests (Compare / Contrast)
+
+If the prompt includes **multiple sources** (multiple URLs/repos/papers) or explicitly asks for **compare/contrast**, the expected workflow is:
+
+1. Run this `$check` workflow **once per source** (one `analysis/sources/<source-id>.md` per source)
+2. Then run `$synthesize` to write a single cross-source synthesis at `analysis/syntheses/<synth-id>.md`
+
+The synthesis should link back to the relevant source analyses and resolve (or clearly frame) points of agreement and disagreement.
+
+---
+
 ## Analysis Output Contract
 
 Every analysis must produce a **human-auditable analysis** file at:
@@ -89,6 +100,12 @@ The analysis **must** include:
 5. **Extracted claims artifact** (embedded YAML or separate file)
 
 If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not complete**.
+
+### Multi-source Output
+
+For multi-source requests, produce:
+- **One** source analysis per source: `analysis/sources/<source-id>.md`
+- **One** synthesis (if requested/needed): `analysis/syntheses/<synth-id>.md` (see `$synthesize`)
 
 ### Required Elements
 
@@ -485,7 +502,17 @@ rc-export markdown source SOURCE_ID -o source.md
 
 After registration and validation, update the data project's README.md:
 
-### 1. Add Source Analyses Table Entry
+### 1. Add Syntheses Table Entry (if created)
+
+If you produced a synthesis document, add a row to the "Syntheses" table (kept **above** "Source Analyses"):
+
+```markdown
+| YYYY-MM-DD | [Topic](analysis/syntheses/<synth-id>.md) | `[DRAFT/REVIEWED]` | Brief summary |
+```
+
+Insert at the **top** of the table (below header row), keeping entries reverse-chronological.
+
+### 2. Add Source Analyses Table Entry
 
 **Edit `$PROJECT_ROOT/README.md` now.** Find the "Source Analyses" table and insert a new row:
 
@@ -495,7 +522,7 @@ After registration and validation, update the data project's README.md:
 
 Insert at the **top** of the table (below header row), keeping entries reverse-chronological.
 
-### 2. Update Stats Tables
+### 3. Update Stats Tables
 
 Run the stats update script to refresh claim/source counts:
 
@@ -550,6 +577,7 @@ When using `--continue` on an existing analysis:
 
 ## Related Skills
 
+- `realitycheck-synthesize`
 - `realitycheck-search`
 - `realitycheck-validate`
 - `realitycheck-stats`
