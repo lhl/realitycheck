@@ -61,7 +61,7 @@ uninstall-skills-all: uninstall-skills-amp uninstall-skills-claude uninstall-ski
 # Amp
 AMP_SKILLS_SRC := $(CURDIR)/integrations/amp/skills
 AMP_SKILLS_DST := $(HOME)/.config/agents/skills
-AMP_SKILLS := realitycheck-check realitycheck-analyze realitycheck-extract realitycheck-search realitycheck-validate realitycheck-export realitycheck-stats
+AMP_SKILLS := realitycheck-check realitycheck-synthesize realitycheck-analyze realitycheck-extract realitycheck-search realitycheck-validate realitycheck-export realitycheck-stats
 
 install-skills-amp:
 	@echo "Installing Reality Check skills for Amp..."
@@ -87,7 +87,7 @@ uninstall-skills-amp:
 # Claude Code
 CLAUDE_SKILLS_SRC := $(CURDIR)/integrations/claude/skills
 CLAUDE_SKILLS_DST := $(HOME)/.claude/skills
-CLAUDE_SKILLS := check analyze extract search validate export stats realitycheck
+CLAUDE_SKILLS := check synthesize analyze extract search validate export stats realitycheck
 
 install-skills-claude:
 	@echo "Installing Reality Check skills for Claude Code..."

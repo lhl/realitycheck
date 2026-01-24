@@ -20,7 +20,7 @@ skills:
     title: "Full Analysis Workflow"
     description: "Full Reality Check analysis - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis."
     template: "check.md.j2"
-    related: ["search", "validate", "stats"]
+    related: ["synthesize", "search", "validate", "stats"]
 
     amp:
       triggers:
@@ -44,6 +44,34 @@ skills:
 
     codex:
       invocation: "$check <url>"
+
+  synthesize:
+    title: "Cross-Source Synthesis"
+    description: "Create a cross-source synthesis across multiple source analyses and claims. Use after checking multiple sources or when producing a higher-level, decision-oriented view."
+    template: "synthesize.md.j2"
+    related: ["check", "search", "validate", "export", "stats"]
+
+    amp:
+      triggers:
+        - "Synthesize these sources"
+        - "Compare and contrast these analyses"
+        - "Write a synthesis across sources"
+        - "What should we believe overall"
+
+    claude:
+      argument_hint: "<topic> [source-ids/claim-ids in prompt]"
+      allowed_tools:
+        - "Read"
+        - "Write"
+        - "Bash(uv run python scripts/db.py *)"
+        - "Bash(rc-db *)"
+        - "Bash(uv run python scripts/export.py *)"
+        - "Bash(rc-export *)"
+        - "Bash(uv run python scripts/validate.py *)"
+        - "Bash(rc-validate *)"
+
+    codex:
+      invocation: "$synthesize <topic>"
 
   analyze:
     title: "Manual 3-Stage Analysis"
