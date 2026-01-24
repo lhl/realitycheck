@@ -18,11 +18,12 @@ The flagship Reality Check command for rigorous source analysis.
 5. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
 6. **Extract** - Format claims as YAML
 7. **Register** - Add source and claims to database
-8. **Validate** - Run integrity checks
-9. **README** - Update data project analysis index
-10. **Commit** - Stage and commit changes to data repo
-11. **Push** - Push to remote
-12. **Report** - Generate summary
+8. **Audit Log** - Append in-document log + register `analysis_logs` row
+9. **Validate** - Run integrity checks
+10. **README** - Update data project analysis index
+11. **Commit** - Stage and commit changes to data repo
+12. **Push** - Push to remote
+13. **Report** - Generate summary
 
 ---
 
@@ -53,6 +54,7 @@ The analysis **must** include:
 3. **Three-stage analysis** (Stages 1-3)
 4. **Claim tables with evidence + credence**
 5. **Extracted claims artifact** (embedded YAML or separate file)
+6. **Analysis Log** (append-only pass history + tool/model/tokens/cost when available)
 
 If an analysis lacks claim tables (IDs, evidence levels, credence) it is **not complete**.
 
@@ -192,6 +194,8 @@ claims:
 \`\`\`
 
 {% include "sections/credence-assessment.md.j2" %}
+
+{% include "partials/analysis-log.md.j2" %}
 ```
 
 ---

@@ -1,6 +1,6 @@
 # Implementation: Analysis Audit Log
 
-**Status**: In Progress (Phases 1-5 complete)
+**Status**: Complete (Phases 1-7 complete; Phase 8 deferred)
 **Plan**: [PLAN-audit-log.md](PLAN-audit-log.md)
 **Started**: 2026-01-23
 
@@ -18,7 +18,7 @@ Implement a durable, queryable audit log for Reality Check analyses:
 - [x] Unit tests for `rc-db analysis add/get/list` CLI (`tests/test_db.py`)
 - [x] Unit tests for `rc-validate` analysis log checks (`tests/test_validate.py`)
 - [x] Unit tests for `rc-export` analysis log export (`tests/test_export.py`)
-- [ ] E2E test: init → add source/claims → add analysis log → validate → export (`tests/test_e2e.py`)
+- [x] E2E test: init → add source/claims → add analysis log → validate → export (`tests/test_e2e.py`)
 
 ### Phase 2: DB Schema + Core CRUD
 - [x] Add `ANALYSIS_LOGS_SCHEMA` to `scripts/db.py` with fields:
@@ -61,15 +61,15 @@ Implement a durable, queryable audit log for Reality Check analyses:
   - Summary totals (token count, cost rollups)
 
 ### Phase 6: Documentation Updates
-- [ ] Update `docs/SCHEMA.md` with `analysis_logs` table definition
-- [ ] Update `docs/WORKFLOWS.md` with audit logging workflow
-- [ ] Update `docs/IMPLEMENTATION.md` Future Work section (link to this file)
+- [x] Update `docs/SCHEMA.md` with `analysis_logs` table definition
+- [x] Update `docs/WORKFLOWS.md` with audit logging workflow
+- [x] Update `docs/IMPLEMENTATION.md` Future Work section (link to this file)
 
 ### Phase 7: Integration Templates
-- [ ] Add `integrations/_templates/partials/analysis-log.md.j2` (shared in-document section)
-- [ ] Update `integrations/_templates/skills/check.md.j2` to require audit logging
-- [ ] Update `integrations/claude/plugin/commands/check.md` to reference audit step
-- [ ] Regenerate: `make assemble-skills`
+- [x] Add `integrations/_templates/partials/analysis-log.md.j2` (shared in-document section)
+- [x] Update `integrations/_templates/skills/check.md.j2` to require audit logging
+- [x] Update `integrations/claude/plugin/commands/check.md` to reference audit step
+- [x] Regenerate: `make assemble-skills`
   - `integrations/claude/skills/check/SKILL.md`
   - `integrations/codex/skills/check/SKILL.md`
   - `integrations/amp/skills/realitycheck-check/SKILL.md`
@@ -115,6 +115,17 @@ Implemented core audit log functionality:
 **Tests**
 - 23 new tests across test_db.py, test_validate.py, test_export.py
 - All 206 tests pass (17 skipped are embedding tests)
+
+### 2026-01-24: Phase 6 + fixes
+
+- Wired `analysis-logs` into `rc-export` CLI (YAML + Markdown).
+- Added an end-to-end test for the audit log workflow.
+- Updated docs and punchlist statuses.
+
+### 2026-01-24: Phase 7 templates
+
+- Added the in-document Analysis Log template section and integrated it into `/check` skills and Claude plugin command docs.
+- Regenerated skills and methodology docs from templates.
 
 ### 2026-01-23: Token usage capture research
 
