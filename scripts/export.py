@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import numbers
 import os
 import sys
 from datetime import date
@@ -478,6 +479,10 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
     db = get_db(db_path)
     logs = list_analysis_logs(limit=100000, db=db)
 
+    def _cell(value: object) -> str:
+        text = "" if value is None else str(value)
+        return text.replace("|", "\\|").replace("\n", " ").strip()
+
     lines = [
         "# Analysis Logs",
         "",
@@ -497,38 +502,50 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
         "|------|------|--------|------|-------|----------|--------|------|-------|",
     ])
 
-    total_tokens = 0
-    total_cost = 0.0
+    total_tokens_known = 0
+    total_tokens_unknown = 0
+    total_cost_known = 0.0
+    total_cost_unknown = 0
 
     for log in sorted(logs, key=lambda x: x.get("created_at", "")):
         pass_num = log.get("pass", "?")
         date_str = (log.get("started_at") or log.get("created_at") or "")[:10]
-        source_id = log.get("source_id", "")[:20]
-        tool = log.get("tool", "")
-        model = log.get("model") or "?"
+        source_id = _cell(log.get("source_id", ""))
+        tool = _cell(log.get("tool", ""))
+        model = _cell(log.get("model") or "?")
         duration = log.get("duration_seconds")
-        duration_str = f"{duration // 60}m{duration % 60}s" if duration else "?"
+        duration_str = (
+            f"{int(duration) // 60}m{int(duration) % 60}s"
+            if isinstance(duration, numbers.Real)
+            else "?"
+        )
         tokens = log.get("total_tokens")
-        tokens_str = f"{tokens:,}" if tokens else "?"
+        tokens_str = f"{int(tokens):,}" if isinstance(tokens, numbers.Integral) else "?"
         cost = log.get("cost_usd")
         cost_str = f"${cost:.4f}" if cost is not None else "?"
-        notes = (log.get("notes") or "")[:30]
+        notes = _cell(log.get("notes") or "")
 
-        if tokens:
-            total_tokens += tokens
+        if isinstance(tokens, numbers.Integral):
+            total_tokens_known += int(tokens)
+        else:
+            total_tokens_unknown += 1
         if cost is not None:
-            total_cost += cost
+            total_cost_known += cost
+        else:
+            total_cost_unknown += 1
 
         lines.append(f"| {pass_num} | {date_str} | {source_id} | {tool} | {model} | {duration_str} | {tokens_str} | {cost_str} | {notes} |")
 
     # Totals
+    tokens_suffix = f" (known; {total_tokens_unknown} unknown)" if total_tokens_unknown else ""
+    cost_suffix = f" (known; {total_cost_unknown} unknown)" if total_cost_unknown else ""
     lines.extend([
         "",
         "## Summary Totals",
         "",
         f"- **Total Logs**: {len(logs)}",
-        f"- **Total Tokens**: {total_tokens:,}",
-        f"- **Total Cost**: ${total_cost:.4f}",
+        f"- **Total Tokens**: {total_tokens_known:,}{tokens_suffix}",
+        f"- **Total Cost**: ${total_cost_known:.4f}{cost_suffix}",
     ])
 
     # Breakdown by tool
@@ -536,9 +553,9 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
     tool_tokens: dict[str, int] = {}
     tool_costs: dict[str, float] = {}
     for log in logs:
-        tool = log.get("tool", "unknown")
+        tool = log.get("tool", "unknown") or "unknown"
         tool_counts[tool] = tool_counts.get(tool, 0) + 1
-        if log.get("total_tokens"):
+        if log.get("total_tokens") is not None:
             tool_tokens[tool] = tool_tokens.get(tool, 0) + log["total_tokens"]
         if log.get("cost_usd") is not None:
             tool_costs[tool] = tool_costs.get(tool, 0.0) + log["cost_usd"]

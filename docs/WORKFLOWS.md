@@ -14,7 +14,7 @@ The `db.py` script (or `rc-db` if installed via pip) provides all database opera
 | `db.py reset` | Reset database (destructive!) |
 | `db.py search "query"` | Semantic search across claims |
 | `db.py claim add/get/list/update` | Claim CRUD operations |
-| `db.py source add/get/list` | Source CRUD operations |
+| `db.py source add/get/list/update` | Source CRUD operations |
 | `db.py chain add/get/list` | Chain CRUD operations |
 | `db.py prediction add/list` | Prediction operations |
 | `db.py analysis add/get/list` | Analysis audit log operations |
@@ -85,6 +85,10 @@ uv run python scripts/db.py claim add \
   --evidence-level "E2"
 ```
 
+Notes:
+- If `--source-ids` references an existing source, the claim ID is automatically added to that source's `claims_extracted`.
+- If a claim has type `[P]` and no prediction record exists yet, a stub prediction is auto-created with status `[P?]`.
+
 ### Get a Claim
 
 ```bash
@@ -132,7 +136,20 @@ uv run python scripts/db.py source add \
   --type "REPORT" \
   --author "Epoch AI" \
   --year 2024 \
-  --url "https://epochai.org/blog/training-compute-trends"
+  --url "https://epochai.org/blog/training-compute-trends" \
+  --analysis-file "analysis/sources/epoch-2024-training.md" \
+  --topics "ai-compute,training" \
+  --domains "TECH,ECON"
+```
+
+### Update a Source
+
+```bash
+uv run python scripts/db.py source update epoch-2024-training \
+  --analysis-file "analysis/sources/epoch-2024-training.md" \
+  --topics "ai-compute,training,history" \
+  --domains "TECH,ECON" \
+  --claims-extracted "TECH-2026-001,TECH-2026-002"
 ```
 
 ### List Sources
@@ -216,6 +233,14 @@ uv run python scripts/db.py import sources.yaml --type sources
 uv run python scripts/db.py import data.yaml --type all
 ```
 
+### Register From An Analysis YAML (Recommended)
+
+If you have an analysis artifact like `analysis/sources/<source-id>.yaml` (the format produced by the skills), you can register the source + claims in one command:
+
+```bash
+uv run python scripts/db.py import analysis/sources/<source-id>.yaml --type all
+```
+
 ## Validation Workflow
 
 ### Regular Validation
@@ -244,6 +269,10 @@ uv run python scripts/validate.py --mode yaml --repo-root /path/to/data
 ## Analysis Audit Log Workflow
 
 After completing an analysis (and registering the source/claims), record an audit log entry:
+
+Notes:
+- `--source-id` must already exist in the `sources` table (unless you pass `--allow-missing-source`).
+- Relative `--analysis-file` paths are resolved relative to the data project root (derived from `REALITYCHECK_DATA`).
 
 ```bash
 # Minimal (pass auto-computed)

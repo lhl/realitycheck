@@ -378,6 +378,38 @@ class TestAnalysisLogsExport:
         assert "**Total Tokens**: 8,700" in md_str
         assert "$0.20" in md_str  # 0.08 + 0.12
 
+    def test_export_analysis_logs_md_does_not_truncate_source_or_notes(self, initialized_db, temp_db_path, sample_analysis_log):
+        """Markdown export should not truncate long source IDs or notes."""
+        log = sample_analysis_log.copy()
+        log["source_id"] = "source-with-a-very-long-id-1234567890"
+        log["notes"] = "This is a long note that should not be truncated by the export."
+        add_analysis_log(log, initialized_db)
+
+        md_str = export_analysis_logs_md(temp_db_path)
+
+        assert log["source_id"] in md_str
+        assert log["notes"] in md_str
+
+    def test_export_analysis_logs_md_tracks_unknown_tokens_and_cost(self, initialized_db, temp_db_path, sample_analysis_log):
+        """Markdown totals should distinguish known values from unknown/missing."""
+        unknown = sample_analysis_log.copy()
+        unknown["id"] = "ANALYSIS-2026-002"
+        unknown["total_tokens"] = None
+        unknown["cost_usd"] = None
+        add_analysis_log(unknown, initialized_db)
+
+        zero = sample_analysis_log.copy()
+        zero["id"] = "ANALYSIS-2026-003"
+        zero["total_tokens"] = 0
+        zero["cost_usd"] = 0.0
+        add_analysis_log(zero, initialized_db)
+
+        md_str = export_analysis_logs_md(temp_db_path)
+
+        assert "**Total Logs**: 2" in md_str
+        assert "**Total Tokens**: 0 (known; 1 unknown)" in md_str
+        assert "**Total Cost**: $0.0000 (known; 1 unknown)" in md_str
+
 
 class TestExportCLI:
     """CLI tests for scripts/export.py."""

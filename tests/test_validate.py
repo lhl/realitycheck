@@ -138,10 +138,10 @@ class TestDatabaseValidation:
 
     def test_missing_backlink_detected(self, initialized_db, temp_db_path, sample_claim, sample_source):
         """Source not listing claim in claims_extracted produces error."""
-        # Source doesn't list the claim
+        # Add claim before source so add_claim can't auto-upsert the backlink.
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
         sample_source["claims_extracted"] = []
         add_source(sample_source, initialized_db, generate_embedding=False)
-        add_claim(sample_claim, initialized_db, generate_embedding=False)
 
         findings = validate_db(temp_db_path)
 
@@ -168,7 +168,8 @@ class TestDatabaseValidation:
         sample_claim["type"] = "[P]"
         add_claim(sample_claim, initialized_db, generate_embedding=False)
 
-        # Don't add prediction record
+        # Remove the auto-created prediction record.
+        initialized_db.open_table("predictions").delete(f"claim_id = '{sample_claim['id']}'")
 
         findings = validate_db(temp_db_path)
 

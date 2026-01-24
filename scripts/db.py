@@ -472,6 +472,85 @@ def drop_tables(db: Optional[lancedb.DBConnection] = None) -> None:
 # CRUD Operations - Claims
 # =============================================================================
 
+def _upsert_source_claim_backlink(source_id: str, claim_id: str, db: lancedb.DBConnection) -> None:
+    source = get_source(source_id, db)
+    if not source:
+        return
+
+    source = _ensure_python_types(source)
+    claims_extracted = list(source.get("claims_extracted") or [])
+    if claim_id in claims_extracted:
+        return
+
+    claims_extracted.append(claim_id)
+    db.open_table("sources").update(where=f"id = '{source_id}'", values={"claims_extracted": claims_extracted})
+
+
+def _remove_source_claim_backlink(source_id: str, claim_id: str, db: lancedb.DBConnection) -> None:
+    source = get_source(source_id, db)
+    if not source:
+        return
+
+    source = _ensure_python_types(source)
+    claims_extracted = list(source.get("claims_extracted") or [])
+    if claim_id not in claims_extracted:
+        return
+
+    claims_extracted = [cid for cid in claims_extracted if cid != claim_id]
+    # LanceDB update can error when setting list fields to an empty list.
+    value: list[str] | None = claims_extracted if claims_extracted else None
+    db.open_table("sources").update(where=f"id = '{source_id}'", values={"claims_extracted": value})
+
+
+def _sync_source_claim_backlinks(
+    claim_id: str,
+    old_source_ids: list[str],
+    new_source_ids: list[str],
+    db: lancedb.DBConnection,
+) -> None:
+    old_set = set(old_source_ids or [])
+    new_set = set(new_source_ids or [])
+
+    for source_id in sorted(old_set - new_set):
+        _remove_source_claim_backlink(source_id, claim_id, db)
+
+    for source_id in sorted(new_set - old_set):
+        _upsert_source_claim_backlink(source_id, claim_id, db)
+
+
+def _ensure_prediction_for_claim(claim: dict, db: lancedb.DBConnection) -> None:
+    """Create a stub prediction record for [P] claims if missing.
+
+    This keeps `validate.py` happy without forcing manual prediction entry on first pass.
+    """
+    if claim.get("type") != "[P]":
+        return
+
+    claim_id = claim.get("id")
+    if not claim_id:
+        return
+
+    if get_prediction(claim_id, db):
+        return
+
+    source_ids = list(claim.get("source_ids") or [])
+    if not source_ids:
+        return
+
+    prediction = {
+        "claim_id": claim_id,
+        "source_id": source_ids[0],
+        "date_made": str(date.today()),
+        "target_date": None,
+        "falsification_criteria": None,
+        "verification_criteria": None,
+        "status": "[P?]",
+        "last_evaluated": None,
+        "evidence_updates": None,
+    }
+    add_prediction(prediction, db)
+
+
 def add_claim(claim: dict, db: Optional[lancedb.DBConnection] = None, generate_embedding: bool = True) -> str:
     """Add a claim to the database. Returns the claim ID.
 
@@ -499,6 +578,12 @@ def add_claim(claim: dict, db: Optional[lancedb.DBConnection] = None, generate_e
             claim[list_field] = []
 
     table.add([claim])
+
+    claim_id = claim["id"]
+    for source_id in claim.get("source_ids") or []:
+        _upsert_source_claim_backlink(source_id, claim_id, db)
+
+    _ensure_prediction_for_claim(claim, db)
     return claim["id"]
 
 
@@ -541,9 +626,11 @@ def update_claim(claim_id: str, updates: dict, db: Optional[lancedb.DBConnection
 
     # Convert to Python native types
     existing = _ensure_python_types(existing)
+    old_source_ids = list(existing.get("source_ids") or [])
 
     # Merge updates
     existing.update(updates)
+    new_source_ids = list(existing.get("source_ids") or [])
 
     # Regenerate embedding if text changed
     if "text" in updates:
@@ -579,6 +666,9 @@ def update_claim(claim_id: str, updates: dict, db: Optional[lancedb.DBConnection
     # Delete and re-add (LanceDB doesn't have native update)
     table.delete(f"id = '{claim_id}'")
     table.add(pa_table)
+
+    _sync_source_claim_backlinks(claim_id, old_source_ids, new_source_ids, db)
+    _ensure_prediction_for_claim(existing, db)
     return True
 
 
@@ -587,8 +677,21 @@ def delete_claim(claim_id: str, db: Optional[lancedb.DBConnection] = None) -> bo
     if db is None:
         db = get_db()
 
+    existing = get_claim(claim_id, db)
+    source_ids = list(existing.get("source_ids") or []) if existing else []
+
     table = db.open_table("claims")
     table.delete(f"id = '{claim_id}'")
+
+    # Remove backlinks from sources (best-effort).
+    for source_id in source_ids:
+        _remove_source_claim_backlink(source_id, claim_id, db)
+
+    # Delete any prediction record associated with this claim.
+    try:
+        db.open_table("predictions").delete(f"claim_id = '{claim_id}'")
+    except Exception:
+        pass
     return True
 
 
@@ -717,6 +820,43 @@ def get_source(source_id: str, db: Optional[lancedb.DBConnection] = None) -> Opt
     table = db.open_table("sources")
     results = table.search().where(f"id = '{source_id}'", prefilter=True).limit(1).to_list()
     return results[0] if results else None
+
+
+def update_source(
+    source_id: str,
+    updates: dict,
+    db: Optional[lancedb.DBConnection] = None,
+    generate_embedding: bool = True,
+) -> bool:
+    """Update a source. Returns True if successful."""
+    if db is None:
+        db = get_db()
+
+    existing = get_source(source_id, db)
+    if not existing:
+        return False
+
+    # Regenerate embedding if title or bias_notes changed.
+    updates_to_apply = dict(updates)
+    if generate_embedding and ("title" in updates or "bias_notes" in updates):
+        merged = _ensure_python_types(existing)
+        merged.update(updates)
+        embed_text_parts = [merged.get("title", "")]
+        if merged.get("bias_notes"):
+            embed_text_parts.append(merged["bias_notes"])
+        updates_to_apply["embedding"] = embed_text(". ".join(embed_text_parts))
+
+    # Normalize list fields. For nullable list fields, prefer None over [] to avoid
+    # LanceDB update issues when writing an empty list.
+    if "author" in updates_to_apply and updates_to_apply["author"] is None:
+        updates_to_apply["author"] = []
+    for list_field in ["claims_extracted", "topics", "domains"]:
+        if list_field in updates_to_apply and (updates_to_apply[list_field] is None or updates_to_apply[list_field] == []):
+            updates_to_apply[list_field] = None
+
+    table = db.open_table("sources")
+    table.update(where=f"id = '{source_id}'", values=updates_to_apply)
+    return True
 
 
 def list_sources(
@@ -971,6 +1111,13 @@ def add_analysis_log(
 
     table.add([log])
     return log["id"]
+
+
+def _project_root_from_db_path(db_path: Path) -> Path:
+    resolved = db_path.expanduser().resolve()
+    if resolved.parent.name == "data":
+        return resolved.parent.parent
+    return resolved.parent
 
 
 def get_analysis_log(log_id: str, db: Optional[lancedb.DBConnection] = None) -> Optional[dict]:
@@ -1257,7 +1404,29 @@ Examples:
     source_add.add_argument("--reliability", type=float, help="Reliability score (0.0-1.0)")
     source_add.add_argument("--bias-notes", help="Bias notes")
     source_add.add_argument("--status", default="cataloged", help="Status (cataloged/analyzed)")
+    source_add.add_argument("--analysis-file", help="Path to analysis markdown file")
+    source_add.add_argument("--topics", help="Comma-separated topic tags")
+    source_add.add_argument("--domains", help="Comma-separated domain tags (TECH/LABOR/...)")
+    source_add.add_argument("--claims-extracted", help="Comma-separated claim IDs extracted from this source")
     source_add.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
+
+    # source update
+    source_update = source_subparsers.add_parser("update", help="Update a source")
+    source_update.add_argument("source_id", help="Source ID to update")
+    source_update.add_argument("--title", help="Source title")
+    source_update.add_argument("--type", help="Source type (PAPER/BOOK/REPORT/ARTICLE/BLOG/SOCIAL/CONVO/INTERVIEW/DATA/FICTION/KNOWLEDGE)")
+    source_update.add_argument("--author", help="Author(s) - comma-separated for multiple")
+    source_update.add_argument("--year", type=int, help="Publication year")
+    source_update.add_argument("--url", help="URL")
+    source_update.add_argument("--doi", help="DOI")
+    source_update.add_argument("--reliability", type=float, help="Reliability score (0.0-1.0)")
+    source_update.add_argument("--bias-notes", help="Bias notes")
+    source_update.add_argument("--status", help="Status (cataloged/analyzed)")
+    source_update.add_argument("--analysis-file", help="Path to analysis markdown file")
+    source_update.add_argument("--topics", help="Comma-separated topic tags")
+    source_update.add_argument("--domains", help="Comma-separated domain tags (TECH/LABOR/...)")
+    source_update.add_argument("--claims-extracted", help="Comma-separated claim IDs extracted from this source")
+    source_update.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
 
     # source get
     source_get = source_subparsers.add_parser("get", help="Get a source by ID")
@@ -1345,6 +1514,11 @@ Examples:
     analysis_add.add_argument("--claims-updated", help="Comma-separated list of updated claim IDs")
     analysis_add.add_argument("--notes", help="Notes about this analysis pass")
     analysis_add.add_argument("--git-commit", help="Git commit SHA")
+    analysis_add.add_argument(
+        "--allow-missing-source",
+        action="store_true",
+        help="Allow adding an analysis log even if the source_id is missing from the sources table",
+    )
     analysis_add.add_argument(
         "--usage-from",
         help="Parse token usage from a local session log: claude:/path/to.jsonl | codex:/path/to.jsonl | amp:/path/to.json",
@@ -1777,6 +1951,11 @@ rc-validate
         db = get_db()
 
         if args.source_command == "add":
+            def _parse_csv(value: Optional[str]) -> list[str]:
+                if value is None:
+                    return []
+                return [v.strip() for v in value.split(",") if v.strip()]
+
             source = {
                 "id": args.id,
                 "title": args.title,
@@ -1788,14 +1967,58 @@ rc-validate
                 "accessed": str(date.today()),
                 "reliability": args.reliability,
                 "bias_notes": args.bias_notes,
-                "claims_extracted": [],
-                "analysis_file": None,
-                "topics": [],
-                "domains": [],
+                "claims_extracted": _parse_csv(getattr(args, "claims_extracted", None)),
+                "analysis_file": getattr(args, "analysis_file", None),
+                "topics": _parse_csv(getattr(args, "topics", None)),
+                "domains": _parse_csv(getattr(args, "domains", None)),
                 "status": args.status,
             }
             result_id = add_source(source, db, generate_embedding=should_generate_embedding(args))
             print(f"Created source: {result_id}", flush=True)
+
+        elif args.source_command == "update":
+            def _parse_optional_csv(value: Optional[str]) -> Optional[list[str]]:
+                if value is None:
+                    return None
+                return [v.strip() for v in value.split(",") if v.strip()]
+
+            updates: dict[str, Any] = {}
+            if args.title is not None:
+                updates["title"] = args.title
+            if args.type is not None:
+                updates["type"] = args.type
+            if args.author is not None:
+                updates["author"] = [a.strip() for a in args.author.split(",") if a.strip()]
+            if args.year is not None:
+                updates["year"] = args.year
+            if args.url is not None:
+                updates["url"] = args.url
+            if args.doi is not None:
+                updates["doi"] = args.doi
+            if args.reliability is not None:
+                updates["reliability"] = args.reliability
+            if args.bias_notes is not None:
+                updates["bias_notes"] = args.bias_notes
+            if args.status is not None:
+                updates["status"] = args.status
+            if getattr(args, "analysis_file", None) is not None:
+                updates["analysis_file"] = args.analysis_file
+            if getattr(args, "topics", None) is not None:
+                updates["topics"] = _parse_optional_csv(args.topics)
+            if getattr(args, "domains", None) is not None:
+                updates["domains"] = _parse_optional_csv(args.domains)
+            if getattr(args, "claims_extracted", None) is not None:
+                updates["claims_extracted"] = _parse_optional_csv(args.claims_extracted)
+
+            if not updates:
+                print("No updates provided.", file=sys.stderr)
+                sys.exit(2)
+
+            ok = update_source(args.source_id, updates, db=db, generate_embedding=should_generate_embedding(args))
+            if not ok:
+                print(f"Source not found: {args.source_id}", file=sys.stderr)
+                sys.exit(1)
+            print(f"Updated source: {args.source_id}", flush=True)
 
         elif args.source_command == "get":
             result = get_source(args.source_id, db)
@@ -1980,6 +2203,14 @@ rc-validate
             if args.claims_updated:
                 log["claims_updated"] = [c.strip() for c in args.claims_updated.split(",")]
 
+            if not get_source(str(log["source_id"]), db) and not getattr(args, "allow_missing_source", False):
+                print(
+                    f"Error: source not found: {log['source_id']}. Add it first with `rc-db source add`, "
+                    "or pass --allow-missing-source.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+
             result_id = add_analysis_log(log, db, auto_pass=(args.pass_num is None))
             print(f"Created analysis log: {result_id}", flush=True)
 
@@ -1988,8 +2219,8 @@ rc-validate
             if analysis_file and not getattr(args, "no_update_analysis_file", False):
                 analysis_path = Path(str(analysis_file)).expanduser()
                 if not analysis_path.is_absolute():
-                    # Resolve relative paths from the current working directory.
-                    analysis_path = (Path.cwd() / analysis_path).resolve()
+                    # Resolve relative paths from the data project root (derived from REALITYCHECK_DATA).
+                    analysis_path = (_project_root_from_db_path(DB_PATH) / analysis_path).resolve()
 
                 if analysis_path.exists():
                     try:
@@ -2074,6 +2305,28 @@ rc-validate
         imported_claims = 0
         imported_sources = 0
 
+        # Import sources
+        if args.type in ["sources", "all"] and "sources" in data:
+            sources_data = data["sources"]
+            # Handle both list and dict formats
+            if isinstance(sources_data, dict):
+                sources_list = [{"id": k, **v} for k, v in sources_data.items()]
+            else:
+                sources_list = sources_data
+
+            for source in sources_list:
+                # Ensure author is a list
+                if isinstance(source.get("author"), str):
+                    source["author"] = [source["author"]]
+
+                # Set defaults
+                source.setdefault("claims_extracted", [])
+                source.setdefault("topics", [])
+                source.setdefault("domains", [])
+
+                add_source(source, db, generate_embedding=should_generate_embedding(args))
+                imported_sources += 1
+
         # Import claims
         if args.type in ["claims", "all"] and "claims" in data:
             claims_data = data["claims"]
@@ -2098,28 +2351,6 @@ rc-validate
 
                 add_claim(claim, db, generate_embedding=should_generate_embedding(args))
                 imported_claims += 1
-
-        # Import sources
-        if args.type in ["sources", "all"] and "sources" in data:
-            sources_data = data["sources"]
-            # Handle both list and dict formats
-            if isinstance(sources_data, dict):
-                sources_list = [{"id": k, **v} for k, v in sources_data.items()]
-            else:
-                sources_list = sources_data
-
-            for source in sources_list:
-                # Ensure author is a list
-                if isinstance(source.get("author"), str):
-                    source["author"] = [source["author"]]
-
-                # Set defaults
-                source.setdefault("claims_extracted", [])
-                source.setdefault("topics", [])
-                source.setdefault("domains", [])
-
-                add_source(source, db, generate_embedding=should_generate_embedding(args))
-                imported_sources += 1
 
         print(f"Imported {imported_claims} claims, {imported_sources} sources", flush=True)
 
