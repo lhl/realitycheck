@@ -41,6 +41,8 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 7. **README** - Update data project analysis index
 8. **Report** - Generate summary
 
+If the prompt includes **multiple sources** (compare/contrast), run `/reality:synthesize` after completing the per-source analyses.
+
 ## Database Commands
 
 ```bash
@@ -79,6 +81,7 @@ The plugin's PostToolUse hooks automatically:
 
 ## Related Commands
 
+- `/reality:synthesize` - Cross-source synthesis across multiple analyses
 - `/reality:analyze` - Manual 3-stage analysis without registration
 - `/reality:extract` - Quick claim extraction
 - `/reality:search` - Find related claims

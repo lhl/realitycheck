@@ -3,14 +3,14 @@ allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-export.sh *)"]
 description: Export data to Markdown or YAML formats
 ---
 
-# /export - Data Export
+# /reality:export - Data Export
 
 Export data to Markdown or YAML formats.
 
 ## Usage
 
 ```
-/export <format> <type> [--id ID] [-o OUTPUT]
+/reality:export <format> <type> [--id ID] [-o OUTPUT]
 ```
 
 ## CLI Invocation
@@ -53,19 +53,19 @@ uv run python scripts/export.py <format> <type> [OPTIONS]
 ## Examples
 
 ```
-/export yaml claims -o registry.yaml
-/export yaml sources -o sources.yaml
-/export md claim --id TECH-2026-001
-/export md chain --id CHAIN-2026-001
-/export md predictions -o predictions.md
-/export md summary -o dashboard.md
+/reality:export yaml claims -o registry.yaml
+/reality:export yaml sources -o sources.yaml
+/reality:export md claim --id TECH-2026-001
+/reality:export md chain --id CHAIN-2026-001
+/reality:export md predictions -o predictions.md
+/reality:export md summary -o dashboard.md
 ```
 
 ## Related Commands
 
-- `/validate` - Check data integrity
-- `/search` - Semantic search
-- `/stats` - Database statistics
+- `/reality:validate` - Check data integrity
+- `/reality:search` - Semantic search
+- `/reality:stats` - Database statistics
 
 ## Legacy Format
 

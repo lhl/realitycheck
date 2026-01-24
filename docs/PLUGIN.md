@@ -5,7 +5,7 @@ Integrate Reality Check methodology and database operations into Claude Code ses
 ## Status: v0.1.0
 
 The plugin provides:
-- **Command definitions** - 7 slash commands for analysis workflows
+- **Command definitions** - 8 slash commands for analysis workflows
 - **Shell wrappers** - CLI integration via `integrations/claude/plugin/scripts/`
 - **Full workflow automation** - `/reality:check` command for end-to-end analysis
 
@@ -68,6 +68,23 @@ The primary command for end-to-end source analysis.
 - `--quick`: Skip Stage 3 (dialectical analysis)
 - `--no-register`: Analyze without database registration
 - `--continue`: Continue/iterate on an existing analysis
+
+### /reality:synthesize - Cross-Source Synthesis
+
+Create a cross-source synthesis across multiple source analyses and claims.
+
+Use this when the task is inherently multi-source (compare/contrast, reconcile conflicts, summarize state-of-evidence), typically after running `/reality:check` for each source.
+
+```
+/reality:synthesize <topic>
+```
+
+**Workflow:**
+1. Identify relevant source analyses in `analysis/sources/`
+2. Write a synthesis in `analysis/syntheses/` linking back to those sources
+3. (Optional) Register an argument chain and set `--analysis-file` to the synthesis path
+4. Update the data repo `README.md` (Syntheses section)
+5. Commit and push
 
 ### /reality:analyze - Manual Analysis
 

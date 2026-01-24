@@ -3,14 +3,14 @@ allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh stats)"]
 description: Show statistics about the Reality Check database
 ---
 
-# /stats - Database Statistics
+# /reality:stats - Database Statistics
 
 Show statistics about the Reality Check database.
 
 ## Usage
 
 ```
-/stats
+/reality:stats
 ```
 
 ## Output
@@ -39,5 +39,5 @@ uv run python scripts/db.py stats
 
 ## Related Commands
 
-- `/validate` - Check data integrity
-- `/export` - Export data to files
+- `/reality:validate` - Check data integrity
+- `/reality:export` - Export data to files

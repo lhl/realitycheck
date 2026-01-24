@@ -248,6 +248,7 @@ Commands are prefixed with `/reality:`:
 | Command | Description |
 |---------|-------------|
 | `/reality:check <url>` | **Flagship** - Full analysis workflow (fetch → analyze → register → validate) |
+| `/reality:synthesize <topic>` | Cross-source synthesis across multiple analyses |
 | `/reality:analyze <source>` | Manual 3-stage analysis without auto-registration |
 | `/reality:extract <source>` | Quick claim extraction |
 | `/reality:search <query>` | Semantic search across claims |

@@ -3,14 +3,14 @@ allowed-tools: ["Bash(${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh search *)"]
 description: Search claims and sources using natural language queries
 ---
 
-# /search - Semantic Search
+# /reality:search - Semantic Search
 
 Search claims and sources using natural language queries.
 
 ## Usage
 
 ```
-/search <query> [--domain DOMAIN] [--limit N] [--format json|text]
+/reality:search <query> [--domain DOMAIN] [--limit N] [--format json|text]
 ```
 
 ## CLI Invocation
@@ -55,14 +55,14 @@ Results include:
 ## Examples
 
 ```
-/search "AI automation labor displacement"
-/search "training costs" --domain TECH --limit 5
-/search "wealth concentration inequality"
+/reality:search "AI automation labor displacement"
+/reality:search "training costs" --domain TECH --limit 5
+/reality:search "wealth concentration inequality"
 ```
 
 ## Related Commands
 
-- `/analyze` - Full source analysis
-- `/extract` - Quick claim extraction
-- `/export` - Export search results
-- `/stats` - Database statistics
+- `/reality:analyze` - Full source analysis
+- `/reality:extract` - Quick claim extraction
+- `/reality:export` - Export search results
+- `/reality:stats` - Database statistics
