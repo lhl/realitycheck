@@ -58,6 +58,9 @@ from db import (
     get_definition,
     list_definitions,
     get_stats,
+    add_analysis_log,
+    get_analysis_log,
+    list_analysis_logs,
     VALID_DOMAINS,
     DOMAIN_MIGRATION,
 )
@@ -77,7 +80,7 @@ class TestDatabaseInitialization:
         db = get_db(temp_db_path)
         tables = init_tables(db)
 
-        expected_tables = {"claims", "sources", "chains", "predictions", "contradictions", "definitions"}
+        expected_tables = {"claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs"}
         assert set(tables.keys()) == expected_tables
 
     def test_drop_tables_removes_all_tables(self, initialized_db):
@@ -1328,3 +1331,221 @@ class TestTextFormatOutput:
         # Should contain readable info
         assert "TEST-2026-001" in result.stdout
         assert "Text format claim" in result.stdout or "[F]" in result.stdout
+
+
+class TestAnalysisLogsCRUD:
+    """Tests for analysis log operations."""
+
+    def test_add_analysis_log(self, initialized_db, sample_analysis_log):
+        """Analysis logs can be added."""
+        log_id = add_analysis_log(sample_analysis_log, initialized_db)
+        assert log_id == "ANALYSIS-2026-001"
+
+    def test_get_analysis_log(self, initialized_db, sample_analysis_log):
+        """Analysis logs can be retrieved by ID."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+        retrieved = get_analysis_log("ANALYSIS-2026-001", initialized_db)
+
+        assert retrieved is not None
+        assert retrieved["id"] == "ANALYSIS-2026-001"
+        assert retrieved["source_id"] == "test-source-001"
+        assert retrieved["tool"] == "claude-code"
+        assert retrieved["status"] == "completed"
+
+    def test_get_analysis_log_returns_none_for_missing(self, initialized_db):
+        """None is returned for non-existent analysis logs."""
+        result = get_analysis_log("ANALYSIS-9999-999", initialized_db)
+        assert result is None
+
+    def test_list_analysis_logs_all(self, initialized_db, sample_analysis_log):
+        """All analysis logs are listed."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        log2 = sample_analysis_log.copy()
+        log2["id"] = "ANALYSIS-2026-002"
+        log2["source_id"] = "test-source-002"
+        add_analysis_log(log2, initialized_db)
+
+        results = list_analysis_logs(db=initialized_db)
+        assert len(results) == 2
+
+    def test_list_analysis_logs_filter_source_id(self, initialized_db, sample_analysis_log):
+        """Analysis logs can be filtered by source_id."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        log2 = sample_analysis_log.copy()
+        log2["id"] = "ANALYSIS-2026-002"
+        log2["source_id"] = "other-source"
+        add_analysis_log(log2, initialized_db)
+
+        results = list_analysis_logs(source_id="test-source-001", db=initialized_db)
+        assert len(results) == 1
+        assert results[0]["source_id"] == "test-source-001"
+
+    def test_list_analysis_logs_filter_tool(self, initialized_db, sample_analysis_log):
+        """Analysis logs can be filtered by tool."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        log2 = sample_analysis_log.copy()
+        log2["id"] = "ANALYSIS-2026-002"
+        log2["tool"] = "codex"
+        add_analysis_log(log2, initialized_db)
+
+        results = list_analysis_logs(tool="claude-code", db=initialized_db)
+        assert len(results) == 1
+        assert results[0]["tool"] == "claude-code"
+
+    def test_list_analysis_logs_filter_status(self, initialized_db, sample_analysis_log):
+        """Analysis logs can be filtered by status."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        log2 = sample_analysis_log.copy()
+        log2["id"] = "ANALYSIS-2026-002"
+        log2["status"] = "draft"
+        add_analysis_log(log2, initialized_db)
+
+        results = list_analysis_logs(status="completed", db=initialized_db)
+        assert len(results) == 1
+        assert results[0]["status"] == "completed"
+
+    def test_list_analysis_logs_limit(self, initialized_db, sample_analysis_log):
+        """List respects limit parameter."""
+        for i in range(5):
+            log = sample_analysis_log.copy()
+            log["id"] = f"ANALYSIS-2026-{i+1:03d}"
+            add_analysis_log(log, initialized_db)
+
+        results = list_analysis_logs(limit=3, db=initialized_db)
+        assert len(results) == 3
+
+    def test_add_analysis_log_auto_pass(self, initialized_db, sample_analysis_log):
+        """Pass number is auto-computed when not provided."""
+        log1 = sample_analysis_log.copy()
+        del log1["pass"]
+        del log1["id"]
+        add_analysis_log(log1, initialized_db)
+
+        log2 = sample_analysis_log.copy()
+        del log2["pass"]
+        del log2["id"]
+        add_analysis_log(log2, initialized_db)
+
+        results = list_analysis_logs(source_id="test-source-001", db=initialized_db)
+        passes = sorted([r["pass"] for r in results])
+        assert passes == [1, 2]
+
+
+class TestAnalysisLogsCLI:
+    """CLI tests for analysis log commands."""
+
+    def test_cli_analysis_add(self, temp_db_path: Path):
+        """rc-db analysis add creates an analysis log."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "analysis", "add",
+                "--source-id", "test-source-001",
+                "--tool", "claude-code",
+                "--notes", "Test analysis",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "Created analysis log:" in result.stdout
+        assert "ANALYSIS-" in result.stdout
+
+    def test_cli_analysis_get(self, temp_db_path: Path):
+        """rc-db analysis get retrieves an analysis log."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        add_result = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "analysis", "add",
+                "--source-id", "test-source",
+                "--tool", "manual",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(add_result)
+
+        # Extract the ID from output
+        import re
+        match = re.search(r"ANALYSIS-\d{4}-\d{3}", add_result.stdout)
+        assert match, f"Could not find analysis ID in output: {add_result.stdout}"
+        analysis_id = match.group(0)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", analysis_id],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert analysis_id in result.stdout
+        assert "test-source" in result.stdout
+
+    def test_cli_analysis_list(self, temp_db_path: Path):
+        """rc-db analysis list shows analysis logs."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "analysis", "add",
+                "--source-id", "test-source",
+                "--tool", "amp",
+            ],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "list"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "ANALYSIS-" in result.stdout or "test-source" in result.stdout

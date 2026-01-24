@@ -285,3 +285,33 @@ def sample_predictions_md(sample_yaml_sources: Path) -> Path:
         f.write(predictions_content)
 
     return sample_yaml_sources
+
+
+@pytest.fixture
+def sample_analysis_log() -> dict:
+    """Provide a sample analysis log for testing."""
+    return {
+        "id": "ANALYSIS-2026-001",
+        "source_id": "test-source-001",
+        "analysis_file": "analysis/sources/test-source-001.md",
+        "pass": 1,
+        "status": "completed",
+        "tool": "claude-code",
+        "command": "check",
+        "model": "claude-sonnet-4",
+        "framework_version": "0.1.0",
+        "methodology_version": None,
+        "started_at": "2026-01-23T10:00:00Z",
+        "completed_at": "2026-01-23T10:08:00Z",
+        "duration_seconds": 480,
+        "tokens_in": 2500,
+        "tokens_out": 1200,
+        "total_tokens": 3700,
+        "cost_usd": 0.08,
+        "stages_json": None,
+        "claims_extracted": ["TECH-2026-001"],
+        "claims_updated": [],
+        "notes": "Initial analysis",
+        "git_commit": "abc123",
+        "created_at": "2026-01-23T10:09:00Z",
+    }

@@ -21,6 +21,8 @@ from export import (
     export_chain_md,
     export_predictions_md,
     export_summary_md,
+    export_analysis_logs_yaml,
+    export_analysis_logs_md,
 )
 from db import (
     get_db,
@@ -29,6 +31,7 @@ from db import (
     add_source,
     add_chain,
     add_prediction,
+    add_analysis_log,
 )
 
 
@@ -313,3 +316,63 @@ class TestExportRoundTrip:
         assert isinstance(claim["version"], int)
         assert isinstance(claim["source_ids"], list)
         assert isinstance(claim["supports"], list)
+
+
+class TestAnalysisLogsExport:
+    """Tests for analysis logs export."""
+
+    def test_export_analysis_logs_yaml(self, initialized_db, temp_db_path, sample_analysis_log):
+        """YAML export includes all fields."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        yaml_str = export_analysis_logs_yaml(temp_db_path)
+
+        # Parse the YAML (skip header comments)
+        yaml_content = "\n".join(
+            line for line in yaml_str.split("\n")
+            if not line.startswith("#")
+        )
+        data = yaml.safe_load(yaml_content)
+
+        assert "analysis_logs" in data
+        assert len(data["analysis_logs"]) == 1
+
+        log = data["analysis_logs"][0]
+        assert log["id"] == "ANALYSIS-2026-001"
+        assert log["source_id"] == "test-source-001"
+        assert log["tool"] == "claude-code"
+        assert log["status"] == "completed"
+        assert log["total_tokens"] == 3700
+        assert log["cost_usd"] == pytest.approx(0.08, rel=0.01)
+
+    def test_export_analysis_logs_md(self, initialized_db, temp_db_path, sample_analysis_log):
+        """Markdown export produces table format."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        md_str = export_analysis_logs_md(temp_db_path)
+
+        # Check structure
+        assert "# Analysis Logs" in md_str
+        assert "## Log Entries" in md_str
+        assert "| Pass | Date | Source | Tool | Model | Duration | Tokens | Cost | Notes |" in md_str
+        assert "test-source-001" in md_str
+        assert "claude-code" in md_str
+
+    def test_export_analysis_logs_md_totals(self, initialized_db, temp_db_path, sample_analysis_log):
+        """Markdown export includes token/cost totals."""
+        add_analysis_log(sample_analysis_log, initialized_db)
+
+        # Add a second log
+        log2 = sample_analysis_log.copy()
+        log2["id"] = "ANALYSIS-2026-002"
+        log2["total_tokens"] = 5000
+        log2["cost_usd"] = 0.12
+        add_analysis_log(log2, initialized_db)
+
+        md_str = export_analysis_logs_md(temp_db_path)
+
+        # Check totals section
+        assert "## Summary Totals" in md_str
+        assert "**Total Logs**: 2" in md_str
+        assert "**Total Tokens**: 8,700" in md_str
+        assert "$0.20" in md_str  # 0.08 + 0.12

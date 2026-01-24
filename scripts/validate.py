@@ -32,6 +32,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from db import (
     VALID_DOMAINS,
+    VALID_ANALYSIS_STATUSES,
+    VALID_ANALYSIS_TOOLS,
     get_db,
     get_table_names,
     list_claims,
@@ -40,6 +42,7 @@ from db import (
     list_predictions,
     list_contradictions,
     list_definitions,
+    list_analysis_logs,
     get_stats,
 )
 
@@ -270,6 +273,68 @@ def validate_db(db_path: Optional[Path] = None) -> list[Finding]:
     if missing_predictions:
         findings.append(Finding("ERROR", "PREDICTIONS_MISSING",
             f"{len(missing_predictions)} [P] claims without prediction records: {', '.join(sorted(missing_predictions)[:5])}..."))
+
+    # Validate analysis logs (if table exists)
+    if "analysis_logs" in existing_tables:
+        try:
+            analysis_logs = list_analysis_logs(limit=100000, db=db)
+        except Exception as e:
+            findings.append(Finding("ERROR", "ANALYSIS_LOGS_READ", f"Error reading analysis_logs: {e}"))
+            analysis_logs = []
+
+        for log in analysis_logs:
+            log_id = log.get("id", "UNKNOWN")
+
+            # Status validation
+            status = log.get("status")
+            if status not in VALID_ANALYSIS_STATUSES:
+                findings.append(Finding("ERROR", "ANALYSIS_STATUS_INVALID",
+                    f"{log_id}: Invalid status '{status}'"))
+
+            # Tool validation
+            tool = log.get("tool")
+            if tool not in VALID_ANALYSIS_TOOLS:
+                findings.append(Finding("ERROR", "ANALYSIS_TOOL_INVALID",
+                    f"{log_id}: Invalid tool '{tool}'"))
+
+            # If completed, source_id must exist in sources
+            if status == "completed":
+                source_id = log.get("source_id")
+                if source_id and source_id not in source_ids:
+                    findings.append(Finding("ERROR", "ANALYSIS_SOURCE_MISSING",
+                        f"{log_id}: Completed analysis references unknown source '{source_id}'"))
+
+            # If claims_extracted/updated and status != draft, claims must exist
+            if status != "draft":
+                for claim_id in log.get("claims_extracted") or []:
+                    if claim_id not in claim_ids:
+                        findings.append(Finding("ERROR", "ANALYSIS_CLAIM_MISSING",
+                            f"{log_id}: claims_extracted references unknown claim '{claim_id}'"))
+
+                for claim_id in log.get("claims_updated") or []:
+                    if claim_id not in claim_ids:
+                        findings.append(Finding("ERROR", "ANALYSIS_CLAIM_MISSING",
+                            f"{log_id}: claims_updated references unknown claim '{claim_id}'"))
+
+            # Validate stages_json is valid JSON if present
+            stages_json = log.get("stages_json")
+            if stages_json:
+                try:
+                    json.loads(stages_json)
+                except json.JSONDecodeError:
+                    findings.append(Finding("ERROR", "ANALYSIS_STAGES_INVALID_JSON",
+                        f"{log_id}: stages_json is not valid JSON"))
+
+            # Check for impossible metrics
+            duration = log.get("duration_seconds")
+            if duration is not None and duration < 0:
+                findings.append(Finding("ERROR", "ANALYSIS_DURATION_NEGATIVE",
+                    f"{log_id}: Negative duration_seconds: {duration}"))
+
+            cost = log.get("cost_usd")
+            if cost is not None and cost < 0:
+                findings.append(Finding("ERROR", "ANALYSIS_COST_NEGATIVE",
+                    f"{log_id}: Negative cost_usd: {cost}"))
 
     return findings
 
