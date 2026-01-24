@@ -12,6 +12,8 @@ The `db.py` script (or `rc-db` if installed via pip) provides all database opera
 | `db.py init-project [--path DIR]` | Create new project with config + database |
 | `db.py stats` | Show database statistics |
 | `db.py reset` | Reset database (destructive!) |
+| `db.py doctor` | Detect project root/DB and print setup guidance |
+| `db.py repair` | Repair database invariants (safe/idempotent) |
 | `db.py search "query"` | Semantic search across claims |
 | `db.py claim add/get/list/update` | Claim CRUD operations |
 | `db.py source add/get/list/update` | Source CRUD operations |
@@ -19,7 +21,7 @@ The `db.py` script (or `rc-db` if installed via pip) provides all database opera
 | `db.py prediction add/list` | Prediction operations |
 | `db.py analysis add/get/list` | Analysis audit log operations |
 | `db.py related <claim-id>` | Find related claims |
-| `db.py import <file>` | Bulk import from YAML |
+| `db.py import <file>` | Bulk import from YAML (supports `--on-conflict`) |
 
 Other scripts:
 - `validate.py` - Data integrity validation
@@ -60,7 +62,9 @@ cd ~/my-research
 export REALITYCHECK_DATA="$(pwd)/data/realitycheck.lance"
 ```
 
-**Note:** If `REALITYCHECK_DATA` is not set, most commands will only work when a default database exists at `./data/realitycheck.lance/` (relative to your current directory). Otherwise, the CLI will exit with a helpful error prompting you to set `REALITYCHECK_DATA` or create a project via `rc-db init-project`.
+**Note:** If `REALITYCHECK_DATA` is not set, the CLIs will try to auto-detect a data project by walking up from your current directory for `.realitycheck.yaml` or `data/realitycheck.lance/`. If nothing is detected, set `REALITYCHECK_DATA` (or pass `--db-path` where supported), or create a project via `rc-db init-project`.
+
+You can also use `db.py doctor` to print detected project/DB paths and copy-paste setup commands.
 
 ## Claim Workflows
 
@@ -231,7 +235,16 @@ uv run python scripts/db.py import sources.yaml --type sources
 
 # Import everything
 uv run python scripts/db.py import data.yaml --type all
+
+# Safe reruns (no manual deletes)
+uv run python scripts/db.py import data.yaml --type all --on-conflict skip
+uv run python scripts/db.py import data.yaml --type all --on-conflict update
 ```
+
+Notes:
+- `--on-conflict error` is the default (fail fast).
+- `--on-conflict skip` ignores existing IDs (idempotent reruns).
+- `--on-conflict update` updates existing rows with incoming fields.
 
 ### Register From An Analysis YAML (Recommended)
 
@@ -265,6 +278,12 @@ uv run python scripts/validate.py --mode yaml --repo-root /path/to/data
 2. **Referential Integrity**: All references resolve
 3. **Logical Consistency**: Chain credences, prediction links
 4. **Data Quality**: No empty text, embeddings present (warning)
+
+If validation fails with mechanical integrity issues (e.g., `SOURCE_CLAIM_NOT_LISTED`, `SOURCE_BACKLINK_MISSING`, `PREDICTIONS_MISSING`), run:
+
+```bash
+uv run python scripts/db.py repair
+```
 
 ## Analysis Audit Log Workflow
 

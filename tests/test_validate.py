@@ -9,6 +9,8 @@ Tests cover:
 
 import pytest
 from pathlib import Path
+import subprocess
+import os
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -260,6 +262,74 @@ class TestYamlValidation:
 
         source_errors = [f for f in findings if f.code == "CLAIM_SOURCE_MISSING"]
         assert len(source_errors) >= 1
+
+
+class TestValidateCLI:
+    """Tests for validate CLI output."""
+
+    def test_validate_cli_prints_remediation_commands(self, initialized_db, temp_db_path, sample_claim, sample_source):
+        """CLI output includes actionable remediation commands for common failures."""
+        # Create backlink mismatch: add claim before source so add_claim can't auto-upsert.
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        source = sample_source.copy()
+        source["claims_extracted"] = []
+        add_source(source, initialized_db, generate_embedding=False)
+
+        # Create missing prediction stub: add [P] claim then delete the auto-created prediction.
+        p_claim = sample_claim.copy()
+        p_claim["id"] = "TECH-2026-002"
+        p_claim["type"] = "[P]"
+        add_claim(p_claim, initialized_db, generate_embedding=False)
+        initialized_db.open_table("predictions").delete(f"claim_id = '{p_claim['id']}'")
+
+        result = subprocess.run(
+            [sys.executable, "scripts/validate.py", "--db-path", str(temp_db_path)],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        # Validation should fail (exit 1) but output should be actionable.
+        assert result.returncode == 1
+        combined = (result.stdout or "") + (result.stderr or "")
+        assert "SOURCE_CLAIM_NOT_LISTED" in combined
+        assert "PREDICTIONS_MISSING" in combined
+        assert "rc-db repair" in combined
+
+    def test_validate_cli_autodetects_project_db_from_subdir(self, tmp_path: Path):
+        """When REALITYCHECK_DATA is unset, validate auto-detects a project DB from a subdirectory."""
+        project_path = tmp_path / "test-project"
+
+        init_project = subprocess.run(
+            [
+                sys.executable,
+                "scripts/db.py",
+                "init-project",
+                "--path",
+                str(project_path),
+                "--no-git",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert init_project.returncode == 0, init_project.stderr
+
+        env = os.environ.copy()
+        env.pop("REALITYCHECK_DATA", None)
+        cwd = project_path / "analysis" / "sources"
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).parent.parent / "scripts" / "validate.py")],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+
+        assert result.returncode == 0, (result.stdout or "") + (result.stderr or "")
+        combined = (result.stdout or "") + (result.stderr or "")
+        assert "OK:" in combined
 
 
 class TestFinding:

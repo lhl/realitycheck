@@ -26,6 +26,8 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 
 from db import (
+    find_project_root,
+    resolve_db_path_from_project_root,
     get_db,
     list_claims,
     list_sources,
@@ -627,15 +629,26 @@ def main():
 
     args = parser.parse_args()
 
-    if args.command and args.db_path is None and not os.getenv("REALITYCHECK_DATA"):
+    selected_db_path = args.db_path
+    if args.command and selected_db_path is None and not os.getenv("REALITYCHECK_DATA"):
         default_db = Path("data/realitycheck.lance")
-        if not default_db.exists():
-            print(
-                "Error: REALITYCHECK_DATA is not set and no default database was found at "
-                f"'{default_db}'. Set REALITYCHECK_DATA or pass --db-path.",
-                file=sys.stderr,
-            )
-            sys.exit(2)
+        if default_db.exists():
+            selected_db_path = default_db
+        else:
+            project_root = find_project_root(Path.cwd())
+            if project_root:
+                detected = resolve_db_path_from_project_root(project_root)
+                if detected.exists():
+                    selected_db_path = detected
+
+    if args.command and selected_db_path is None and not os.getenv("REALITYCHECK_DATA"):
+        default_db = Path("data/realitycheck.lance")
+        print(
+            "Error: REALITYCHECK_DATA is not set and no database was found at "
+            f"'{default_db}' (or via project auto-detect). Set REALITYCHECK_DATA or pass --db-path.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     def output_result(content: str, output_path: Optional[Path]):
         if output_path:
@@ -646,13 +659,13 @@ def main():
 
     if args.command == "yaml":
         if args.type == "claims":
-            content = export_claims_yaml(args.db_path)
+            content = export_claims_yaml(selected_db_path)
         elif args.type == "sources":
-            content = export_sources_yaml(args.db_path)
+            content = export_sources_yaml(selected_db_path)
         elif args.type == "analysis-logs":
-            content = export_analysis_logs_yaml(args.db_path)
+            content = export_analysis_logs_yaml(selected_db_path)
         else:  # all
-            content = export_claims_yaml(args.db_path) + "\n---\n\n" + export_sources_yaml(args.db_path)
+            content = export_claims_yaml(selected_db_path) + "\n---\n\n" + export_sources_yaml(selected_db_path)
         output_result(content, args.output)
 
     elif args.command == "md":
@@ -660,22 +673,22 @@ def main():
             if not args.id:
                 print("Error: --id required for claim export", file=sys.stderr)
                 sys.exit(1)
-            content = export_claim_md(args.id, args.db_path)
+            content = export_claim_md(args.id, selected_db_path)
         elif args.type == "chain":
             if not args.id:
                 print("Error: --id required for chain export", file=sys.stderr)
                 sys.exit(1)
-            content = export_chain_md(args.id, args.db_path)
+            content = export_chain_md(args.id, selected_db_path)
         elif args.type == "predictions":
-            content = export_predictions_md(args.db_path)
+            content = export_predictions_md(selected_db_path)
         elif args.type == "analysis-logs":
-            content = export_analysis_logs_md(args.db_path)
+            content = export_analysis_logs_md(selected_db_path)
         else:  # summary
-            content = export_summary_md(args.db_path)
+            content = export_summary_md(selected_db_path)
         output_result(content, args.output)
 
     elif args.command == "stats":
-        stats = get_stats(get_db(args.db_path))
+        stats = get_stats(get_db(selected_db_path))
         print("Database Statistics:")
         for table, count in stats.items():
             print(f"  {table}: {count}")

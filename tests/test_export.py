@@ -11,6 +11,7 @@ import pytest
 import yaml
 from pathlib import Path
 import subprocess
+import os
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -413,6 +414,40 @@ class TestAnalysisLogsExport:
 
 class TestExportCLI:
     """CLI tests for scripts/export.py."""
+
+    def test_export_cli_autodetects_project_db_from_subdir(self, tmp_path: Path):
+        """When REALITYCHECK_DATA is unset, export auto-detects a project DB from a subdirectory."""
+        project_path = tmp_path / "test-project"
+
+        init_project = subprocess.run(
+            [
+                sys.executable,
+                "scripts/db.py",
+                "init-project",
+                "--path",
+                str(project_path),
+                "--no-git",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert init_project.returncode == 0, init_project.stderr
+
+        env = os.environ.copy()
+        env.pop("REALITYCHECK_DATA", None)
+        cwd = project_path / "analysis" / "sources"
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).parent.parent / "scripts" / "export.py"), "stats"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+        )
+
+        assert result.returncode == 0, (result.stdout or "") + (result.stderr or "")
+        combined = (result.stdout or "") + (result.stderr or "")
+        assert "Database Statistics" in combined
 
     def test_cli_md_analysis_logs(self, initialized_db, temp_db_path, sample_analysis_log):
         """`rc-export md analysis-logs` exports analysis logs in Markdown."""
