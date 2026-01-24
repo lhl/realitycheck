@@ -78,6 +78,17 @@ After registration, add an analysis log entry:
   --cmd check \
   --analysis-file "analysis/sources/SOURCE_ID.md" \
   --notes "Initial analysis + registration"
+
+# Optional (token/cost capture from local session logs)
+"${CLAUDE_PLUGIN_ROOT}/scripts/run-db.sh" analysis add \
+  --source-id "SOURCE_ID" \
+  --tool claude-code \
+  --cmd check \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --model "claude-sonnet-4" \
+  --usage-from claude:"/path/to/session.jsonl" \
+  --estimate-cost \
+  --notes "Initial analysis + registration"
 ```
 
 ## Validation

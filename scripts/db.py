@@ -19,6 +19,9 @@ from typing import Any, Optional
 import lancedb
 import pyarrow as pa
 
+from analysis_log_writer import upsert_analysis_log_section
+from usage_capture import estimate_cost_usd, parse_usage_from_source
+
 # Configuration
 DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
 EMBEDDING_MODEL = os.getenv("REALITYCHECK_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or "all-MiniLM-L6-v2"
@@ -1338,6 +1341,38 @@ Examples:
     analysis_add.add_argument("--claims-updated", help="Comma-separated list of updated claim IDs")
     analysis_add.add_argument("--notes", help="Notes about this analysis pass")
     analysis_add.add_argument("--git-commit", help="Git commit SHA")
+    analysis_add.add_argument(
+        "--usage-from",
+        help="Parse token usage from a local session log: claude:/path/to.jsonl | codex:/path/to.jsonl | amp:/path/to.json",
+    )
+    analysis_add.add_argument(
+        "--window-start",
+        help="Usage window start timestamp (ISO-8601; optional, for per-message logs)",
+    )
+    analysis_add.add_argument(
+        "--window-end",
+        help="Usage window end timestamp (ISO-8601; optional, for per-message logs)",
+    )
+    analysis_add.add_argument(
+        "--estimate-cost",
+        action="store_true",
+        help="Estimate cost_usd from tokens + model pricing (best-effort; prices change)",
+    )
+    analysis_add.add_argument(
+        "--price-in-per-1m",
+        type=float,
+        help="Override input price (USD per 1M tokens) for --estimate-cost",
+    )
+    analysis_add.add_argument(
+        "--price-out-per-1m",
+        type=float,
+        help="Override output price (USD per 1M tokens) for --estimate-cost",
+    )
+    analysis_add.add_argument(
+        "--no-update-analysis-file",
+        action="store_true",
+        help="Do not update the in-document Analysis Log table in --analysis-file",
+    )
 
     # analysis get
     analysis_get = analysis_subparsers.add_parser("get", help="Get an analysis log by ID")
@@ -1851,6 +1886,29 @@ rc-validate
         db = get_db()
 
         if args.analysis_command == "add":
+            usage_totals = None
+            if getattr(args, "usage_from", None):
+                try:
+                    provider, usage_path_str = args.usage_from.split(":", 1)
+                except ValueError:
+                    print(
+                        "Error: --usage-from must be formatted like 'codex:/path/to/rollout.jsonl'",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+
+                usage_path = Path(usage_path_str).expanduser()
+                try:
+                    usage_totals = parse_usage_from_source(
+                        provider,
+                        usage_path,
+                        window_start=getattr(args, "window_start", None),
+                        window_end=getattr(args, "window_end", None),
+                    )
+                except Exception as e:
+                    print(f"Error parsing usage from {args.usage_from}: {e}", file=sys.stderr)
+                    sys.exit(2)
+
             log = {
                 "source_id": args.source_id,
                 "tool": args.tool,
@@ -1872,6 +1930,42 @@ rc-validate
                 "stages_json": None,
             }
 
+            if usage_totals is not None:
+                if log.get("tokens_in") is None and usage_totals.tokens_in is not None:
+                    log["tokens_in"] = usage_totals.tokens_in
+                if log.get("tokens_out") is None and usage_totals.tokens_out is not None:
+                    log["tokens_out"] = usage_totals.tokens_out
+                if log.get("total_tokens") is None and usage_totals.total_tokens is not None:
+                    log["total_tokens"] = usage_totals.total_tokens
+                if log.get("cost_usd") is None and usage_totals.cost_usd is not None:
+                    log["cost_usd"] = usage_totals.cost_usd
+
+            # Backfill total_tokens when input/output are known.
+            if log.get("total_tokens") is None and isinstance(log.get("tokens_in"), int) and isinstance(log.get("tokens_out"), int):
+                log["total_tokens"] = int(log["tokens_in"]) + int(log["tokens_out"])
+
+            # Optional cost estimation from known model pricing.
+            if (
+                log.get("cost_usd") is None
+                and getattr(args, "estimate_cost", False)
+                and isinstance(log.get("tokens_in"), int)
+                and isinstance(log.get("tokens_out"), int)
+                and (log.get("model") or "").strip()
+            ):
+                try:
+                    estimated = estimate_cost_usd(
+                        str(log["model"]),
+                        int(log["tokens_in"]),
+                        int(log["tokens_out"]),
+                        price_in_per_1m=getattr(args, "price_in_per_1m", None),
+                        price_out_per_1m=getattr(args, "price_out_per_1m", None),
+                    )
+                except Exception as e:
+                    print(f"Error estimating cost: {e}", file=sys.stderr)
+                    sys.exit(2)
+                if estimated is not None:
+                    log["cost_usd"] = estimated
+
             # Handle pass number
             if args.pass_num is not None:
                 log["pass"] = args.pass_num
@@ -1884,6 +1978,29 @@ rc-validate
 
             result_id = add_analysis_log(log, db, auto_pass=(args.pass_num is None))
             print(f"Created analysis log: {result_id}", flush=True)
+
+            # Update the analysis markdown file's in-document Analysis Log (best-effort).
+            analysis_file = log.get("analysis_file")
+            if analysis_file and not getattr(args, "no_update_analysis_file", False):
+                analysis_path = Path(str(analysis_file)).expanduser()
+                if not analysis_path.is_absolute():
+                    # Resolve relative paths from the current working directory.
+                    analysis_path = (Path.cwd() / analysis_path).resolve()
+
+                if analysis_path.exists():
+                    try:
+                        before = analysis_path.read_text(encoding="utf-8")
+                        after = upsert_analysis_log_section(before, log)
+                        if after != before:
+                            analysis_path.write_text(after, encoding="utf-8")
+                            print(f"Updated analysis file: {analysis_path}", file=sys.stderr, flush=True)
+                    except Exception as e:
+                        print(f"Warning: could not update analysis file {analysis_path}: {e}", file=sys.stderr)
+                else:
+                    print(
+                        f"Warning: analysis file not found; skipping in-document log update: {analysis_path}",
+                        file=sys.stderr,
+                    )
 
         elif args.analysis_command == "get":
             result = get_analysis_log(args.analysis_id, db)

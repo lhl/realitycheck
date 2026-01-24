@@ -1,6 +1,6 @@
 # Implementation: Analysis Audit Log
 
-**Status**: Complete (Phases 1-7 complete; Phase 8 deferred)
+**Status**: Complete (Phases 1-8 complete)
 **Plan**: [PLAN-audit-log.md](PLAN-audit-log.md)
 **Started**: 2026-01-23
 
@@ -76,12 +76,13 @@ Implement a durable, queryable audit log for Reality Check analyses:
   - `methodology/workflows/check-core.md`
 
 ### Phase 8: Token/Cost Capture (optional automation, defer if needed)
-- [ ] Add `--usage-from <claude|codex|amp>:<path>` flag to `analysis add`
-- [ ] Add `--window-start`/`--window-end` for run boundary (optional)
-- [ ] Parse local session logs (usage-only; no transcript retention):
+- [x] Add `--usage-from <claude|codex|amp>:<path>` flag to `analysis add`
+- [x] Add `--window-start`/`--window-end` for run boundary (optional)
+- [x] Parse local session logs (usage-only; no transcript retention):
   - Claude Code: `~/.claude/projects/<project>/<session-id>.jsonl`
   - Codex: `~/.codex/sessions/.../rollout-*.jsonl`
   - Amp: `~/.local/share/amp/threads/T-*.json`
+- [x] Best-effort update of in-document Analysis Log table when `--analysis-file` is provided
 
 ## Resolved Decisions
 
@@ -126,6 +127,12 @@ Implemented core audit log functionality:
 
 - Added the in-document Analysis Log template section and integrated it into `/check` skills and Claude plugin command docs.
 - Regenerated skills and methodology docs from templates.
+
+### 2026-01-24: Phase 8 token/cost capture
+
+- Added usage parsers for Claude Code / Codex / Amp session logs (`--usage-from`, optional time window).
+- Added best-effort cost estimation (`--estimate-cost`) using a small built-in pricing table (overrideable via `--price-*-per-1m`).
+- `rc-db analysis add` now updates the referenced analysis markdown file's "## Analysis Log" section (if present, or inserts if missing).
 
 ### 2026-01-23: Token usage capture research
 

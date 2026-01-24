@@ -44,6 +44,9 @@ rc-db analysis add \
   --tool codex \
   --cmd check \
   --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --model "gpt-4o" \
+  --usage-from codex:"/path/to/rollout-*.jsonl" \
+  --estimate-cost \
   --notes "Initial analysis + registration"
 rc-db analysis list --source-id "SOURCE_ID"
 rc-db analysis get ANALYSIS-YYYY-NNN

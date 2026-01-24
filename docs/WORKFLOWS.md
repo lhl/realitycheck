@@ -254,6 +254,17 @@ uv run python scripts/db.py analysis add \
   --analysis-file analysis/sources/test-source-001.md \
   --notes "Initial 3-stage analysis + registration"
 
+# Optional: parse token usage from local session logs (usage-only; no transcript retention)
+uv run python scripts/db.py analysis add \
+  --source-id test-source-001 \
+  --tool codex \
+  --cmd check \
+  --analysis-file analysis/sources/test-source-001.md \
+  --model gpt-4o \
+  --usage-from codex:/path/to/rollout-*.jsonl \
+  --estimate-cost \
+  --notes "Initial 3-stage analysis + registration"
+
 # Optional: manual timestamps + token/cost entry (when available)
 uv run python scripts/db.py analysis add \
   --source-id test-source-001 \
