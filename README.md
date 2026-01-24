@@ -14,6 +14,8 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 - **Argument Chains**: Map logical dependencies and identify weak links
 - **Semantic Search**: Find related claims across your entire knowledge base
 
+See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public example knowledge base built with Reality Check.
+
 ## Status
 
 **v0.1.3** - Core functionality complete. Extended CLI, integrations for Claude Code, Codex, and Amp, and 137 passing tests.
