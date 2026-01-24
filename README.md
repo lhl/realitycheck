@@ -18,7 +18,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.1.3** - Core functionality complete. Extended CLI, integrations for Claude Code, Codex, and Amp, and 137 passing tests.
+**v0.1.4** - Core functionality complete. Extended CLI, integrations for Claude Code, Codex, and Amp, and 231 passing tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
