@@ -44,6 +44,7 @@ from db import (
     get_related_claims,
     add_source,
     get_source,
+    update_source,
     list_sources,
     search_sources,
     add_chain,
@@ -101,6 +102,38 @@ class TestClaimsCRUD:
         claim_id = add_claim(sample_claim, initialized_db, generate_embedding=False)
         assert claim_id == "TECH-2026-001"
 
+    def test_add_claim_updates_source_claims_extracted_backlink(self, initialized_db, sample_claim, sample_source):
+        """Adding a claim updates the source's claims_extracted backlink when possible."""
+        source = sample_source.copy()
+        source["claims_extracted"] = []
+        add_source(source, initialized_db, generate_embedding=False)
+
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        updated = get_source(source["id"], initialized_db)
+        assert updated is not None
+        assert "TECH-2026-001" in (updated.get("claims_extracted") or [])
+
+    def test_add_prediction_claim_auto_creates_prediction_record(self, initialized_db, sample_claim, sample_source):
+        """[P] claims automatically create a stub prediction record."""
+        source = sample_source.copy()
+        source["claims_extracted"] = []
+        add_source(source, initialized_db, generate_embedding=False)
+
+        pred_claim = sample_claim.copy()
+        pred_claim["id"] = "TECH-2026-002"
+        pred_claim["type"] = "[P]"
+        add_claim(pred_claim, initialized_db, generate_embedding=False)
+
+        pred = get_prediction("TECH-2026-002", initialized_db)
+        assert pred is not None
+        assert pred["status"] == "[P?]"
+        assert pred["source_id"] == source["id"]
+
+        updated = get_source(source["id"], initialized_db)
+        assert updated is not None
+        assert "TECH-2026-002" in (updated.get("claims_extracted") or [])
+
     @pytest.mark.requires_embedding
     def test_add_claim_generates_embedding(self, initialized_db, sample_claim):
         """Embeddings are generated when requested."""
@@ -143,6 +176,26 @@ class TestClaimsCRUD:
 
         result = get_claim("TECH-2026-001", initialized_db)
         assert result is None
+
+    def test_delete_claim_removes_prediction_and_source_backlink(self, initialized_db, sample_claim, sample_source):
+        """Deleting a claim cleans up associated prediction records and source backlinks."""
+        source = sample_source.copy()
+        source["claims_extracted"] = []
+        add_source(source, initialized_db, generate_embedding=False)
+
+        pred_claim = sample_claim.copy()
+        pred_claim["id"] = "TECH-2026-002"
+        pred_claim["type"] = "[P]"
+        add_claim(pred_claim, initialized_db, generate_embedding=False)
+
+        assert get_prediction("TECH-2026-002", initialized_db) is not None
+
+        delete_claim("TECH-2026-002", initialized_db)
+
+        assert get_prediction("TECH-2026-002", initialized_db) is None
+        updated = get_source(source["id"], initialized_db)
+        assert updated is not None
+        assert "TECH-2026-002" not in (updated.get("claims_extracted") or [])
 
     def test_list_claims_returns_all(self, initialized_db, sample_claim):
         """All claims are listed."""
@@ -293,6 +346,30 @@ class TestSourcesCRUD:
         reports = list_sources(source_type="REPORT", db=initialized_db)
         assert len(reports) == 1
         assert reports[0]["type"] == "REPORT"
+
+    def test_update_source(self, initialized_db, sample_source):
+        """Sources can be updated."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        ok = update_source(
+            "test-source-001",
+            {
+                "analysis_file": "analysis/sources/test-source-001.md",
+                "topics": ["updated"],
+                "domains": ["TECH", "LABOR"],
+                "claims_extracted": ["TECH-2026-123"],
+            },
+            initialized_db,
+            generate_embedding=False,
+        )
+        assert ok is True
+
+        retrieved = get_source("test-source-001", initialized_db)
+        assert retrieved is not None
+        assert retrieved["analysis_file"] == "analysis/sources/test-source-001.md"
+        assert retrieved["topics"] == ["updated"]
+        assert retrieved["domains"] == ["TECH", "LABOR"]
+        assert retrieved["claims_extracted"] == ["TECH-2026-123"]
 
 
 class TestChainsCRUD:
@@ -1195,6 +1272,101 @@ class TestImportCLI:
         data = json.loads(list_result.stdout)
         assert len(data) == 2
 
+    def test_import_yaml_all_syncs_source_backlinks_and_predictions(self, temp_db_path: Path, tmp_path: Path):
+        """import --type all imports sources first so claim side-effects can run."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        import yaml
+        all_data = {
+            "sources": [
+                {
+                    "id": "test-source",
+                    "title": "Imported Source",
+                    "type": "REPORT",
+                    "author": ["Test Author"],
+                    "year": 2026,
+                    "claims_extracted": [],
+                }
+            ],
+            "claims": [
+                {
+                    "id": "IMPORT-2026-003",
+                    "text": "Imported claim three",
+                    "type": "[F]",
+                    "domain": "TECH",
+                    "evidence_level": "E3",
+                    "credence": 0.7,
+                    "source_ids": ["test-source"],
+                    "first_extracted": "2026-01-20",
+                    "extracted_by": "test",
+                    "version": 1,
+                    "last_updated": "2026-01-20",
+                },
+                {
+                    "id": "IMPORT-2026-004",
+                    "text": "Imported prediction claim",
+                    "type": "[P]",
+                    "domain": "TECH",
+                    "evidence_level": "E5",
+                    "credence": 0.5,
+                    "source_ids": ["test-source"],
+                    "first_extracted": "2026-01-20",
+                    "extracted_by": "test",
+                    "version": 1,
+                    "last_updated": "2026-01-20",
+                },
+            ],
+        }
+        yaml_file = tmp_path / "all.yaml"
+        with open(yaml_file, "w") as f:
+            yaml.dump(all_data, f)
+
+        result = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "import", str(yaml_file),
+                "--type", "all",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "Imported 2 claims, 1 sources" in result.stdout
+
+        source_get = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "get", "test-source"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_get)
+        source = json.loads(source_get.stdout)
+        assert set(source.get("claims_extracted") or []) == {"IMPORT-2026-003", "IMPORT-2026-004"}
+
+        pred_list = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "prediction", "list"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(pred_list)
+        preds = json.loads(pred_list.stdout)
+        assert any(p.get("claim_id") == "IMPORT-2026-004" and p.get("status") == "[P?]" for p in preds)
+
     def test_import_handles_missing_file(self, temp_db_path: Path):
         """import returns error for missing file."""
         env = os.environ.copy()
@@ -1451,6 +1623,24 @@ class TestAnalysisLogsCLI:
             cwd=Path(__file__).parent.parent,
         )
 
+        source_add = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "source", "add",
+                "--id", "test-source-001",
+                "--title", "Test Source",
+                "--type", "REPORT",
+                "--author", "Test Author",
+                "--year", "2026",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_add)
+
         result = subprocess.run(
             [
                 "uv", "run", "python", "scripts/db.py",
@@ -1481,6 +1671,24 @@ class TestAnalysisLogsCLI:
             capture_output=True,
             cwd=Path(__file__).parent.parent,
         )
+
+        source_add = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "source", "add",
+                "--id", "test-source",
+                "--title", "Test Source",
+                "--type", "REPORT",
+                "--author", "Test Author",
+                "--year", "2026",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_add)
 
         add_result = subprocess.run(
             [
@@ -1527,7 +1735,25 @@ class TestAnalysisLogsCLI:
             cwd=Path(__file__).parent.parent,
         )
 
-        subprocess.run(
+        source_add = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "source", "add",
+                "--id", "test-source",
+                "--title", "Test Source",
+                "--type", "REPORT",
+                "--author", "Test Author",
+                "--year", "2026",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(source_add)
+
+        add_result = subprocess.run(
             [
                 "uv", "run", "python", "scripts/db.py",
                 "analysis", "add",
@@ -1536,8 +1762,10 @@ class TestAnalysisLogsCLI:
             ],
             env=env,
             capture_output=True,
+            text=True,
             cwd=Path(__file__).parent.parent,
         )
+        assert_cli_success(add_result)
 
         result = subprocess.run(
             ["uv", "run", "python", "scripts/db.py", "analysis", "list"],

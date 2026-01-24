@@ -478,7 +478,17 @@ rc-db source add \
   --type "TYPE" \
   --author "AUTHOR" \
   --year YEAR \
-  --url "URL"
+  --url "URL" \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --topics "tag1,tag2" \
+  --domains "TECH,LABOR"
+
+# Update source metadata later
+rc-db source update "SOURCE_ID" \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --topics "tag1,tag2" \
+  --domains "TECH,LABOR" \
+  --claims-extracted "DOMAIN-YYYY-NNN,DOMAIN-YYYY-NNN"
 
 # Register claim
 rc-db claim add \
@@ -489,6 +499,9 @@ rc-db claim add \
   --evidence-level "EX" \
   --credence 0.XX \
   --source-ids "SOURCE_ID"
+
+# Recommended: import source + claims in one step (format: analysis/sources/<source-id>.yaml)
+rc-db import "analysis/sources/SOURCE_ID.yaml" --type all
 
 # Search claims
 rc-db search "query" --limit 10
