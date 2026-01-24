@@ -32,7 +32,37 @@ Tracking future work items.
 
 **Solution**: `analysis_logs` table + in-document "Analysis Log" section.
 
-**Status**: Ready for implementation (tests first).
+**Status**: Complete (see implementation doc).
+
+---
+
+## Agent Ergonomics (Upsert, Doctor, Repair, Actionable Errors)
+
+**Plan**: [PLAN-agent-ergonomics.md](PLAN-agent-ergonomics.md)
+**Implementation**: [IMPLEMENTATION-agent-ergonomics.md](IMPLEMENTATION-agent-ergonomics.md)
+
+**Problem**: Agents re-run workflows and frequently hit avoidable friction: duplicate IDs on import, brittle DB path configuration, non-actionable validation failures, and DB invariant drift.
+
+**Solution**:
+- `--on-conflict {error,skip,update}` for `rc-db import` (and key add paths where it matters)
+- `rc-db doctor` and shared DB auto-detection (reduce reliance on `REALITYCHECK_DATA`)
+- `rc-db repair` (safe/idempotent): recompute source↔claim backlinks + `[P]` prediction stubs; report duplicates
+- Validation/CLI errors include exact remediation commands (prefer suggesting `rc-db repair`)
+
+**Status**: Planning.
+
+---
+
+## Ergonomics (To Decide)
+
+**Plan**: [PLAN-ergonomics-todecide.md](PLAN-ergonomics-todecide.md)
+
+Items that are likely valuable but require workflow/product decisions first:
+
+- One-shot finish/publish command/script (import → analysis add → validate → update README → git add/commit/push)
+- `rc-analysis new <source-id> --from-url URL` skeleton generator (analysis `.md` + `.yaml` stub)
+
+**Status**: TBD decisions; keep out of implementation until decided.
 
 ---
 

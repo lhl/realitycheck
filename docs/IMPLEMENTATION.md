@@ -467,6 +467,13 @@ Track detailed metadata for each analysis session:
 
 **Implemented schema**: see `docs/SCHEMA.md` (`analysis_logs` table) and `docs/PLAN-audit-log.md` (rationale).
 
+### Agent Ergonomics
+
+Reduce operational friction for iterative analysis workflows:
+
+- Plan: `docs/PLAN-agent-ergonomics.md`
+- Progress tracking: `docs/IMPLEMENTATION-agent-ergonomics.md`
+
 ### Multi-Pass Analysis & Agent SDK Integration
 
 Support iterative analysis across multiple tools/models, with the Reality Check epistemological framework as the unifying methodology.
