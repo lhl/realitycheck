@@ -66,6 +66,12 @@ Proposed explicit overrides (CLI flags and/or env vars):
 - `--usage-session-path <path>` (fallback)
 - `REALITYCHECK_USAGE_SESSION_ID` / `REALITYCHECK_USAGE_SESSION_PATH` (for integrations)
 
+Proposed manual check / selection helper (for humans and debugging):
+
+- `rc-db analysis sessions list --tool <claude|codex|amp> [--limit N]`
+  - prints candidate sessions with `(usage_session_id, path, last_seen, total_tokens_so_far)`
+  - user can re-run `analysis start` with `--usage-session-id ...`
+
 ### Token Data Location by Tool
 
 | Tool | Location in Session File | Structure |
@@ -224,7 +230,7 @@ rc-db analysis complete --id ANALYSIS-2026-NNN [--status completed|failed] [--no
 ```
 
 **`analysis start`**:
-1. Auto-detect current session file based on `--tool`
+1. Determine session (prefer `--usage-session-id`/`--usage-session-path`; otherwise auto-detect and fail if ambiguous)
 2. Compute current session token count (method depends on tool)
 3. Store as `tokens_baseline` in new `analysis_logs` row
 4. Return the new `ANALYSIS-YYYY-NNN` ID
