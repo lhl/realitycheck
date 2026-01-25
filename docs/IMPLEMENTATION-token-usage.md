@@ -1,6 +1,6 @@
 # Implementation: Token Usage Capture & Backfill
 
-**Status**: Planning
+**Status**: Ready for Implementation
 **Plan**: [PLAN-token-usage.md](PLAN-token-usage.md)
 **Depends On**: [IMPLEMENTATION-audit-log.md](IMPLEMENTATION-audit-log.md) (completed)
 **Started**: 2026-01-25
@@ -301,7 +301,7 @@ Decision: Aggregate across all matching files (more accurate for resumed session
 
 1. **Tool vs provider naming**: `tool` field stays `claude-code|codex|amp|manual|other` (matches existing validation). `usage_provider` is `claude|codex|amp` for session parsing. CLI maps tool→provider internally.
 
-2. **Session detection behavior**: Require explicit `--usage-session-id` when ambiguous. Do NOT default to "most recently modified". Error message lists candidates for user selection.
+2. **Session detection behavior**: Require explicit `--usage-session-id` when ambiguous. Do NOT default to "most recently modified". Error message lists candidates with context snippet (first line of conversation) to help user/agent select the right one.
 
 3. **Codex resume semantics**: Aggregate token counts across all `rollout-*.jsonl` files matching a UUID (more accurate for resumed sessions).
 
@@ -309,15 +309,15 @@ Decision: Aggregate across all matching files (more accurate for resumed session
 
 5. **Backwards compatibility**: Keep `analysis add` for manual one-shot entry. Lifecycle commands (`start`/`mark`/`complete`) are the new default for automated checks with delta accounting.
 
+6. **Backfill window heuristics**: Use exact `started_at`/`completed_at` window only; skip entries missing timestamps. No padding/guessing. (All historical analyses happened on this machine with Codex/Claude/Amp, can manually verify if needed.)
+
+7. **Schema migration strategy**: Silent add-if-missing for new nullable columns (safe, zero friction). Reserve explicit `rc-db migrate` for breaking changes only.
+
 ---
 
 ## Open Questions
 
-1. **Backfill window heuristics**: How much padding around `started_at`/`completed_at`?
-   - Proposed: Use exact window if timestamps present; skip entry if missing
-
-2. **Schema migration**: How to add new columns to existing `analysis_logs` tables?
-   - Proposed: LanceDB supports adding columns; wrap in try/except for existing DBs
+_(All resolved - see above)_
 
 ---
 
@@ -339,6 +339,16 @@ Addressed feedback from planning review:
 3. **Codex resume semantics**: Added note about aggregating across multiple rollout files per UUID
 4. **Update semantics**: Added explicit `update_analysis_log()` work item and tests
 5. **Synthesis plumbing**: Added `synthesize.md.j2` to Phase 9 with attribution workflow
+
+### 2026-01-25: Final Decisions
+
+Resolved remaining open questions:
+
+- **Backfill**: Exact window only (no padding/guessing); skip entries without timestamps
+- **Schema migration**: Silent add-if-missing for additive changes; explicit migrate for breaking
+- **Session ambiguity UX**: Show candidate list with context snippet (first line of conversation) to help user/agent select
+
+All questions resolved. Ready for implementation.
 
 ---
 
