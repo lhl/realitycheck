@@ -2223,6 +2223,62 @@ class TestAnalysisLifecycleCLI:
         assert_cli_success(result)
         assert "ANALYSIS-" in result.stdout
 
+    def test_cli_analysis_start_auto_detects_session(self, temp_db_path: Path, tmp_path: Path):
+        """rc-db analysis start auto-detects session when exactly one exists."""
+        import os
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Init DB and add source
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026", "--no-embedding"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create exactly one mock session (auto-detection should work)
+        session_uuid = "deadbeef-1234-5678-9abc-def012345678"
+        claude_sessions = tmp_path / ".claude" / "projects" / "test"
+        claude_sessions.mkdir(parents=True)
+        session_file = claude_sessions / f"{session_uuid}.jsonl"
+        session_file.write_text('{"message":{"usage":{"input_tokens":100,"output_tokens":50}}}\n')
+
+        env["HOME"] = str(tmp_path)
+
+        # Do NOT pass --usage-session-id - should auto-detect
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "start",
+             "--source-id", "test-source", "--tool", "claude-code"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "ANALYSIS-" in result.stdout
+        # Should show baseline tokens from auto-detection
+        assert "baseline tokens: 150" in result.stdout or "session:" in result.stdout
+
+        # Extract the analysis ID and verify fields were populated
+        import re
+        match = re.search(r"ANALYSIS-\d{4}-\d{3}", result.stdout)
+        assert match, f"No analysis ID found in output: {result.stdout}"
+        analysis_id = match.group(0)
+
+        # Get the analysis and verify auto-detection worked
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", analysis_id, "--format", "json"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        data = json.loads(get_result.stdout)
+        assert data.get("usage_session_id") == session_uuid, f"Session ID not auto-detected: {data}"
+        assert data.get("tokens_baseline") == 150, f"Baseline not captured: {data}"
+
     def test_cli_analysis_mark_appends_stage(self, temp_db_path: Path):
         """rc-db analysis mark appends stage to stages_json."""
         import os
