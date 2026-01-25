@@ -17,7 +17,7 @@ Audit logs, synthesis workflows, and agent ergonomics improvements.
 - Analysis audit log system (schema, CLI, validation, export) and token/cost usage capture.
 - Cross-source synthesis support (`synthesize`) across integrations.
 - Agent ergonomics improvements (commands + docs).
-- Added `rc-html-extract` to analysis skills for structured HTML extraction workflows.
+- Integrated `rc-html-extract` into analysis skills/templates and `check-core` workflow docs for structured HTML extraction.
 
 ### Changed
 
@@ -63,7 +63,7 @@ Integrations refactor + iterative analysis support + improved plugin discovery.
 
 ### Added
 
-- `rc-html-extract` utility for structured HTML extraction.
+- `rc-html-extract` CLI utility for structured HTML extraction (`scripts/html_extract.py`).
 - `--continue` flag for iterative / multi-pass analysis workflows.
 - PyPI release checklist documentation (`docs/PYPI.md`).
 
