@@ -137,16 +137,40 @@ Audit trail for analysis passes.
 | `started_at` | string | No | ISO timestamp of start |
 | `completed_at` | string | No | ISO timestamp of completion |
 | `duration_seconds` | int32 | No | Duration in seconds |
-| `tokens_in` | int32 | No | Input tokens (nullable) |
-| `tokens_out` | int32 | No | Output tokens (nullable) |
-| `total_tokens` | int32 | No | Total tokens (nullable) |
+| `tokens_in` | int32 | No | Input tokens (legacy, nullable) |
+| `tokens_out` | int32 | No | Output tokens (legacy, nullable) |
+| `total_tokens` | int32 | No | Total tokens (legacy, nullable) |
 | `cost_usd` | float32 | No | Cost in USD (nullable) |
+| `tokens_baseline` | int32 | No | Session tokens at check start (delta accounting) |
+| `tokens_final` | int32 | No | Session tokens at check end (delta accounting) |
+| `tokens_check` | int32 | No | Tokens for this check: `tokens_final - tokens_baseline` |
+| `usage_provider` | string | No | Session provider: claude/codex/amp |
+| `usage_mode` | string | No | Capture method: per_message_sum/windowed_sum/counter_delta/manual |
+| `usage_session_id` | string | No | Session UUID (portable identifier) |
+| `inputs_source_ids` | list[string] | No | Source IDs feeding a synthesis (synthesis-only) |
+| `inputs_analysis_ids` | list[string] | No | Analysis log IDs feeding a synthesis (synthesis-only) |
 | `stages_json` | string | No | JSON-encoded per-stage metrics |
 | `claims_extracted` | list[string] | No | Claim IDs extracted in this pass |
 | `claims_updated` | list[string] | No | Claim IDs updated in this pass |
 | `notes` | string | No | Freeform notes on what changed |
 | `git_commit` | string | No | Git commit SHA (data repo) |
 | `created_at` | string | Yes | ISO timestamp of log creation |
+
+#### Delta Accounting
+
+The `tokens_baseline`, `tokens_final`, and `tokens_check` fields enable accurate per-check token attribution:
+
+1. **Start**: Record `tokens_baseline` from current session token count
+2. **Complete**: Record `tokens_final` from current session token count
+3. **Compute**: `tokens_check = tokens_final - tokens_baseline`
+
+This is more accurate than the legacy `total_tokens` field for sessions containing multiple checks.
+
+#### Synthesis Attribution
+
+For synthesis passes that combine multiple source analyses:
+- `inputs_source_ids`: List of source IDs being synthesized
+- `inputs_analysis_ids`: List of analysis log IDs (for end-to-end cost tracking)
 
 ## Domains
 
@@ -266,3 +290,5 @@ The `rc-validate` command checks:
    - If `status != draft`, `claims_extracted` and `claims_updated` must reference existing claims
    - `stages_json` must be valid JSON (if present)
    - `duration_seconds` and `cost_usd` must be non-negative (if present)
+   - If `tokens_baseline`, `tokens_final`, and `tokens_check` all present, `tokens_check` must equal `tokens_final - tokens_baseline`
+   - `inputs_analysis_ids` must reference existing analysis log IDs (for synthesis attribution)

@@ -335,6 +335,88 @@ Then validate:
 uv run python scripts/validate.py
 ```
 
+## Analysis Lifecycle Workflow (Token Usage Tracking)
+
+For automated checks with accurate per-check token attribution, use the lifecycle commands:
+
+### Start an Analysis
+
+```bash
+# Start analysis with automatic session detection (Claude Code)
+ANALYSIS_ID=$(uv run python scripts/db.py analysis start \
+  --source-id test-source-001 \
+  --tool claude-code \
+  --model claude-sonnet-4)
+
+# Start with explicit session ID
+ANALYSIS_ID=$(uv run python scripts/db.py analysis start \
+  --source-id test-source-001 \
+  --tool codex \
+  --usage-session-id abc12345-1234-5678-9abc-def012345678)
+```
+
+This captures `tokens_baseline` from the current session token count.
+
+### Mark Stage Checkpoints (Optional)
+
+```bash
+# After completing each stage
+uv run python scripts/db.py analysis mark \
+  --id "$ANALYSIS_ID" \
+  --stage check_stage1
+
+uv run python scripts/db.py analysis mark \
+  --id "$ANALYSIS_ID" \
+  --stage check_stage2
+```
+
+### Complete the Analysis
+
+```bash
+# Complete with automatic token capture
+uv run python scripts/db.py analysis complete \
+  --id "$ANALYSIS_ID" \
+  --claims-extracted TECH-2026-001,TECH-2026-002
+
+# Or with explicit final tokens
+uv run python scripts/db.py analysis complete \
+  --id "$ANALYSIS_ID" \
+  --tokens-final 5000 \
+  --estimate-cost
+```
+
+This captures `tokens_final` and computes `tokens_check = tokens_final - tokens_baseline`.
+
+### Discover Available Sessions
+
+```bash
+# List Claude Code sessions
+uv run python scripts/db.py analysis sessions list --tool claude-code
+
+# List Codex sessions
+uv run python scripts/db.py analysis sessions list --tool codex --limit 20
+```
+
+Output includes UUID, token count, and context snippet for identification.
+
+### Backfill Historical Entries
+
+For existing analysis logs without token data:
+
+```bash
+# Preview what would be updated
+uv run python scripts/db.py analysis backfill-usage --dry-run
+
+# Backfill Claude Code entries from 2026
+uv run python scripts/db.py analysis backfill-usage \
+  --tool claude-code \
+  --since 2026-01-01 \
+  --limit 50
+
+# Force overwrite existing values
+uv run python scripts/db.py analysis backfill-usage --force
+```
+
 ## Export Workflow
 
 ### Export to YAML

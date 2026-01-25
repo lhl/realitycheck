@@ -5,9 +5,9 @@
 
 | Pass | Date | Tool | Model | Duration | Tokens | Cost | Notes |
 |------|------|------|-------|----------|--------|------|-------|
-| 1 | YYYY-MM-DD HH:MM | codex | gpt-5.2 | 8m | ? | ? | Initial 3-stage analysis |
+| 1 | YYYY-MM-DD HH:MM | claude-code | claude-sonnet-4 | 8m | ? | ? | Initial 3-stage analysis |
 
-Tip: If you run `rc-db analysis add --analysis-file ...`, the CLI will **update this table** best-effort. If you provide `--usage-from ... --estimate-cost`, it can populate tokens/cost automatically.
+**Token tracking**: Use lifecycle commands (`analysis start` / `analysis complete`) for accurate per-check token attribution. The `tokens_check` field captures only the tokens used for this specific analysis, not the entire session.
 
 ### Revision Notes
 

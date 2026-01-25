@@ -51,7 +51,29 @@ rc-db source get SOURCE_ID
 rc-db claim list --domain TECH
 rc-db source list --type ARTICLE
 
-# Analysis audit log
+# Analysis lifecycle (recommended for accurate token tracking)
+# 1. Start: capture baseline tokens
+ANALYSIS_ID=$(rc-db analysis start \
+  --source-id "SOURCE_ID" \
+  --tool claude-code \
+  --model "claude-sonnet-4")
+
+# 2. (Optional) Mark stage checkpoints
+rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage1
+rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage2
+
+# 3. Complete: capture final tokens and compute delta
+rc-db analysis complete \
+  --id "$ANALYSIS_ID" \
+  --analysis-file "analysis/sources/SOURCE_ID.md" \
+  --claims-extracted "DOMAIN-YYYY-001,DOMAIN-YYYY-002" \
+  --estimate-cost \
+  --notes "Initial analysis + registration"
+
+# Session discovery (if auto-detection fails)
+rc-db analysis sessions list --tool claude-code --limit 10
+
+# Alternative: one-shot add (legacy, less accurate for multi-check sessions)
 rc-db analysis add \
   --source-id "SOURCE_ID" \
   --tool codex \
@@ -61,6 +83,8 @@ rc-db analysis add \
   --usage-from codex:"/path/to/rollout-*.jsonl" \
   --estimate-cost \
   --notes "Initial analysis + registration"
+
+# Query analysis logs
 rc-db analysis list --source-id "SOURCE_ID"
 rc-db analysis get ANALYSIS-YYYY-NNN
 ```

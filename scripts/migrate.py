@@ -34,6 +34,7 @@ from db import (
     add_source,
     drop_tables,
     get_db,
+    get_prediction,
     init_tables,
     get_stats,
 )
@@ -408,6 +409,12 @@ def run_migration(
 
     for pred in predictions:
         try:
+            claim_id = pred["claim_id"]
+            # Delete auto-created stub if exists (richer migrated data takes precedence)
+            existing = get_prediction(claim_id, db)
+            if existing:
+                table = db.open_table("predictions")
+                table.delete(f"claim_id = '{claim_id}'")
             add_prediction(pred, db)
             stats["predictions_migrated"] += 1
             if verbose:

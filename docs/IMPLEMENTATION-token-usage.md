@@ -1,6 +1,6 @@
 # Implementation: Token Usage Capture & Backfill
 
-**Status**: Ready for Implementation
+**Status**: Complete
 **Plan**: [PLAN-token-usage.md](PLAN-token-usage.md)
 **Depends On**: [IMPLEMENTATION-audit-log.md](IMPLEMENTATION-audit-log.md) (completed)
 **Started**: 2026-01-25
@@ -252,48 +252,18 @@ Decision: Aggregate across all matching files (more accurate for resumed session
 
 ### Phase 8: Documentation
 
-- [ ] Update `docs/SCHEMA.md` with new `analysis_logs` fields
-- [ ] Update `docs/WORKFLOWS.md` with lifecycle workflow example
-- [ ] Update `docs/TODO.md` status
+- [x] Update `docs/SCHEMA.md` with new `analysis_logs` fields
+- [x] Update `docs/WORKFLOWS.md` with lifecycle workflow example
+- [x] Update `docs/TODO.md` status
 
 ### Phase 9: Integration Templates
 
-- [ ] Update `integrations/_templates/skills/check.md.j2` to use lifecycle commands:
-  ```bash
-  ANALYSIS_ID=$(rc-db analysis start --source-id "$SOURCE_ID" --tool claude-code)
-  # ... stage 1 ...
-  rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage1
-  # ... stage 2 ...
-  rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage2
-  # ... stage 3 ...
-  rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage3
-  # ... register claims ...
-  rc-db analysis complete --id "$ANALYSIS_ID" --status completed
-  ```
-
-- [ ] Update `integrations/_templates/skills/synthesize.md.j2` to use lifecycle commands with synthesis attribution:
-  ```bash
-  # Synthesis workflow with input attribution
-  SYNTHESIS_ID=$(rc-db analysis start \
-    --source-id "$SYNTHESIS_SOURCE_ID" \
-    --tool claude-code \
-    --inputs-source-ids "$SOURCE_ID_1,$SOURCE_ID_2" \
-    --inputs-analysis-ids "$ANALYSIS_ID_1,$ANALYSIS_ID_2")
-
-  # ... synthesis work ...
-  rc-db analysis mark --id "$SYNTHESIS_ID" --stage synthesize_draft
-  # ... revision ...
-  rc-db analysis mark --id "$SYNTHESIS_ID" --stage synthesize_revision
-
-  rc-db analysis complete --id "$SYNTHESIS_ID" --status completed
-  ```
-
-- [ ] Document synthesis audit log rendering requirements:
-  - "Inputs" table listing each input analysis (ID + tokens/cost from `inputs_analysis_ids`)
-  - Synthesis run's own stage token deltas
-  - "Total end-to-end" line: `sum(tokens_check for inputs) + tokens_check for synthesis`
-
-- [ ] Run `make assemble-skills` to regenerate all integration skills
+- [x] Update `integrations/_templates/skills/check.md.j2` to use lifecycle commands
+- [x] Update `integrations/_templates/skills/synthesize.md.j2` to use lifecycle commands with synthesis attribution
+- [x] Update `integrations/_templates/partials/db-commands.md.j2` with lifecycle commands
+- [x] Update `integrations/_templates/partials/analysis-log.md.j2` with token tracking note
+- [x] Run `make assemble-skills` to regenerate all integration skills
+- [x] Add `--inputs-source-ids` and `--inputs-analysis-ids` flags to `analysis complete` CLI
 
 ---
 
@@ -349,6 +319,35 @@ Resolved remaining open questions:
 - **Session ambiguity UX**: Show candidate list with context snippet (first line of conversation) to help user/agent select
 
 All questions resolved. Ready for implementation.
+
+### 2026-01-25: Implementation Complete
+
+Completed all 9 phases:
+
+**Phase 1-4**: Core implementation
+- Added schema fields: `tokens_baseline`, `tokens_final`, `tokens_check`, `usage_provider`, `usage_mode`, `usage_session_id`, `inputs_source_ids`, `inputs_analysis_ids`
+- Added `update_analysis_log()` function with delete-then-add pattern for LanceDB
+- Added session detection: `get_current_session_path()`, `get_session_token_count()`, `get_session_token_count_by_uuid()`, `list_sessions()`
+- Added CLI commands: `analysis start`, `analysis mark`, `analysis complete`, `analysis sessions list`
+- Added `AmbiguousSessionError` with helpful candidate list
+
+**Phase 5-7**: Backfill, validation, export
+- Added `analysis backfill-usage` command for historical entries
+- Added validation for `tokens_check` math and `inputs_analysis_ids` references
+- Updated export to prefer `tokens_check` over `total_tokens`
+
+**Phase 8-9**: Docs and integration templates
+- Updated SCHEMA.md, WORKFLOWS.md, TODO.md
+- Updated check.md.j2 and synthesize.md.j2 with lifecycle commands
+- Updated db-commands.md.j2 and analysis-log.md.j2
+- Added `--inputs-source-ids` and `--inputs-analysis-ids` to `analysis complete` CLI
+- Ran `make assemble-skills` to regenerate all integration skills
+
+**Bug fixes**:
+- Fixed PyArrow `value_field` error by ensuring list fields are never None
+- Fixed migration duplicate prediction issue (stub vs migrated data)
+
+All 265 tests pass.
 
 ---
 

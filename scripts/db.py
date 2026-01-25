@@ -1830,6 +1830,9 @@ Examples:
     analysis_complete.add_argument("--tokens-final", type=int, help="Final token count (auto-detected if session tracked)")
     analysis_complete.add_argument("--claims-extracted", help="Comma-separated list of extracted claim IDs")
     analysis_complete.add_argument("--claims-updated", help="Comma-separated list of updated claim IDs")
+    analysis_complete.add_argument("--analysis-file", help="Path to analysis document")
+    analysis_complete.add_argument("--inputs-source-ids", help="Comma-separated source IDs feeding a synthesis")
+    analysis_complete.add_argument("--inputs-analysis-ids", help="Comma-separated analysis log IDs feeding a synthesis")
     analysis_complete.add_argument("--notes", help="Notes about completion")
     analysis_complete.add_argument("--estimate-cost", action="store_true", help="Estimate cost from tokens")
 
@@ -2804,6 +2807,12 @@ rc-validate
                 updates["claims_extracted"] = [c.strip() for c in args.claims_extracted.split(",")]
             if getattr(args, "claims_updated", None):
                 updates["claims_updated"] = [c.strip() for c in args.claims_updated.split(",")]
+            if getattr(args, "analysis_file", None):
+                updates["analysis_file"] = args.analysis_file
+            if getattr(args, "inputs_source_ids", None):
+                updates["inputs_source_ids"] = [s.strip() for s in args.inputs_source_ids.split(",")]
+            if getattr(args, "inputs_analysis_ids", None):
+                updates["inputs_analysis_ids"] = [a.strip() for a in args.inputs_analysis_ids.split(",")]
             if getattr(args, "notes", None):
                 updates["notes"] = args.notes
 

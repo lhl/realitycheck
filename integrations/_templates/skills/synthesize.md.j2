@@ -32,22 +32,49 @@ Write a synthesis document to:
 
 ## Workflow
 
-1. **Define the question** - What is this synthesis trying to answer?
-2. **Collect inputs**
+1. **Start Tracking** - Begin token usage capture with synthesis attribution
+2. **Define the question** - What is this synthesis trying to answer?
+3. **Collect inputs**
    - Prefer existing source analyses in `analysis/sources/`
    - If a relevant source has no analysis yet, run `{{ invocation_prefix }}check` first (or document the gap)
-3. **Build a cross-source map**
+4. **Build a cross-source map**
    - Points of agreement (which claims converge?)
    - Points of disagreement (where do they conflict, and why?)
-4. **Write the synthesis**
+5. **Write the synthesis**
    - Link each major claim back to source analyses (when available)
    - Resolve conflicts where possible; otherwise record open questions + what would resolve them
-5. **(Optional) Register an argument chain**
+6. **(Optional) Register an argument chain**
    - Use `rc-db chain add ... --analysis-file "analysis/syntheses/<synth-id>.md" --claims "ID1,ID2,..."` for the central claim chain
-6. **Update README**
-   - Add the synthesis to the “Syntheses” table (kept **above** “Source Analyses”)
-7. **Commit and push**
+7. **Complete Tracking** - Finalize token usage with synthesis attribution
+8. **Update README**
+   - Add the synthesis to the "Syntheses" table (kept **above** "Source Analyses")
+9. **Commit and push**
    - Commit changes to `analysis/` and `README.md` (and any generated exports), then push
+
+## Token Usage Tracking (Synthesis Mode)
+
+For syntheses, use the lifecycle commands with attribution flags to track which source analyses feed into the synthesis:
+
+```bash
+# 1. At workflow START
+ANALYSIS_ID=$(rc-db analysis start \
+  --source-id "SYNTH-[YYYY]-[NNN]" \
+  --tool claude-code \
+  --model "claude-sonnet-4" \
+  --cmd synthesize)
+
+# 2. At workflow END (after writing synthesis)
+# Include --inputs-source-ids and --inputs-analysis-ids for cost attribution
+rc-db analysis complete \
+  --id "$ANALYSIS_ID" \
+  --analysis-file "analysis/syntheses/[synth-id].md" \
+  --inputs-source-ids "source-id-1,source-id-2" \
+  --inputs-analysis-ids "ANALYSIS-2026-001,ANALYSIS-2026-002" \
+  --estimate-cost \
+  --notes "Cross-source synthesis"
+```
+
+The `inputs_source_ids` and `inputs_analysis_ids` fields enable end-to-end cost tracking: you can trace a synthesis back to its constituent analyses and sum their costs.
 
 ## Minimal Template Snippet
 

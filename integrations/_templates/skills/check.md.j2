@@ -7,23 +7,24 @@ The flagship Reality Check command for rigorous source analysis.
 
 ## Workflow Steps
 
-1. **Fetch** - Retrieve and parse source content
+1. **Start Tracking** - Begin token usage capture (lifecycle mode)
+2. **Fetch** - Retrieve and parse source content
    - Primary: `WebFetch` for most URLs
    - Alternative: `curl -L -sS "URL" | rc-html-extract - --format json`
    - `rc-html-extract` returns structured `{title, published, text, headings, word_count}`
    - Use the extract tool when you need clean metadata or main text extraction
-2. **Metadata** - Extract title, author, date, type, generate source-id
-3. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
-4. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence
-5. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
-6. **Extract** - Format claims as YAML
-7. **Register** - Add source and claims to database
-8. **Audit Log** - Append in-document log + register `analysis_logs` row
-9. **Validate** - Run integrity checks
-10. **README** - Update data project analysis index
-11. **Commit** - Stage and commit changes to data repo
-12. **Push** - Push to remote
-13. **Report** - Generate summary
+3. **Metadata** - Extract title, author, date, type, generate source-id
+4. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
+5. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence
+6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
+7. **Extract** - Format claims as YAML
+8. **Register** - Add source and claims to database
+9. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+10. **Validate** - Run integrity checks
+11. **README** - Update data project analysis index
+12. **Commit** - Stage and commit changes to data repo
+13. **Push** - Push to remote
+14. **Report** - Generate summary
 
 ---
 
@@ -211,6 +212,37 @@ claims:
 ---
 
 {% include "partials/db-commands.md.j2" %}
+
+---
+
+## Token Usage Tracking (Lifecycle Mode)
+
+For accurate per-check token attribution, use the lifecycle commands:
+
+```bash
+# 1. At workflow START (before fetch)
+ANALYSIS_ID=$(rc-db analysis start \
+  --source-id "[source-id]" \
+  --tool claude-code \
+  --model "claude-sonnet-4")
+
+# 2. (Optional) Mark stage completions
+rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage1
+rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage2
+rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage3
+
+# 3. At workflow END (after registration, before validation)
+rc-db analysis complete \
+  --id "$ANALYSIS_ID" \
+  --analysis-file "analysis/sources/[source-id].md" \
+  --claims-extracted "DOMAIN-YYYY-001,DOMAIN-YYYY-002" \
+  --estimate-cost \
+  --notes "3-stage analysis + registration"
+```
+
+This captures `tokens_baseline` at start and `tokens_final` at completion, computing `tokens_check = final - baseline` for accurate cost attribution.
+
+If session auto-detection fails (ambiguous sessions), use `rc-db analysis sessions list --tool claude-code` to find your session UUID, then pass `--usage-session-id UUID` to `analysis start`.
 
 ---
 

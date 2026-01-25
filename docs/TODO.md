@@ -18,7 +18,7 @@ Tracking future work items.
 
 **Key insight**: Each tool stores sessions with UUIDs. Sessions can span multiple checks, so we use delta accounting rather than session totals.
 
-**Status**: Planning complete - see implementation doc for punchlist.
+**Status**: ✅ Complete - implemented lifecycle commands (`analysis start/mark/complete`), session detection, backfill, and synthesis attribution.
 
 ---
 
