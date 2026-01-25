@@ -26,6 +26,19 @@ class UsageTotals:
     cost_usd: Optional[float] = None
 
 
+class NoSessionFoundError(Exception):
+    """Raised when no session files are found for a tool."""
+    pass
+
+
+class AmbiguousSessionError(Exception):
+    """Raised when multiple session candidates exist and explicit selection is required."""
+
+    def __init__(self, message: str, candidates: list[dict]):
+        super().__init__(message)
+        self.candidates = candidates
+
+
 MODEL_PRICING_USD_PER_1M: dict[str, tuple[float, float]] = {
     # NOTE: Prices change frequently. Treat these as a convenience default.
     # See docs/PLAN-audit-log.md for the reference table and update policy.
@@ -289,4 +302,236 @@ def estimate_cost_usd(
 
     price_in, price_out = matched
     return (tokens_in / 1_000_000.0) * price_in + (tokens_out / 1_000_000.0) * price_out
+
+
+# =============================================================================
+# Session Detection and Token Counting
+# =============================================================================
+
+import re
+import os
+from glob import glob
+
+
+def _extract_uuid_from_filename(filename: str, tool: str) -> Optional[str]:
+    """Extract session UUID from filename based on tool patterns."""
+    name = Path(filename).stem
+
+    if tool == "claude":
+        # Claude: <uuid>.jsonl - the filename IS the UUID
+        # UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        uuid_pattern = r"^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        match = re.match(uuid_pattern, name, re.IGNORECASE)
+        if match:
+            return match.group(1).lower()
+    elif tool == "codex":
+        # Codex: rollout-<timestamp>-<uuid>.jsonl
+        uuid_pattern = r"rollout-\d+-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        match = re.search(uuid_pattern, name, re.IGNORECASE)
+        if match:
+            return match.group(1).lower()
+    elif tool == "amp":
+        # Amp: T-<uuid>.json
+        uuid_pattern = r"^T-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        match = re.match(uuid_pattern, name, re.IGNORECASE)
+        if match:
+            return match.group(1).lower()
+
+    return None
+
+
+def _get_session_paths(tool: str, base_path: Optional[Path] = None) -> list[Path]:
+    """Find all session files for a tool."""
+    home = base_path or Path.home()
+
+    if tool == "claude":
+        # Claude: ~/.claude/projects/*/*.jsonl
+        pattern = str(home / ".claude" / "projects" / "*" / "*.jsonl")
+    elif tool == "codex":
+        # Codex: ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
+        pattern = str(home / ".codex" / "sessions" / "*" / "*" / "*" / "rollout-*.jsonl")
+    elif tool == "amp":
+        # Amp: ~/.local/share/amp/threads/T-*.json
+        pattern = str(home / ".local" / "share" / "amp" / "threads" / "T-*.json")
+    else:
+        return []
+
+    paths = [Path(p) for p in glob(pattern)]
+    return sorted(paths, key=lambda p: p.stat().st_mtime if p.exists() else 0, reverse=True)
+
+
+def _get_first_content_line(path: Path, tool: str) -> str:
+    """Extract first meaningful content line for context snippet."""
+    try:
+        if tool in ("claude", "codex"):
+            # JSONL format
+            with path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                        # Look for content in message
+                        if tool == "claude":
+                            content = obj.get("message", {}).get("content")
+                            if isinstance(content, list) and content:
+                                for block in content:
+                                    if isinstance(block, dict) and block.get("type") == "text":
+                                        text = block.get("text", "")[:80]
+                                        return text
+                            elif isinstance(content, str):
+                                return content[:80]
+                        else:  # codex
+                            # Try to find user message
+                            payload = obj.get("payload", {})
+                            if payload.get("type") == "message":
+                                return str(payload.get("content", ""))[:80]
+                    except json.JSONDecodeError:
+                        continue
+        elif tool == "amp":
+            # JSON format
+            data = json.loads(path.read_text(encoding="utf-8"))
+            messages = data.get("messages", [])
+            for msg in messages:
+                if msg.get("role") == "user":
+                    content = msg.get("content", "")
+                    if isinstance(content, str):
+                        return content[:80]
+    except Exception:
+        pass
+    return ""
+
+
+def get_current_session_path(
+    tool: str,
+    project_path: Optional[Path] = None,
+) -> tuple[Path, str]:
+    """Auto-detect current session file and UUID.
+
+    Returns (session_path, session_uuid).
+
+    Selection logic:
+    1. If exactly one candidate session exists, return it
+    2. If multiple candidates exist, raise AmbiguousSessionError with candidate list
+    3. If no candidates exist, raise NoSessionFoundError
+
+    Does NOT default to "most recently modified" when ambiguous.
+    """
+    # Normalize tool name (claude-code -> claude)
+    provider = _tool_to_provider(tool)
+    paths = _get_session_paths(provider, base_path=project_path)
+
+    if not paths:
+        raise NoSessionFoundError(f"No {tool} session files found")
+
+    # Extract UUIDs and build candidate list
+    candidates = []
+    for path in paths:
+        uuid = _extract_uuid_from_filename(path.name, provider)
+        if uuid:
+            context = _get_first_content_line(path, provider)
+            candidates.append({
+                "uuid": uuid,
+                "path": path,
+                "last_modified": datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc),
+                "context_snippet": context,
+            })
+
+    if not candidates:
+        raise NoSessionFoundError(f"No valid {tool} session files found")
+
+    if len(candidates) == 1:
+        return candidates[0]["path"], candidates[0]["uuid"]
+
+    # Multiple candidates - build helpful error message
+    msg_lines = [f"Multiple {tool} sessions found. Please specify --usage-session-id:"]
+    for c in candidates[:5]:  # Show top 5
+        snippet = c["context_snippet"][:40] + "..." if len(c["context_snippet"]) > 40 else c["context_snippet"]
+        msg_lines.append(f"  {c['uuid']}: {snippet or '(no content preview)'}")
+    if len(candidates) > 5:
+        msg_lines.append(f"  ... and {len(candidates) - 5} more")
+
+    raise AmbiguousSessionError("\n".join(msg_lines), candidates)
+
+
+def _tool_to_provider(tool: str) -> str:
+    """Map tool name to provider name for session parsing."""
+    mapping = {
+        "claude-code": "claude",
+        "claude": "claude",
+        "codex": "codex",
+        "amp": "amp",
+    }
+    return mapping.get(tool.lower(), tool.lower())
+
+
+def get_session_token_count(path: Path, tool: str) -> int:
+    """Compute current cumulative token count for a session file."""
+    provider = _tool_to_provider(tool)
+    totals = parse_usage_from_source(provider, path)
+    return totals.total_tokens or 0
+
+
+def get_session_token_count_by_uuid(
+    uuid: str,
+    tool: str,
+    base_path: Optional[Path] = None,
+) -> int:
+    """Compute aggregate token count across all files for a UUID.
+
+    For Codex, a single UUID may span multiple rollout-*.jsonl files (resumes).
+    This function finds all matching files and aggregates their token counts.
+    """
+    provider = _tool_to_provider(tool)
+    paths = _get_session_paths(provider, base_path=base_path)
+
+    total = 0
+    for path in paths:
+        file_uuid = _extract_uuid_from_filename(path.name, provider)
+        if file_uuid and file_uuid.lower() == uuid.lower():
+            totals = parse_usage_from_source(provider, path)
+            total += totals.total_tokens or 0
+
+    return total
+
+
+def list_sessions(
+    tool: str,
+    limit: int = 10,
+    base_path: Optional[Path] = None,
+) -> list[dict]:
+    """List candidate sessions for discovery/debugging.
+
+    Returns list of {uuid, path, last_modified, tokens_so_far, context_snippet}.
+    """
+    provider = _tool_to_provider(tool)
+    paths = _get_session_paths(provider, base_path=base_path)
+
+    results = []
+    for path in paths[:limit * 2]:  # Check more files to handle duplicates
+        uuid = _extract_uuid_from_filename(path.name, provider)
+        if not uuid:
+            continue
+
+        try:
+            totals = parse_usage_from_source(provider, path)
+            tokens = totals.total_tokens or 0
+        except Exception:
+            tokens = 0
+
+        context = _get_first_content_line(path, provider)
+
+        results.append({
+            "uuid": uuid,
+            "path": path,
+            "last_modified": datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc),
+            "tokens_so_far": tokens,
+            "context_snippet": context,
+        })
+
+        if len(results) >= limit:
+            break
+
+    return results
 

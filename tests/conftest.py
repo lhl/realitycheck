@@ -308,6 +308,16 @@ def sample_analysis_log() -> dict:
         "tokens_out": 1200,
         "total_tokens": 3700,
         "cost_usd": 0.08,
+        # New delta accounting fields
+        "tokens_baseline": 10000,
+        "tokens_final": 13700,
+        "tokens_check": 3700,
+        "usage_provider": "claude",
+        "usage_mode": "per_message_sum",
+        "usage_session_id": "abc12345-1234-5678-9abc-def012345678",
+        # Synthesis linking fields (empty lists, not None, for pyarrow compatibility)
+        "inputs_source_ids": [],
+        "inputs_analysis_ids": [],
         "stages_json": None,
         "claims_extracted": ["TECH-2026-001"],
         "claims_updated": [],

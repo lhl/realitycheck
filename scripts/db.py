@@ -392,6 +392,16 @@ ANALYSIS_LOGS_SCHEMA = pa.schema([
     pa.field("tokens_out", pa.int32(), nullable=True),
     pa.field("total_tokens", pa.int32(), nullable=True),
     pa.field("cost_usd", pa.float32(), nullable=True),
+    # Delta accounting fields (token usage capture)
+    pa.field("tokens_baseline", pa.int32(), nullable=True),  # Session tokens at check start
+    pa.field("tokens_final", pa.int32(), nullable=True),  # Session tokens at check end
+    pa.field("tokens_check", pa.int32(), nullable=True),  # Total for this check (final - baseline)
+    pa.field("usage_provider", pa.string(), nullable=True),  # claude|codex|amp
+    pa.field("usage_mode", pa.string(), nullable=True),  # per_message_sum|windowed_sum|counter_delta|manual
+    pa.field("usage_session_id", pa.string(), nullable=True),  # Session UUID (portable)
+    # Synthesis linking fields
+    pa.field("inputs_source_ids", pa.list_(pa.string()), nullable=True),  # Source IDs feeding synthesis
+    pa.field("inputs_analysis_ids", pa.list_(pa.string()), nullable=True),  # Analysis log IDs feeding synthesis
     pa.field("stages_json", pa.string(), nullable=True),  # JSON-encoded per-stage metrics
     pa.field("claims_extracted", pa.list_(pa.string()), nullable=True),
     pa.field("claims_updated", pa.list_(pa.string()), nullable=True),
@@ -1179,8 +1189,8 @@ def add_analysis_log(
         from datetime import datetime
         log["created_at"] = datetime.utcnow().isoformat() + "Z"
 
-    # Ensure list fields are lists
-    for list_field in ["claims_extracted", "claims_updated"]:
+    # Ensure list fields are lists (pyarrow requires actual lists, not None)
+    for list_field in ["claims_extracted", "claims_updated", "inputs_source_ids", "inputs_analysis_ids"]:
         if log.get(list_field) is None:
             log[list_field] = []
 
@@ -1297,6 +1307,69 @@ def list_analysis_logs(
         query = query.where(" AND ".join(filters), prefilter=True)
 
     return query.limit(limit).to_list()
+
+
+def update_analysis_log(
+    log_id: str,
+    db: Optional[lancedb.DBConnection] = None,
+    **fields,
+) -> None:
+    """Update an existing analysis log with partial fields.
+
+    Raises ValueError if log_id is not found.
+
+    Usage:
+        update_analysis_log("ANALYSIS-2026-001", status="completed", tokens_check=500)
+    """
+    if db is None:
+        db = get_db()
+
+    # Get existing record
+    existing = get_analysis_log(log_id, db)
+    if not existing:
+        raise ValueError(f"Analysis log '{log_id}' not found")
+
+    # Merge updates into existing record
+    updated = dict(existing)
+    for key, value in fields.items():
+        if value is not None:
+            updated[key] = value
+
+    # Ensure all schema fields exist with proper defaults for new fields
+    # (handles migration from old schema to new)
+    list_fields = ["claims_extracted", "claims_updated", "inputs_source_ids", "inputs_analysis_ids"]
+    for field in list_fields:
+        val = updated.get(field)
+        if val is None:
+            updated[field] = []
+        else:
+            # Convert pyarrow/numpy arrays back to plain Python lists
+            updated[field] = list(val) if hasattr(val, '__iter__') and not isinstance(val, str) else []
+
+    nullable_fields = [
+        "tokens_baseline", "tokens_final", "tokens_check",
+        "usage_provider", "usage_mode", "usage_session_id",
+    ]
+    for field in nullable_fields:
+        if field not in updated:
+            updated[field] = None
+
+    # Remove any fields that aren't in the schema (e.g., _rowid from LanceDB)
+    schema_fields = {
+        "id", "source_id", "analysis_file", "pass", "status", "tool", "command",
+        "model", "framework_version", "methodology_version", "started_at",
+        "completed_at", "duration_seconds", "tokens_in", "tokens_out",
+        "total_tokens", "cost_usd", "tokens_baseline", "tokens_final",
+        "tokens_check", "usage_provider", "usage_mode", "usage_session_id",
+        "inputs_source_ids", "inputs_analysis_ids", "stages_json",
+        "claims_extracted", "claims_updated", "notes", "git_commit", "created_at",
+    }
+    updated = {k: v for k, v in updated.items() if k in schema_fields}
+
+    # Delete old record and add updated one (LanceDB pattern for updates)
+    table = db.open_table("analysis_logs")
+    table.delete(f"id = '{log_id}'")
+    table.add([updated])
 
 
 # =============================================================================
@@ -1713,6 +1786,13 @@ Examples:
         action="store_true",
         help="Do not update the in-document Analysis Log table in --analysis-file",
     )
+    # Delta accounting fields
+    analysis_add.add_argument("--tokens-baseline", type=int, help="Session token count at check start")
+    analysis_add.add_argument("--tokens-final", type=int, help="Session token count at check end")
+    analysis_add.add_argument("--tokens-check", type=int, help="Total tokens for this check (computed if baseline+final provided)")
+    analysis_add.add_argument("--usage-provider", help="Provider for session parsing (claude/codex/amp)")
+    analysis_add.add_argument("--usage-mode", help="Capture method (per_message_sum/windowed_sum/counter_delta/manual)")
+    analysis_add.add_argument("--usage-session-id", help="Session UUID")
 
     # analysis get
     analysis_get = analysis_subparsers.add_parser("get", help="Get an analysis log by ID")
@@ -1726,6 +1806,40 @@ Examples:
     analysis_list.add_argument("--status", help="Filter by status")
     analysis_list.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
     analysis_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # analysis start (lifecycle command)
+    analysis_start = analysis_subparsers.add_parser("start", help="Start an analysis (captures baseline tokens)")
+    analysis_start.add_argument("--source-id", required=True, help="Source ID to analyze")
+    analysis_start.add_argument("--tool", required=True, help="Tool (claude-code/codex/amp)")
+    analysis_start.add_argument("--model", help="Model being used")
+    analysis_start.add_argument("--usage-session-id", help="Explicit session UUID (auto-detected if omitted)")
+    analysis_start.add_argument("--usage-session-path", help="Explicit session file path")
+    analysis_start.add_argument("--cmd", dest="analysis_cmd", help="Command (check/analyze/extract/etc.)")
+    analysis_start.add_argument("--notes", help="Notes about this analysis")
+
+    # analysis mark (lifecycle command)
+    analysis_mark = analysis_subparsers.add_parser("mark", help="Mark a stage checkpoint (captures delta)")
+    analysis_mark.add_argument("--id", required=True, dest="analysis_id", help="Analysis ID to update")
+    analysis_mark.add_argument("--stage", required=True, help="Stage name (e.g., check_stage1)")
+    analysis_mark.add_argument("--notes", help="Notes for this stage")
+
+    # analysis complete (lifecycle command)
+    analysis_complete = analysis_subparsers.add_parser("complete", help="Complete an analysis (captures final tokens)")
+    analysis_complete.add_argument("--id", required=True, dest="analysis_id", help="Analysis ID to complete")
+    analysis_complete.add_argument("--status", default="completed", help="Final status (completed/failed)")
+    analysis_complete.add_argument("--tokens-final", type=int, help="Final token count (auto-detected if session tracked)")
+    analysis_complete.add_argument("--claims-extracted", help="Comma-separated list of extracted claim IDs")
+    analysis_complete.add_argument("--claims-updated", help="Comma-separated list of updated claim IDs")
+    analysis_complete.add_argument("--notes", help="Notes about completion")
+    analysis_complete.add_argument("--estimate-cost", action="store_true", help="Estimate cost from tokens")
+
+    # analysis sessions (nested subcommand)
+    analysis_sessions = analysis_subparsers.add_parser("sessions", help="Session discovery helpers")
+    sessions_subparsers = analysis_sessions.add_subparsers(dest="sessions_command")
+
+    sessions_list = sessions_subparsers.add_parser("list", help="List available sessions")
+    sessions_list.add_argument("--tool", required=True, help="Tool to list sessions for (claude-code/codex/amp)")
+    sessions_list.add_argument("--limit", type=int, default=10, help="Max sessions to show")
 
     # -------------------------------------------------------------------------
     # Related command
@@ -2430,12 +2544,27 @@ rc-validate
                 "tokens_out": getattr(args, "tokens_out", None),
                 "total_tokens": getattr(args, "total_tokens", None),
                 "cost_usd": getattr(args, "cost_usd", None),
+                # Delta accounting fields
+                "tokens_baseline": getattr(args, "tokens_baseline", None),
+                "tokens_final": getattr(args, "tokens_final", None),
+                "tokens_check": getattr(args, "tokens_check", None),
+                "usage_provider": getattr(args, "usage_provider", None),
+                "usage_mode": getattr(args, "usage_mode", None),
+                "usage_session_id": getattr(args, "usage_session_id", None),
                 "notes": args.notes,
                 "git_commit": getattr(args, "git_commit", None),
                 "framework_version": None,
                 "methodology_version": None,
                 "stages_json": None,
             }
+
+            # Compute tokens_check if baseline and final provided
+            if (
+                log.get("tokens_check") is None
+                and isinstance(log.get("tokens_baseline"), int)
+                and isinstance(log.get("tokens_final"), int)
+            ):
+                log["tokens_check"] = log["tokens_final"] - log["tokens_baseline"]
 
             if usage_totals is not None:
                 if log.get("tokens_in") is None and usage_totals.tokens_in is not None:
@@ -2534,6 +2663,177 @@ rc-validate
                 db=db,
             )
             _output_result(results, args.format, "analysis_log")
+
+        elif args.analysis_command == "start":
+            # Lifecycle: start an analysis with baseline snapshot
+            from datetime import datetime as dt
+            from usage_capture import (
+                get_current_session_path,
+                get_session_token_count,
+                NoSessionFoundError,
+                AmbiguousSessionError,
+                _tool_to_provider,
+            )
+
+            tool = args.tool
+            provider = _tool_to_provider(tool)
+
+            session_id = getattr(args, "usage_session_id", None)
+            session_path = getattr(args, "usage_session_path", None)
+            tokens_baseline = None
+
+            if session_path:
+                session_path = Path(session_path).expanduser()
+                tokens_baseline = get_session_token_count(session_path, provider)
+                if not session_id:
+                    # Extract UUID from path
+                    from usage_capture import _extract_uuid_from_filename
+                    session_id = _extract_uuid_from_filename(session_path.name, provider)
+            elif session_id:
+                # Have ID but not path - try to find path and get tokens
+                try:
+                    from usage_capture import get_session_token_count_by_uuid
+                    tokens_baseline = get_session_token_count_by_uuid(session_id, provider)
+                except Exception:
+                    pass  # OK if we can't get baseline, can still track session ID
+
+            log = {
+                "source_id": args.source_id,
+                "tool": tool,
+                "status": "started",
+                "command": getattr(args, "analysis_cmd", None),
+                "model": getattr(args, "model", None),
+                "started_at": dt.utcnow().isoformat() + "Z",
+                "tokens_baseline": tokens_baseline,
+                "usage_provider": provider,
+                "usage_mode": "per_message_sum" if provider in ("claude", "amp") else "counter_delta",
+                "usage_session_id": session_id,
+                "notes": getattr(args, "notes", None),
+            }
+
+            log_id = add_analysis_log(log, db)
+            print(f"Created analysis log: {log_id}", flush=True)
+            if tokens_baseline is not None:
+                print(f"  baseline tokens: {tokens_baseline}", flush=True)
+            if session_id:
+                print(f"  session: {session_id}", flush=True)
+
+        elif args.analysis_command == "mark":
+            # Lifecycle: mark a stage checkpoint
+            import json as json_module
+            from datetime import datetime as dt
+
+            log_id = args.analysis_id
+            stage_name = args.stage
+
+            existing = get_analysis_log(log_id, db)
+            if not existing:
+                print(f"Error: Analysis log not found: {log_id}", file=sys.stderr)
+                sys.exit(1)
+
+            # Parse existing stages
+            stages_json = existing.get("stages_json") or "[]"
+            try:
+                stages = json_module.loads(stages_json)
+            except json_module.JSONDecodeError:
+                stages = []
+
+            # Add new stage
+            stage_entry = {
+                "stage": stage_name,
+                "timestamp": dt.utcnow().isoformat() + "Z",
+            }
+            if getattr(args, "notes", None):
+                stage_entry["notes"] = args.notes
+
+            stages.append(stage_entry)
+
+            update_analysis_log(log_id, stages_json=json_module.dumps(stages), db=db)
+            print(f"Marked stage '{stage_name}' for {log_id}", flush=True)
+
+        elif args.analysis_command == "complete":
+            # Lifecycle: complete an analysis with final snapshot
+            import json as json_module
+            from datetime import datetime as dt
+            from usage_capture import get_session_token_count_by_uuid, _tool_to_provider
+
+            log_id = args.analysis_id
+
+            existing = get_analysis_log(log_id, db)
+            if not existing:
+                print(f"Error: Analysis log not found: {log_id}", file=sys.stderr)
+                sys.exit(1)
+
+            tokens_final = getattr(args, "tokens_final", None)
+            session_id = existing.get("usage_session_id")
+            provider = existing.get("usage_provider")
+
+            # Try to auto-detect final tokens if session is tracked
+            if tokens_final is None and session_id and provider:
+                try:
+                    tokens_final = get_session_token_count_by_uuid(session_id, provider)
+                except Exception:
+                    pass
+
+            # Compute tokens_check
+            tokens_baseline = existing.get("tokens_baseline")
+            tokens_check = None
+            if isinstance(tokens_baseline, int) and isinstance(tokens_final, int):
+                tokens_check = tokens_final - tokens_baseline
+
+            updates = {
+                "status": args.status,
+                "completed_at": dt.utcnow().isoformat() + "Z",
+            }
+            if tokens_final is not None:
+                updates["tokens_final"] = tokens_final
+            if tokens_check is not None:
+                updates["tokens_check"] = tokens_check
+
+            # Handle claims
+            if getattr(args, "claims_extracted", None):
+                updates["claims_extracted"] = [c.strip() for c in args.claims_extracted.split(",")]
+            if getattr(args, "claims_updated", None):
+                updates["claims_updated"] = [c.strip() for c in args.claims_updated.split(",")]
+            if getattr(args, "notes", None):
+                updates["notes"] = args.notes
+
+            # Estimate cost if requested
+            if getattr(args, "estimate_cost", False) and tokens_check:
+                model = existing.get("model")
+                if model:
+                    estimated = estimate_cost_usd(model, tokens_check // 2, tokens_check // 2)
+                    if estimated:
+                        updates["cost_usd"] = estimated
+
+            update_analysis_log(log_id, db=db, **updates)
+            print(f"Completed analysis: {log_id}", flush=True)
+            if tokens_check is not None:
+                print(f"  tokens_check: {tokens_check}", flush=True)
+
+        elif args.analysis_command == "sessions":
+            # Session discovery helpers
+            if getattr(args, "sessions_command", None) == "list":
+                from usage_capture import list_sessions, _tool_to_provider
+
+                tool = args.tool
+                provider = _tool_to_provider(tool)
+                limit = getattr(args, "limit", 10)
+
+                sessions = list_sessions(provider, limit=limit)
+                if not sessions:
+                    print(f"No sessions found for {tool}", file=sys.stderr)
+                    sys.exit(1)
+
+                print(f"Sessions for {tool}:", flush=True)
+                for s in sessions:
+                    snippet = s.get("context_snippet", "")[:50]
+                    if len(s.get("context_snippet", "")) > 50:
+                        snippet += "..."
+                    print(f"  {s['uuid']}: {s['tokens_so_far']:,} tokens - {snippet or '(no preview)'}", flush=True)
+            else:
+                print("Usage: rc-db analysis sessions list --tool <claude-code|codex|amp>", file=sys.stderr)
+                sys.exit(1)
 
         else:
             analysis_parser.print_help()

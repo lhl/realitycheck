@@ -2121,3 +2121,230 @@ class TestAnalysisLogsCLI:
 
         assert_cli_success(result)
         assert "ANALYSIS-" in result.stdout or "test-source" in result.stdout
+
+
+# =============================================================================
+# Token Usage Lifecycle Tests (Phase 1 of token-usage implementation)
+# =============================================================================
+
+class TestUpdateAnalysisLog:
+    """Tests for update_analysis_log() function."""
+
+    def test_update_analysis_log_partial_update(self, initialized_db, sample_source):
+        """Update only specified fields, leave others unchanged."""
+        from db import add_source, add_analysis_log, update_analysis_log, get_analysis_log
+
+        add_source(sample_source, initialized_db)
+
+        log_id = add_analysis_log({
+            "source_id": sample_source["id"],
+            "tool": "claude-code",
+            "status": "started",
+            "notes": "Original note",
+        }, initialized_db)
+
+        # Partial update - only change status and add tokens
+        update_analysis_log(
+            log_id,
+            status="completed",
+            tokens_check=500,
+            db=initialized_db,
+        )
+
+        updated = get_analysis_log(log_id, initialized_db)
+        assert updated["status"] == "completed"
+        assert updated["tokens_check"] == 500
+        assert updated["notes"] == "Original note"  # Unchanged
+
+    def test_update_analysis_log_no_duplicate_rows(self, initialized_db, sample_source):
+        """Update modifies in place, does not create new rows."""
+        from db import add_source, add_analysis_log, update_analysis_log, list_analysis_logs
+
+        add_source(sample_source, initialized_db)
+
+        log_id = add_analysis_log({
+            "source_id": sample_source["id"],
+            "tool": "claude-code",
+            "status": "started",
+        }, initialized_db)
+
+        # Multiple updates
+        update_analysis_log(log_id, status="completed", db=initialized_db)
+        update_analysis_log(log_id, notes="Added notes", db=initialized_db)
+
+        logs = list_analysis_logs(source_id=sample_source["id"], db=initialized_db)
+        assert len(logs) == 1  # Still just one row
+        assert logs[0]["id"] == log_id
+
+    def test_update_analysis_log_nonexistent_id_errors(self, initialized_db):
+        """Updating a nonexistent ID raises an error."""
+        from db import update_analysis_log
+
+        with pytest.raises(ValueError, match="not found"):
+            update_analysis_log("ANALYSIS-9999-999", status="completed", db=initialized_db)
+
+
+class TestAnalysisLifecycleCLI:
+    """CLI tests for analysis lifecycle commands (start/mark/complete)."""
+
+    def test_cli_analysis_start_creates_row_with_baseline(self, temp_db_path: Path, tmp_path: Path):
+        """rc-db analysis start creates a row with tokens_baseline."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Init DB and add source
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026", "--no-embedding"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create a mock session for auto-detection
+        claude_sessions = tmp_path / ".claude" / "projects" / "test"
+        claude_sessions.mkdir(parents=True)
+        session_file = claude_sessions / "test-uuid-1234-5678-9abc-def012345678.jsonl"
+        session_file.write_text('{"message":{"usage":{"input_tokens":100,"output_tokens":50}}}\n')
+
+        env["HOME"] = str(tmp_path)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "start",
+             "--source-id", "test-source", "--tool", "claude-code",
+             "--usage-session-id", "test-uuid-1234-5678-9abc-def012345678"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "ANALYSIS-" in result.stdout
+
+    def test_cli_analysis_mark_appends_stage(self, temp_db_path: Path):
+        """rc-db analysis mark appends stage to stages_json."""
+        import os
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026", "--no-embedding"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create analysis with start (without session tracking for simplicity)
+        add_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "add",
+             "--source-id", "test-source", "--tool", "claude-code", "--status", "started"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(add_result)
+
+        import re
+        match = re.search(r"ANALYSIS-\d{4}-\d{3}", add_result.stdout)
+        analysis_id = match.group(0)
+
+        # Mark stage
+        mark_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "mark",
+             "--id", analysis_id, "--stage", "check_stage1"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(mark_result)
+
+        # Verify stages_json was updated
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", analysis_id, "--format", "json"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        data = json.loads(get_result.stdout)
+        stages = json.loads(data.get("stages_json") or "[]")
+        assert any(s.get("stage") == "check_stage1" for s in stages)
+
+    def test_cli_analysis_complete_computes_tokens_check(self, temp_db_path: Path):
+        """rc-db analysis complete computes tokens_check from baseline/final."""
+        import os
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026", "--no-embedding"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create analysis with known baseline
+        add_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "add",
+             "--source-id", "test-source", "--tool", "claude-code", "--status", "started",
+             "--tokens-baseline", "1000"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(add_result)
+
+        import re
+        match = re.search(r"ANALYSIS-\d{4}-\d{3}", add_result.stdout)
+        analysis_id = match.group(0)
+
+        # Complete with final tokens
+        complete_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "complete",
+             "--id", analysis_id, "--tokens-final", "2500"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(complete_result)
+
+        # Verify tokens_check was computed
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", analysis_id, "--format", "json"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        data = json.loads(get_result.stdout)
+        assert data.get("tokens_check") == 1500  # 2500 - 1000
+        assert data.get("status") == "completed"
+
+    def test_cli_analysis_sessions_list(self, temp_db_path: Path, tmp_path: Path):
+        """rc-db analysis sessions list shows available sessions."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        env["HOME"] = str(tmp_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create mock sessions - UUID must be valid hex format
+        claude_sessions = tmp_path / ".claude" / "projects" / "test"
+        claude_sessions.mkdir(parents=True)
+        (claude_sessions / "a1b2c3d4-1111-2222-3333-444455556666.jsonl").write_text(
+            '{"message":{"content":"Hello world","usage":{"input_tokens":100}}}\n'
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "sessions", "list", "--tool", "claude-code"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "a1b2c3d4" in result.stdout or "Hello" in result.stdout
