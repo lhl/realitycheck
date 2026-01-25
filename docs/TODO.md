@@ -43,6 +43,30 @@ Tracking future work items.
 
 ---
 
+## Analysis Rigor Improvements (Primary Evidence, Layering, Corrections)
+
+**Plan**: [PLAN-analysis-rigor-improvement.md](PLAN-analysis-rigor-improvement.md)
+
+**Dependency**: Scheduled **after** Epistemic Provenance. Implementing provenance (`evidence_links`, `reasoning_trails`, validation gates, append-only corrections semantics) will directly satisfy part of this plan.
+
+**Problem**: Analyses can still produce confident-looking evidence/credence tables that conflate:
+- asserted authority vs lawful authority vs practiced reality,
+- ICE vs CBP/DHS actor attribution,
+- scoped/conditional claims vs “can anywhere/always” overgeneralizations,
+- stale sources vs corrected/updated reporting,
+- secondary reporting vs accessible primary documents.
+
+**Solution**:
+- Enforce `Layer/Actor/Scope/Quantifier/Evidence Type` in claim tables (template-level)
+- Primary-document-first capture for high-impact claims (memos, court orders, filings, PDFs)
+- Corrections/recency tracking as a first-class workflow step (with claim impact)
+- Court citation hygiene (majority vs dissent; posture; controlling vs non-controlling)
+- Multi-pass refinement workflow that preserves provenance and reviewer disagreement cleanly
+
+**Status**: Queued - do after Epistemic Provenance.
+
+---
+
 ## Analysis Audit Log
 
 **Plan**: [PLAN-audit-log.md](PLAN-audit-log.md)
