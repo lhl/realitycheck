@@ -364,10 +364,11 @@ class TestAnalysisLogsExport:
         """Markdown export includes token/cost totals."""
         add_analysis_log(sample_analysis_log, initialized_db)
 
-        # Add a second log
+        # Add a second log (set both tokens_check and total_tokens - export prefers tokens_check)
         log2 = sample_analysis_log.copy()
         log2["id"] = "ANALYSIS-2026-002"
         log2["total_tokens"] = 5000
+        log2["tokens_check"] = 5000  # Export prefers tokens_check over total_tokens
         log2["cost_usd"] = 0.12
         add_analysis_log(log2, initialized_db)
 
@@ -393,15 +394,19 @@ class TestAnalysisLogsExport:
 
     def test_export_analysis_logs_md_tracks_unknown_tokens_and_cost(self, initialized_db, temp_db_path, sample_analysis_log):
         """Markdown totals should distinguish known values from unknown/missing."""
+        # Log with unknown tokens (both tokens_check and total_tokens are None)
         unknown = sample_analysis_log.copy()
         unknown["id"] = "ANALYSIS-2026-002"
         unknown["total_tokens"] = None
+        unknown["tokens_check"] = None  # Export prefers tokens_check, so must also be None
         unknown["cost_usd"] = None
         add_analysis_log(unknown, initialized_db)
 
+        # Log with zero tokens
         zero = sample_analysis_log.copy()
         zero["id"] = "ANALYSIS-2026-003"
         zero["total_tokens"] = 0
+        zero["tokens_check"] = 0  # Export prefers tokens_check
         zero["cost_usd"] = 0.0
         add_analysis_log(zero, initialized_db)
 

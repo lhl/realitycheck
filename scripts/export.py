@@ -459,6 +459,16 @@ def export_analysis_logs_yaml(db_path: Optional[Path] = None) -> str:
             "tokens_out": log.get("tokens_out"),
             "total_tokens": log.get("total_tokens"),
             "cost_usd": float(log["cost_usd"]) if log.get("cost_usd") is not None else None,
+            # Delta accounting fields
+            "tokens_baseline": log.get("tokens_baseline"),
+            "tokens_final": log.get("tokens_final"),
+            "tokens_check": log.get("tokens_check"),
+            "usage_provider": log.get("usage_provider"),
+            "usage_mode": log.get("usage_mode"),
+            "usage_session_id": log.get("usage_session_id"),
+            # Synthesis linking fields
+            "inputs_source_ids": list(log.get("inputs_source_ids") or []),
+            "inputs_analysis_ids": list(log.get("inputs_analysis_ids") or []),
             "stages_json": log.get("stages_json"),
             "claims_extracted": list(log.get("claims_extracted") or []),
             "claims_updated": list(log.get("claims_updated") or []),
@@ -521,7 +531,8 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
             if isinstance(duration, numbers.Real)
             else "?"
         )
-        tokens = log.get("total_tokens")
+        # Prefer tokens_check (delta accounting) over total_tokens (legacy)
+        tokens = log.get("tokens_check") or log.get("total_tokens")
         tokens_str = f"{int(tokens):,}" if isinstance(tokens, numbers.Integral) else "?"
         cost = log.get("cost_usd")
         cost_str = f"${cost:.4f}" if cost is not None else "?"
@@ -557,8 +568,10 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
     for log in logs:
         tool = log.get("tool", "unknown") or "unknown"
         tool_counts[tool] = tool_counts.get(tool, 0) + 1
-        if log.get("total_tokens") is not None:
-            tool_tokens[tool] = tool_tokens.get(tool, 0) + log["total_tokens"]
+        # Prefer tokens_check (delta accounting) over total_tokens (legacy)
+        tokens = log.get("tokens_check") or log.get("total_tokens")
+        if tokens is not None:
+            tool_tokens[tool] = tool_tokens.get(tool, 0) + tokens
         if log.get("cost_usd") is not None:
             tool_costs[tool] = tool_costs.get(tool, 0.0) + log["cost_usd"]
 

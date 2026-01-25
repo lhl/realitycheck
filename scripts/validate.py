@@ -348,6 +348,29 @@ def validate_db(db_path: Optional[Path] = None) -> list[Finding]:
                 findings.append(Finding("ERROR", "ANALYSIS_COST_NEGATIVE",
                     f"{log_id}: Negative cost_usd: {cost}"))
 
+            # Validate tokens_check math (when all delta fields present)
+            tokens_baseline = log.get("tokens_baseline")
+            tokens_final = log.get("tokens_final")
+            tokens_check = log.get("tokens_check")
+            if (
+                tokens_baseline is not None
+                and tokens_final is not None
+                and tokens_check is not None
+            ):
+                expected = tokens_final - tokens_baseline
+                if tokens_check != expected:
+                    findings.append(Finding("WARNING", "ANALYSIS_TOKENS_CHECK_MISMATCH",
+                        f"{log_id}: tokens_check ({tokens_check}) != tokens_final ({tokens_final}) - tokens_baseline ({tokens_baseline}) = {expected}"))
+
+            # Validate synthesis inputs reference existing analysis logs
+            inputs_analysis_ids = log.get("inputs_analysis_ids") or []
+            if inputs_analysis_ids:
+                analysis_log_ids = {l.get("id") for l in analysis_logs}
+                for input_id in inputs_analysis_ids:
+                    if input_id not in analysis_log_ids:
+                        findings.append(Finding("ERROR", "ANALYSIS_SYNTHESIS_INPUT_MISSING",
+                            f"{log_id}: inputs_analysis_ids references unknown analysis '{input_id}'"))
+
     return findings
 
 

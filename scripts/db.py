@@ -1841,6 +1841,15 @@ Examples:
     sessions_list.add_argument("--tool", required=True, help="Tool to list sessions for (claude-code/codex/amp)")
     sessions_list.add_argument("--limit", type=int, default=10, help="Max sessions to show")
 
+    # analysis backfill-usage
+    analysis_backfill = analysis_subparsers.add_parser("backfill-usage", help="Backfill token usage for historical entries")
+    analysis_backfill.add_argument("--tool", help="Filter by tool (claude-code/codex/amp)")
+    analysis_backfill.add_argument("--since", help="Only entries after this date (YYYY-MM-DD)")
+    analysis_backfill.add_argument("--until", help="Only entries before this date (YYYY-MM-DD)")
+    analysis_backfill.add_argument("--dry-run", action="store_true", help="Show what would be updated without making changes")
+    analysis_backfill.add_argument("--limit", type=int, default=100, help="Max entries to process")
+    analysis_backfill.add_argument("--force", action="store_true", help="Overwrite existing token values")
+
     # -------------------------------------------------------------------------
     # Related command
     # -------------------------------------------------------------------------
@@ -2834,6 +2843,109 @@ rc-validate
             else:
                 print("Usage: rc-db analysis sessions list --tool <claude-code|codex|amp>", file=sys.stderr)
                 sys.exit(1)
+
+        elif args.analysis_command == "backfill-usage":
+            # Backfill token usage for historical entries
+            from datetime import datetime as dt
+            from usage_capture import (
+                parse_usage_from_source,
+                _tool_to_provider,
+                _get_session_paths,
+                _extract_uuid_from_filename,
+            )
+
+            dry_run = getattr(args, "dry_run", False)
+            force = getattr(args, "force", False)
+            limit = getattr(args, "limit", 100)
+            tool_filter = getattr(args, "tool", None)
+            since = getattr(args, "since", None)
+            until = getattr(args, "until", None)
+
+            # Get all analysis logs missing tokens_check
+            all_logs = list_analysis_logs(tool=tool_filter, limit=10000, db=db)
+
+            # Filter to entries that need backfill
+            candidates = []
+            for log in all_logs:
+                # Skip if already has tokens_check (unless force)
+                if log.get("tokens_check") is not None and not force:
+                    continue
+
+                # Must have timestamps for window matching
+                started_at = log.get("started_at")
+                completed_at = log.get("completed_at")
+                if not started_at or not completed_at:
+                    continue
+
+                # Apply date filters
+                if since:
+                    if started_at < since:
+                        continue
+                if until:
+                    if started_at > until:
+                        continue
+
+                candidates.append(log)
+
+            if not candidates:
+                print("No entries found that need backfill.", flush=True)
+                sys.exit(0)
+
+            print(f"Found {len(candidates)} entries to backfill (limit: {limit})", flush=True)
+            candidates = candidates[:limit]
+
+            updated = 0
+            skipped = 0
+
+            for log in candidates:
+                log_id = log["id"]
+                tool = log.get("tool", "")
+                provider = _tool_to_provider(tool)
+                started_at = log.get("started_at")
+                completed_at = log.get("completed_at")
+
+                # Find session files that overlap with this time window
+                session_paths = _get_session_paths(provider)
+                if not session_paths:
+                    print(f"  {log_id}: no sessions found for {tool}", flush=True)
+                    skipped += 1
+                    continue
+
+                # Try to compute windowed usage
+                best_tokens = None
+                for path in session_paths:
+                    try:
+                        totals = parse_usage_from_source(
+                            provider, path,
+                            window_start=started_at,
+                            window_end=completed_at,
+                        )
+                        if totals.total_tokens and totals.total_tokens > 0:
+                            best_tokens = totals.total_tokens
+                            break
+                    except Exception:
+                        continue
+
+                if best_tokens is None:
+                    print(f"  {log_id}: no matching usage found", flush=True)
+                    skipped += 1
+                    continue
+
+                if dry_run:
+                    print(f"  {log_id}: would set tokens_check={best_tokens:,}", flush=True)
+                else:
+                    update_analysis_log(
+                        log_id,
+                        tokens_check=best_tokens,
+                        usage_mode="windowed_sum",
+                        db=db,
+                    )
+                    print(f"  {log_id}: set tokens_check={best_tokens:,}", flush=True)
+                updated += 1
+
+            print(f"\nBackfill complete: {updated} updated, {skipped} skipped", flush=True)
+            if dry_run:
+                print("(dry run - no changes made)", flush=True)
 
         else:
             analysis_parser.print_help()
