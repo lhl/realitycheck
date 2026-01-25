@@ -5,6 +5,7 @@ Tracking future work items.
 ## Token Usage Capture (Backfill + Default Automation)
 
 **Plan**: [PLAN-token-usage.md](PLAN-token-usage.md)
+**Implementation**: [IMPLEMENTATION-token-usage.md](IMPLEMENTATION-token-usage.md)
 
 **Problem**: Many `analysis_logs` entries lack token/cost fields because usage capture is optional and check boundaries are not consistently recorded.
 
@@ -17,7 +18,7 @@ Tracking future work items.
 
 **Key insight**: Each tool stores sessions with UUIDs. Sessions can span multiple checks, so we use delta accounting rather than session totals.
 
-**Status**: Planning (spec finalized) - see PLAN doc for implementation details.
+**Status**: Planning complete - see implementation doc for punchlist.
 
 ---
 
