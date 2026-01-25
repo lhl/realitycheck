@@ -35,7 +35,8 @@ docs/
  └── UPDATE TODO.md                  # Mark item as in-progress/complete
 
 integrations/
- ├── UPDATE _templates/skills/check.md.j2    # Use lifecycle commands
+ ├── UPDATE _templates/skills/check.md.j2        # Use lifecycle commands
+ ├── UPDATE _templates/skills/synthesize.md.j2   # Synthesis attribution
  └── regenerate all skills via `make assemble-skills`
 ```
 
@@ -48,6 +49,14 @@ integrations/
 
 ## New Functionality Required
 
+### Naming Conventions
+
+**Important distinction**:
+- `tool` field: Existing validation expects `claude-code|codex|amp|manual|other` (hyphenated for Claude Code)
+- `usage_provider`: Simpler names for session log parsing: `claude|codex|amp`
+
+The `--tool` CLI flag uses the full tool name (`claude-code`), while session detection internally maps to the provider name (`claude`) for parsing.
+
 ### Schema Additions
 
 Add to `analysis_logs`:
@@ -57,8 +66,8 @@ Add to `analysis_logs`:
 | `tokens_baseline` | int (nullable) | Session token count at check start |
 | `tokens_final` | int (nullable) | Session token count at check end |
 | `tokens_check` | int (nullable) | Total tokens for this check (final - baseline) |
-| `usage_provider` | str (nullable) | Provider: claude\|codex\|amp\|manual\|other |
-| `usage_mode` | str (nullable) | Method: per_message_sum\|windowed_sum\|counter_delta\|manual |
+| `usage_provider` | str (nullable) | Provider for session parsing: `claude\|codex\|amp` |
+| `usage_mode` | str (nullable) | Method: `per_message_sum\|windowed_sum\|counter_delta\|manual` |
 | `usage_session_id` | str (nullable) | Session UUID (portable, no full paths) |
 | `inputs_source_ids` | list[str] (nullable) | Source IDs feeding a synthesis (synthesis-only) |
 | `inputs_analysis_ids` | list[str] (nullable) | Analysis log IDs feeding a synthesis (synthesis-only) |
@@ -67,7 +76,7 @@ Add to `analysis_logs`:
 
 ```bash
 # Lifecycle commands (new)
-rc-db analysis start --source-id <id> --tool <claude|codex|amp> [--model M] [--usage-session-id UUID]
+rc-db analysis start --source-id <id> --tool <claude-code|codex|amp> [--model M] [--usage-session-id UUID]
   # → Returns ANALYSIS-YYYY-NNN; captures baseline snapshot
 
 rc-db analysis mark --id <id> --stage <stage-name>
@@ -81,7 +90,7 @@ rc-db analysis backfill-usage [--tool T] [--since DATE] [--until DATE] [--dry-ru
   # → Best-effort fill of missing token fields for historical entries
 
 # Session discovery helper (new)
-rc-db analysis sessions list --tool <claude|codex|amp> [--limit N]
+rc-db analysis sessions list --tool <claude-code|codex|amp> [--limit N]
   # → Lists candidate sessions with (uuid, path, last_modified, tokens_so_far)
 ```
 
@@ -90,16 +99,35 @@ rc-db analysis sessions list --tool <claude|codex|amp> [--limit N]
 Add to `usage_capture.py`:
 
 ```python
-def get_current_session_path(tool: str) -> tuple[Path, str]:
+def get_current_session_path(tool: str, project_path: Path | None = None) -> tuple[Path, str]:
     """Auto-detect current session file and UUID.
 
     Returns (session_path, session_uuid).
-    Raises if no session found or multiple ambiguous candidates.
+
+    Selection logic (in order):
+    1. If exactly one candidate session exists, return it
+    2. If multiple candidates exist, raise AmbiguousSessionError with candidate list
+    3. If no candidates exist, raise NoSessionFoundError
+
+    Does NOT default to "most recently modified" when ambiguous - user must
+    provide explicit --usage-session-id or --usage-session-path.
     """
 
 def get_session_token_count(path: Path, tool: str) -> int:
     """Compute current cumulative token count for session."""
+
+def list_sessions(tool: str, limit: int = 10) -> list[dict]:
+    """List candidate sessions for discovery/debugging.
+
+    Returns list of {uuid, path, last_modified, tokens_so_far}.
+    """
 ```
+
+**Codex resume semantics**: A single `usage_session_id` (UUID) may map to multiple `rollout-*.jsonl` files (one per resume). Implementation must either:
+- Select the latest file matching the UUID, OR
+- Aggregate token counts across all files for that UUID
+
+Decision: Aggregate across all matching files (more accurate for resumed sessions).
 
 ---
 
@@ -112,9 +140,12 @@ def get_session_token_count(path: Path, tool: str) -> int:
   - [ ] `test_get_current_session_path_codex` - finds Codex session
   - [ ] `test_get_current_session_path_amp` - finds Amp session
   - [ ] `test_get_current_session_path_ambiguous` - errors on multiple candidates
+  - [ ] `test_get_current_session_path_no_session` - errors when none found
   - [ ] `test_get_session_token_count_claude` - sums per-message usage
   - [ ] `test_get_session_token_count_codex` - counter delta method
+  - [ ] `test_get_session_token_count_codex_multi_rollout` - aggregates across resumed session files
   - [ ] `test_get_session_token_count_amp` - sums per-message usage
+  - [ ] `test_list_sessions` - returns candidates with metadata
 
 - [ ] **tests/test_db.py**: Lifecycle CLI tests
   - [ ] `test_analysis_start_creates_row_with_baseline`
@@ -126,6 +157,9 @@ def get_session_token_count(path: Path, tool: str) -> int:
   - [ ] `test_analysis_backfill_usage_fills_missing`
   - [ ] `test_analysis_backfill_usage_respects_force`
   - [ ] `test_analysis_sessions_list`
+  - [ ] `test_update_analysis_log_partial_update`
+  - [ ] `test_update_analysis_log_no_duplicate_rows`
+  - [ ] `test_update_analysis_log_nonexistent_id_errors`
 
 - [ ] **tests/test_validate.py**: New field validation
   - [ ] `test_validate_analysis_log_tokens_check_computed_correctly`
@@ -135,7 +169,7 @@ def get_session_token_count(path: Path, tool: str) -> int:
   - [ ] `test_export_analysis_logs_includes_delta_fields`
   - [ ] `test_export_analysis_logs_includes_synthesis_links`
 
-### Phase 2: Schema Updates
+### Phase 2: Schema Updates + CRUD
 
 - [ ] Add new fields to `ANALYSIS_LOGS_SCHEMA` in `scripts/db.py`:
   - `tokens_baseline` (int, nullable)
@@ -148,6 +182,10 @@ def get_session_token_count(path: Path, tool: str) -> int:
   - `inputs_analysis_ids` (list[str], nullable)
 - [ ] Update `init_tables()` to handle schema evolution (add columns if missing)
 - [ ] Update `add_analysis_log()` to accept new fields
+- [ ] **Add `update_analysis_log(id, **fields)`** - required for lifecycle commands
+  - Must handle partial updates (only specified fields)
+  - Must prevent duplicate rows (update in place, not insert)
+  - Must validate ID exists before update
 - [ ] Update `get_analysis_log()` / `list_analysis_logs()` to return new fields
 
 ### Phase 3: Session Detection (usage_capture.py)
@@ -156,13 +194,17 @@ def get_session_token_count(path: Path, tool: str) -> int:
   - Claude: `~/.claude/projects/<project>/<uuid>.jsonl`
   - Codex: `~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<uuid>.jsonl`
   - Amp: `~/.local/share/amp/threads/T-<uuid>.json`
-- [ ] Implement `get_current_session_path(tool)`:
-  - Find most recently modified session file
-  - Extract UUID from filename
-  - Return (path, uuid) or raise on ambiguity
+- [ ] Implement `get_current_session_path(tool, project_path)`:
+  - Return (path, uuid) if exactly one candidate exists
+  - Raise `AmbiguousSessionError` with candidate list if multiple exist
+  - Raise `NoSessionFoundError` if none exist
+  - **Do NOT default to "most recently modified"** when ambiguous
 - [ ] Implement `get_session_token_count(path, tool)`:
   - Claude/Amp: sum all per-message usage
   - Codex: read final `total_token_usage` counter
+- [ ] Implement `get_session_token_count_by_uuid(uuid, tool)` for Codex:
+  - Find all `rollout-*.jsonl` files matching UUID
+  - Aggregate token counts across all matching files
 - [ ] Implement `list_sessions(tool, limit)` for discovery helper
 
 ### Phase 4: Lifecycle CLI Commands (db.py)
@@ -218,7 +260,7 @@ def get_session_token_count(path: Path, tool: str) -> int:
 
 - [ ] Update `integrations/_templates/skills/check.md.j2` to use lifecycle commands:
   ```bash
-  ANALYSIS_ID=$(rc-db analysis start --source-id "$SOURCE_ID" --tool claude)
+  ANALYSIS_ID=$(rc-db analysis start --source-id "$SOURCE_ID" --tool claude-code)
   # ... stage 1 ...
   rc-db analysis mark --id "$ANALYSIS_ID" --stage check_stage1
   # ... stage 2 ...
@@ -228,29 +270,54 @@ def get_session_token_count(path: Path, tool: str) -> int:
   # ... register claims ...
   rc-db analysis complete --id "$ANALYSIS_ID" --status completed
   ```
+
+- [ ] Update `integrations/_templates/skills/synthesize.md.j2` to use lifecycle commands with synthesis attribution:
+  ```bash
+  # Synthesis workflow with input attribution
+  SYNTHESIS_ID=$(rc-db analysis start \
+    --source-id "$SYNTHESIS_SOURCE_ID" \
+    --tool claude-code \
+    --inputs-source-ids "$SOURCE_ID_1,$SOURCE_ID_2" \
+    --inputs-analysis-ids "$ANALYSIS_ID_1,$ANALYSIS_ID_2")
+
+  # ... synthesis work ...
+  rc-db analysis mark --id "$SYNTHESIS_ID" --stage synthesize_draft
+  # ... revision ...
+  rc-db analysis mark --id "$SYNTHESIS_ID" --stage synthesize_revision
+
+  rc-db analysis complete --id "$SYNTHESIS_ID" --status completed
+  ```
+
+- [ ] Document synthesis audit log rendering requirements:
+  - "Inputs" table listing each input analysis (ID + tokens/cost from `inputs_analysis_ids`)
+  - Synthesis run's own stage token deltas
+  - "Total end-to-end" line: `sum(tokens_check for inputs) + tokens_check for synthesis`
+
 - [ ] Run `make assemble-skills` to regenerate all integration skills
 
 ---
 
 ## Resolved Decisions
 
-_(None yet - document decisions as they're made)_
+1. **Tool vs provider naming**: `tool` field stays `claude-code|codex|amp|manual|other` (matches existing validation). `usage_provider` is `claude|codex|amp` for session parsing. CLI maps tool→provider internally.
+
+2. **Session detection behavior**: Require explicit `--usage-session-id` when ambiguous. Do NOT default to "most recently modified". Error message lists candidates for user selection.
+
+3. **Codex resume semantics**: Aggregate token counts across all `rollout-*.jsonl` files matching a UUID (more accurate for resumed sessions).
+
+4. **Update semantics**: Add `update_analysis_log()` function. Lifecycle commands (`start`/`mark`/`complete`) mutate existing rows via update, not insert.
+
+5. **Backwards compatibility**: Keep `analysis add` for manual one-shot entry. Lifecycle commands (`start`/`mark`/`complete`) are the new default for automated checks with delta accounting.
 
 ---
 
 ## Open Questions
 
-1. **Session detection edge case**: What happens if user has multiple terminal sessions active?
-   - Proposed: Require explicit `--usage-session-id` when ambiguous (error message lists candidates)
-
-2. **Backfill window heuristics**: How much padding around `started_at`/`completed_at`?
+1. **Backfill window heuristics**: How much padding around `started_at`/`completed_at`?
    - Proposed: Use exact window if timestamps present; skip entry if missing
 
-3. **Schema migration**: How to add new columns to existing `analysis_logs` tables?
+2. **Schema migration**: How to add new columns to existing `analysis_logs` tables?
    - Proposed: LanceDB supports adding columns; wrap in try/except for existing DBs
-
-4. **Backwards compatibility**: Should `analysis add` continue working for manual one-shot entry?
-   - Proposed: Yes, keep `analysis add` for manual entries; lifecycle commands are the new default for automated checks
 
 ---
 
@@ -262,6 +329,16 @@ _(None yet - document decisions as they're made)_
 - Reviewed existing `usage_capture.py` - parsers exist, need session detection
 - Identified 9 phases of work
 - Key insight: `analysis add` remains for manual entry; lifecycle (`start`/`mark`/`complete`) is for automated checks with delta accounting
+
+### 2026-01-25: Review Feedback Incorporated
+
+Addressed feedback from planning review:
+
+1. **Tool vs provider naming**: Clarified that `tool` stays `claude-code|codex|amp|...` while `usage_provider` is `claude|codex|amp` for session parsing
+2. **Session detection**: Fixed to require explicit ID OR exactly one candidate (not "most recent" as default)
+3. **Codex resume semantics**: Added note about aggregating across multiple rollout files per UUID
+4. **Update semantics**: Added explicit `update_analysis_log()` work item and tests
+5. **Synthesis plumbing**: Added `synthesize.md.j2` to Phase 9 with attribution workflow
 
 ---
 
