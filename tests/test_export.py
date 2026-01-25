@@ -416,6 +416,27 @@ class TestAnalysisLogsExport:
         assert "**Total Tokens**: 0 (known; 1 unknown)" in md_str
         assert "**Total Cost**: $0.0000 (known; 1 unknown)" in md_str
 
+    def test_export_analysis_logs_md_tokens_check_zero_not_fallback(self, initialized_db, temp_db_path, sample_analysis_log):
+        """tokens_check=0 should render as 0, not fall back to total_tokens.
+
+        Regression test: the `or` pattern (tokens_check or total_tokens) would
+        incorrectly treat 0 as falsy and fall back to total_tokens.
+        """
+        log = sample_analysis_log.copy()
+        log["id"] = "ANALYSIS-2026-ZERO"
+        log["tokens_check"] = 0       # Should use this (0)
+        log["total_tokens"] = 12345   # Should NOT fall back to this
+        log["cost_usd"] = 0.0
+        add_analysis_log(log, initialized_db)
+
+        md_str = export_analysis_logs_md(temp_db_path)
+
+        # If the bug exists, total would be 12345. With fix, total should be 0.
+        # The sample_analysis_log has total_tokens=3700, so total would be 3700 + 0 = 3700
+        # (or 3700 + 12345 = 16045 if bug exists)
+        assert "**Total Tokens**: 3,700" in md_str or "**Total Tokens**: 0" in md_str
+        assert "16,045" not in md_str, "Bug: tokens_check=0 fell back to total_tokens=12345"
+
 
 class TestExportCLI:
     """CLI tests for scripts/export.py."""

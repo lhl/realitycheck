@@ -2279,6 +2279,130 @@ class TestAnalysisLifecycleCLI:
         assert data.get("usage_session_id") == session_uuid, f"Session ID not auto-detected: {data}"
         assert data.get("tokens_baseline") == 150, f"Baseline not captured: {data}"
 
+    def test_cli_analysis_start_ambiguous_sessions_warns(self, temp_db_path: Path, tmp_path: Path):
+        """rc-db analysis start warns and skips token tracking when multiple sessions exist."""
+        import os
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Init DB and add source
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026", "--no-embedding"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create TWO mock sessions (should trigger ambiguity)
+        claude_sessions = tmp_path / ".claude" / "projects" / "test"
+        claude_sessions.mkdir(parents=True)
+        (claude_sessions / "aaaaaaaa-1111-2222-3333-444455556666.jsonl").write_text(
+            '{"message":{"usage":{"input_tokens":100,"output_tokens":50}}}\n'
+        )
+        (claude_sessions / "bbbbbbbb-1111-2222-3333-444455556666.jsonl").write_text(
+            '{"message":{"usage":{"input_tokens":200,"output_tokens":100}}}\n'
+        )
+
+        env["HOME"] = str(tmp_path)
+
+        # Do NOT pass --usage-session-id - should warn about ambiguity
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "start",
+             "--source-id", "test-source", "--tool", "claude-code"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "ANALYSIS-" in result.stdout
+        # Should warn about multiple sessions
+        assert "Multiple" in result.stderr or "--usage-session-id" in result.stderr
+
+        # Extract the analysis ID and verify tokens_baseline is None (not captured)
+        import re
+        match = re.search(r"ANALYSIS-\d{4}-\d{3}", result.stdout)
+        analysis_id = match.group(0)
+
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", analysis_id, "--format", "json"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        data = json.loads(get_result.stdout)
+        # tokens_baseline should be None because of ambiguity
+        assert data.get("tokens_baseline") is None, f"tokens_baseline should be None: {data}"
+        assert data.get("usage_session_id") is None, f"session_id should be None: {data}"
+
+    def test_cli_analysis_mark_captures_token_delta(self, temp_db_path: Path, tmp_path: Path):
+        """rc-db analysis mark captures tokens_cumulative and tokens_delta."""
+        import os
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Init DB and add source
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026", "--no-embedding"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Create mock session with initial tokens
+        session_uuid = "cafebabe-1234-5678-9abc-def012345678"
+        claude_sessions = tmp_path / ".claude" / "projects" / "test"
+        claude_sessions.mkdir(parents=True)
+        session_file = claude_sessions / f"{session_uuid}.jsonl"
+        session_file.write_text('{"message":{"usage":{"input_tokens":100,"output_tokens":50}}}\n')
+
+        env["HOME"] = str(tmp_path)
+
+        # Start analysis (auto-detects session, baseline=150)
+        start_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "start",
+             "--source-id", "test-source", "--tool", "claude-code"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(start_result)
+
+        import re
+        match = re.search(r"ANALYSIS-\d{4}-\d{3}", start_result.stdout)
+        analysis_id = match.group(0)
+
+        # Add more tokens to session file (simulating more API calls)
+        with session_file.open("a") as f:
+            f.write('{"message":{"usage":{"input_tokens":200,"output_tokens":100}}}\n')
+
+        # Mark stage (should capture tokens_cumulative=450, tokens_delta=300)
+        mark_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "mark",
+             "--id", analysis_id, "--stage", "check_stage1"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(mark_result)
+
+        # Verify stages_json has token data
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", analysis_id, "--format", "json"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        data = json.loads(get_result.stdout)
+        stages = json.loads(data.get("stages_json") or "[]")
+        assert len(stages) >= 1, f"No stages found: {stages}"
+        stage = stages[-1]
+        assert stage.get("stage") == "check_stage1"
+        assert stage.get("tokens_cumulative") == 450, f"Expected tokens_cumulative=450: {stage}"
+        assert stage.get("tokens_delta") == 300, f"Expected tokens_delta=300: {stage}"
+
     def test_cli_analysis_mark_appends_stage(self, temp_db_path: Path):
         """rc-db analysis mark appends stage to stages_json."""
         import os
