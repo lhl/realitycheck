@@ -8,6 +8,10 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.1.6 - 2026-01-26
+
+Re-release of 0.1.5 with corrected README (PyPI is immutable).
+
 ## 0.1.5 - 2026-01-26
 
 Token usage delta accounting and schema migration tooling.
