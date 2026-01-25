@@ -2,6 +2,25 @@
 
 Tracking future work items.
 
+## Token Usage Capture (Backfill + Default Automation)
+
+**Plan**: [PLAN-token-usage.md](PLAN-token-usage.md)
+
+**Problem**: Many `analysis_logs` entries lack token/cost fields because usage capture is optional and check boundaries are not consistently recorded.
+
+**Solution** (delta accounting):
+- Auto-detect current session by tool (Claude Code, Codex, Amp)
+- At check start: snapshot session tokens → baseline
+- At check end: snapshot session tokens → final; check_tokens = final - baseline
+- Optional per-stage breakdown via `rc-db analysis mark --stage ...`
+- Backfill historical entries (best-effort when baseline wasn't recorded)
+
+**Key insight**: Each tool stores sessions with UUIDs. Sessions can span multiple checks, so we use delta accounting rather than session totals.
+
+**Status**: Planning (spec finalized) - see PLAN doc for implementation details.
+
+---
+
 ## Epistemic Provenance / Reasoning Trails (Major Feature)
 
 **Plan**: [PLAN-epistemic-provenance.md](PLAN-epistemic-provenance.md)

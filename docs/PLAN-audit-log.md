@@ -230,7 +230,6 @@ methodology/
 
 ## Open questions / TBD
 
-- Token/cost capture: parse local Claude/Codex session logs vs manual entry; mapping usage → *one analysis run* may require a start/end marker or timestamp window.
 - Should `pass` be auto-computed by counting existing logs for `source_id` (preferred) vs requiring explicit `--pass`.
 - Should we store a hash of the analysis markdown file (sha256) for tamper-evident provenance.
 - Later extension: a general DB "event log" for non-analysis mutations (claim updates, deletes).
@@ -239,62 +238,29 @@ methodology/
 
 ## Appendix: Token/Cost Capture
 
-### The Challenge
+> **See [PLAN-token-usage.md](PLAN-token-usage.md)** for the full token capture design, including delta accounting, session auto-detection, and per-stage breakdowns.
 
-Agentic TUIs (Claude Code, Codex, Amp) abstract away the underlying API layer. The underlying APIs *do* return token usage in responses, but integrations need a reliable way to capture it and associate it with a specific Reality Check run.
+### Session Storage Quick Reference
 
-**What *is* available locally (observed on this machine):**
+| Tool | Session Path | Token Data |
+|------|--------------|------------|
+| Claude Code | `~/.claude/projects/<project>/<uuid>.jsonl` | Per-message: `message.usage` |
+| Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-<ts>-<uuid>.jsonl` | Cumulative: `total_token_usage`, Per-turn: `last_token_usage` |
+| Amp | `~/.local/share/amp/threads/T-<uuid>.json` | Per-message: `messages[i].usage` |
 
-| Tool | Local Storage | Token Data? |
-|------|---------------|-------------|
-| Claude Code | `~/.claude/projects/<project>/<session-id>.jsonl` | Yes: per-message `message.usage` (observed keys: `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`) |
-| Claude Code | `~/.claude/stats-cache.json` | Yes: aggregated `modelUsage` includes tokens + `costUSD` (aggregate, not per-session) |
-| Codex CLI | `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl` | Yes: cumulative `payload.info.total_token_usage` + `payload.info.last_token_usage` (observed keys include `input_tokens`, `cached_input_tokens`, `output_tokens`, `reasoning_output_tokens`, `total_tokens`) |
-| Amp | `~/.local/share/amp/threads/T-*.json` | Yes: per-message `messages[i].usage` (observed keys include `inputTokens`, `outputTokens`, `cacheCreationInputTokens`, `cacheReadInputTokens`, `totalInputTokens`, plus `model` and `timestamp`) |
+### Delta Accounting (Summary)
 
-### Options for Token/Cost Capture
+To attribute tokens to a specific check (not the whole session):
 
-1. **Parse local session logs** (best automation for Claude/Codex/Amp)
-   - Claude Code: sum `message.usage` for messages within a run window (requires run start/end timestamps or an explicit marker).
-   - Codex: read `payload.info.total_token_usage` and take the *final* totals, or compute deltas between start/end markers.
-   - Amp: sum `messages[i].usage` for messages within a run window (or compute deltas between stage markers if you snapshot at boundaries).
+1. **At check start**: snapshot session token count → `baseline`
+2. **At check end**: snapshot session token count → `final`
+3. **Check tokens** = `final - baseline`
 
-2. **Manual entry** (v1 fallback)
-   - CLI flags: `--tokens-in N --tokens-out N --cost-usd X`
-   - User enters values if known (e.g., from billing dashboard)
-   - Fields nullable by design - `?` in markdown, `null` in DB
-
-3. **Estimate from content** (hacky, low accuracy)
-   - Count characters in analysis markdown
-   - Apply rough ratio (~4 chars/token for English)
-   - Very approximate; doesn't capture prompt/system context
-   - Not recommended for cost tracking
-
-4. **Third-party tools** (tool-specific)
-   - `ccusage` for Claude Code - parses local data or scrapes dashboard
-   - Requires separate installation and may break with updates
-   - Not portable across tools
-
-5. **MCP Server integration** (Phase 2 / future)
-   - Build MCP server that wraps API calls and logs usage
-   - Or use Agent SDK with explicit usage tracking
-   - See `docs/PLAN-agentic-sdk.md` for architecture
-   - This enables automatic capture but requires infrastructure
-
-6. **Billing dashboard scraping** (fragile)
-   - Scrape Anthropic/OpenAI usage dashboards
-   - Requires auth, breaks with UI changes
-   - Not recommended
-
-### Recommendation for v1
-
-- Keep token/cost fields nullable (tools vary).
-- Support both: (a) explicit `--tokens-*` flags, and (b) optional `--usage-from <codex|claude>:<path>` that parses a specific local session file and records only aggregated counts (no transcript content).
-- Treat “mapping usage → run” as explicit: either the caller supplies a file path + time window, or we accept that the captured usage is “session total”.
+This works because we can always compute the current session token count by:
+- **Claude/Amp**: Sum all per-message usage entries
+- **Codex**: Sum `last_token_usage` per event OR read cumulative `total_token_usage`
 
 ### Pricing Reference (as of 2026-01)
-
-For manual cost estimation when tokens are known:
 
 | Model | Input (per 1M) | Output (per 1M) |
 |-------|----------------|-----------------|
