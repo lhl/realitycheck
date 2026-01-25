@@ -145,7 +145,7 @@ Audit trail for analysis passes.
 | `tokens_final` | int32 | No | Session tokens at check end (delta accounting) |
 | `tokens_check` | int32 | No | Tokens for this check: `tokens_final - tokens_baseline` |
 | `usage_provider` | string | No | Session provider: claude/codex/amp |
-| `usage_mode` | string | No | Capture method: per_message_sum/windowed_sum/counter_delta/manual |
+| `usage_mode` | string | No | Capture method: per_message_sum/windowed_sum/counter_delta/cumulative_snapshot/manual |
 | `usage_session_id` | string | No | Session UUID (portable identifier) |
 | `inputs_source_ids` | list[string] | No | Source IDs feeding a synthesis (synthesis-only) |
 | `inputs_analysis_ids` | list[string] | No | Analysis log IDs feeding a synthesis (synthesis-only) |

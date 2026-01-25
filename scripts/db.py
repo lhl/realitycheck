@@ -2816,11 +2816,8 @@ rc-validate
             else:
                 # Auto-detect session
                 try:
-                    session_path_detected = get_current_session_path(provider)
-                    if session_path_detected:
-                        tokens_baseline = get_session_token_count(session_path_detected, provider)
-                        from usage_capture import _extract_uuid_from_filename
-                        session_id = _extract_uuid_from_filename(session_path_detected.name, provider)
+                    session_path_detected, session_id = get_current_session_path(provider)
+                    tokens_baseline = get_session_token_count(session_path_detected, provider)
                 except NoSessionFoundError:
                     pass  # No session found - continue without token tracking
                 except AmbiguousSessionError as e:

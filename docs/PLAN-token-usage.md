@@ -172,7 +172,7 @@ tokens_check: 13500              # total for this check (final - baseline)
 
 # Provenance
 usage_provider: "claude"         # claude|codex|amp|manual|other
-usage_mode: "per_message_sum"    # per_message_sum|windowed_sum|counter_delta|manual
+usage_mode: "per_message_sum"    # per_message_sum|windowed_sum|counter_delta|cumulative_snapshot|manual
 usage_session_id: "0c502700..."  # session UUID (not full path)
 
 # Per-stage breakdown (optional, in stages_json)
