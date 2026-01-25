@@ -18,7 +18,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.1.4** - Audit logs, synthesis workflows, and agent ergonomics improvements; 231 passing tests.
+**v0.1.5** - Token usage delta accounting and schema migration tooling; 272 passing tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
