@@ -2813,6 +2813,21 @@ rc-validate
                     tokens_baseline = get_session_token_count_by_uuid(session_id, provider)
                 except Exception:
                     pass  # OK if we can't get baseline, can still track session ID
+            else:
+                # Auto-detect session
+                try:
+                    session_path_detected = get_current_session_path(provider)
+                    if session_path_detected:
+                        tokens_baseline = get_session_token_count(session_path_detected, provider)
+                        from usage_capture import _extract_uuid_from_filename
+                        session_id = _extract_uuid_from_filename(session_path_detected.name, provider)
+                except NoSessionFoundError:
+                    pass  # No session found - continue without token tracking
+                except AmbiguousSessionError as e:
+                    print(f"Warning: {e}", file=sys.stderr)
+                    print("Use --usage-session-id to specify which session to track.", file=sys.stderr)
+                except Exception:
+                    pass  # Other errors - continue without token tracking
 
             log = {
                 "source_id": args.source_id,
@@ -2836,9 +2851,10 @@ rc-validate
                 print(f"  session: {session_id}", flush=True)
 
         elif args.analysis_command == "mark":
-            # Lifecycle: mark a stage checkpoint
+            # Lifecycle: mark a stage checkpoint with token delta
             import json as json_module
             from datetime import datetime as dt
+            from usage_capture import get_session_token_count_by_uuid
 
             log_id = args.analysis_id
             stage_name = args.stage
@@ -2855,11 +2871,36 @@ rc-validate
             except json_module.JSONDecodeError:
                 stages = []
 
+            # Try to capture current token count
+            tokens_now = None
+            session_id = existing.get("usage_session_id")
+            provider = existing.get("usage_provider")
+            if session_id and provider:
+                try:
+                    tokens_now = get_session_token_count_by_uuid(session_id, provider)
+                except Exception:
+                    pass
+
+            # Compute delta from baseline or previous stage
+            tokens_delta = None
+            if tokens_now is not None:
+                # Get previous reference point (last stage tokens_cumulative, or baseline)
+                if stages and "tokens_cumulative" in stages[-1]:
+                    prev_tokens = stages[-1]["tokens_cumulative"]
+                else:
+                    prev_tokens = existing.get("tokens_baseline")
+                if prev_tokens is not None:
+                    tokens_delta = tokens_now - prev_tokens
+
             # Add new stage
             stage_entry = {
                 "stage": stage_name,
                 "timestamp": dt.utcnow().isoformat() + "Z",
             }
+            if tokens_now is not None:
+                stage_entry["tokens_cumulative"] = tokens_now
+            if tokens_delta is not None:
+                stage_entry["tokens_delta"] = tokens_delta
             if getattr(args, "notes", None):
                 stage_entry["notes"] = args.notes
 
@@ -2867,6 +2908,8 @@ rc-validate
 
             update_analysis_log(log_id, stages_json=json_module.dumps(stages), db=db)
             print(f"Marked stage '{stage_name}' for {log_id}", flush=True)
+            if tokens_delta is not None:
+                print(f"  tokens_delta: {tokens_delta}", flush=True)
 
         elif args.analysis_command == "complete":
             # Lifecycle: complete an analysis with final snapshot
@@ -3008,6 +3051,19 @@ rc-validate
             print(f"Found {len(candidates)} entries to backfill (limit: {limit})", flush=True)
             candidates = candidates[:limit]
 
+            # Warn about Codex limitation
+            codex_count = sum(1 for c in candidates if _tool_to_provider(c.get("tool", "")) == "codex")
+            if codex_count > 0:
+                print(
+                    f"\nNote: {codex_count} Codex entries will use cumulative counter snapshot (may overcount).",
+                    flush=True,
+                )
+                print(
+                    "Codex logs store running totals; window filtering returns final counter, not delta.",
+                    flush=True,
+                )
+                print("Consider manual review for accuracy.\n", flush=True)
+
             updated = 0
             skipped = 0
 
@@ -3045,16 +3101,20 @@ rc-validate
                     skipped += 1
                     continue
 
+                # Use appropriate usage_mode based on provider
+                # Codex returns cumulative counter, not actual window delta
+                mode = "cumulative_snapshot" if provider == "codex" else "windowed_sum"
+
                 if dry_run:
-                    print(f"  {log_id}: would set tokens_check={best_tokens:,}", flush=True)
+                    print(f"  {log_id}: would set tokens_check={best_tokens:,} (mode={mode})", flush=True)
                 else:
                     update_analysis_log(
                         log_id,
                         tokens_check=best_tokens,
-                        usage_mode="windowed_sum",
+                        usage_mode=mode,
                         db=db,
                     )
-                    print(f"  {log_id}: set tokens_check={best_tokens:,}", flush=True)
+                    print(f"  {log_id}: set tokens_check={best_tokens:,} (mode={mode})", flush=True)
                 updated += 1
 
             print(f"\nBackfill complete: {updated} updated, {skipped} skipped", flush=True)

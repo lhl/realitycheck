@@ -5,8 +5,10 @@ Usage capture helpers for Reality Check audit logs.
 This module parses local agent session logs (Claude Code, Codex CLI, Amp) and
 extracts aggregated token usage (and optionally cost when available).
 
-Important: this intentionally extracts *usage-only* fields and does not retain
-or return transcript content.
+Privacy note: For session identification purposes, a brief context snippet
+(first line of the conversation) may be extracted to help users identify
+which session is which when multiple sessions exist. Full transcript content
+is not retained or stored in the database.
 """
 
 from __future__ import annotations

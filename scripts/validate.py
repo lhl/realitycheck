@@ -359,7 +359,7 @@ def validate_db(db_path: Optional[Path] = None) -> list[Finding]:
             ):
                 expected = tokens_final - tokens_baseline
                 if tokens_check != expected:
-                    findings.append(Finding("WARNING", "ANALYSIS_TOKENS_CHECK_MISMATCH",
+                    findings.append(Finding("WARN", "ANALYSIS_TOKENS_CHECK_MISMATCH",
                         f"{log_id}: tokens_check ({tokens_check}) != tokens_final ({tokens_final}) - tokens_baseline ({tokens_baseline}) = {expected}"))
 
             # Validate synthesis inputs reference existing analysis logs

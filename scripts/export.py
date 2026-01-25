@@ -532,7 +532,8 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
             else "?"
         )
         # Prefer tokens_check (delta accounting) over total_tokens (legacy)
-        tokens = log.get("tokens_check") or log.get("total_tokens")
+        tokens_check = log.get("tokens_check")
+        tokens = tokens_check if tokens_check is not None else log.get("total_tokens")
         tokens_str = f"{int(tokens):,}" if isinstance(tokens, numbers.Integral) else "?"
         cost = log.get("cost_usd")
         cost_str = f"${cost:.4f}" if cost is not None else "?"
@@ -569,7 +570,8 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
         tool = log.get("tool", "unknown") or "unknown"
         tool_counts[tool] = tool_counts.get(tool, 0) + 1
         # Prefer tokens_check (delta accounting) over total_tokens (legacy)
-        tokens = log.get("tokens_check") or log.get("total_tokens")
+        tokens_check = log.get("tokens_check")
+        tokens = tokens_check if tokens_check is not None else log.get("total_tokens")
         if tokens is not None:
             tool_tokens[tool] = tool_tokens.get(tool, 0) + tokens
         if log.get("cost_usd") is not None:

@@ -278,6 +278,37 @@ LanceDB doesn't auto-add columns to existing tables. Need `rc-db migrate` to upd
 - [x] Update `docs/WORKFLOWS.md` with migration instructions
 - [x] Update `docs/SCHEMA.md` with migration notes
 
+### Phase 11: Bug Fixes (Post-Review)
+
+Issues identified during code review:
+
+- [x] **`analysis start` doesn't auto-detect session** (`scripts/db.py:2679`)
+  - Imports `get_current_session_path` but never calls it when `--usage-session-id` is omitted
+  - Fix: Added else branch to call session detection and capture baseline tokens automatically
+
+- [x] **`analysis mark` doesn't capture token delta** (`scripts/db.py:2733`)
+  - Only appends `{stage, timestamp}` to `stages_json`, doesn't capture actual token count
+  - Fix: Now captures `tokens_cumulative` and `tokens_delta` in stage entries
+
+- [x] **Codex backfill overcounts** (`scripts/db.py:2856`, `scripts/usage_capture.py:169,195`)
+  - `parse_usage_from_source()` for Codex returns cumulative counter snapshot, not "tokens in window"
+  - Fix: Documented as limitation; backfill now warns about Codex entries and uses `usage_mode=cumulative_snapshot`
+
+- [x] **Privacy/contract mismatch** (`scripts/usage_capture.py:363`)
+  - Claims "usage-only" but extracts `context_snippet` from transcript content
+  - Fix: Updated docstring to clarify that brief context snippets are extracted for session identification
+
+- [x] **Validation bug** (`scripts/validate.py:362`)
+  - Token math mismatch uses level "WARNING" instead of "WARN"
+  - Fix: Changed to "WARN" for consistency with validation summary
+
+- [x] **Export bug** (`scripts/export.py:534`)
+  - `tokens = tokens_check or total_tokens` means `tokens_check=0` falls back to `total_tokens`
+  - Fix: Used explicit None check: `tokens_check if tokens_check is not None else total_tokens`
+
+- [x] **Schema evolution not handled** (`scripts/db.py:444`)
+  - Fixed in Phase 10 with `rc-db migrate` command
+
 ---
 
 ## Resolved Decisions
@@ -373,6 +404,17 @@ Added `rc-db migrate` command to handle schema updates for existing databases:
 Added 3 tests in `TestMigrate` class. Updated WORKFLOWS.md and SCHEMA.md with migration documentation.
 
 All 268 tests pass.
+
+### 2026-01-25: Phase 11 - Bug Fixes
+
+Fixed all bugs identified in code review:
+
+1. **`analysis start` auto-detection**: Added else branch to call `get_current_session_path()` when `--usage-session-id` not provided
+2. **`analysis mark` token capture**: Now captures `tokens_cumulative` and `tokens_delta` for each stage
+3. **Codex backfill limitation**: Added warning message and uses `usage_mode=cumulative_snapshot` to clearly indicate the limitation
+4. **Privacy docstring**: Updated `usage_capture.py` docstring to clarify context snippet extraction
+5. **Validation level**: Changed "WARNING" to "WARN" for consistency
+6. **Export None check**: Fixed `tokens_check or total_tokens` to explicit None check
 
 ---
 
