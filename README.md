@@ -2,7 +2,7 @@
 
 A framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains.
 
-> With so many hot takes, plausible theories, misinformation, and AI-generated content, sometimes, you just need a `realitycheck`.
+> With so many hot takes, plausible theories, misinformation, and AI-generated content, sometimes, you need a `realitycheck`.
 
 ## Overview
 
