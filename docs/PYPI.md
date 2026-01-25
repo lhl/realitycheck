@@ -2,6 +2,8 @@
 
 This document describes how to release new versions of `realitycheck` to PyPI.
 
+Release notes source of truth: `docs/CHANGELOG.md`.
+
 ## Prerequisites
 
 - PyPI account with upload permissions for `realitycheck`
@@ -18,6 +20,10 @@ This document describes how to release new versions of `realitycheck` to PyPI.
 ### 1. Pre-release Checks
 
 ```bash
+# Ensure you're up to date
+git fetch origin
+git status -sb
+
 # Ensure clean working tree
 git status
 
@@ -28,27 +34,43 @@ REALITYCHECK_EMBED_SKIP=1 uv run pytest -v
 grep "version" pyproject.toml
 ```
 
-### 2. Update Version
+Optional (recommended): run `uv run python scripts/validate.py` in a representative data project (i.e., where `REALITYCHECK_DATA` points at a real DB).
+
+### 2. Update Release Notes
+
+- Add an entry for `X.Y.Z` in `docs/CHANGELOG.md` (date + highlights).
+- Move relevant items out of `Unreleased` into the new section.
+
+### 3. Update Version
 
 Edit `pyproject.toml`:
 ```toml
 version = "X.Y.Z"
 ```
 
+Also update any hard-coded references to the old version (README status line, docs examples, etc.).
+
 Follow [Semantic Versioning](https://semver.org/):
 - **MAJOR** (X): Breaking changes
 - **MINOR** (Y): New features, backward compatible
 - **PATCH** (Z): Bug fixes, documentation
 
-### 3. Commit Version Bump
+### 4. Commit Release
 
 ```bash
-git add pyproject.toml
+git add pyproject.toml docs/CHANGELOG.md
 git commit -m "chore: bump version to X.Y.Z"
 git push
 ```
 
-### 4. Build Package
+### 5. Tag Release
+
+```bash
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+```
+
+### 6. Build Package
 
 ```bash
 # Clean previous builds
@@ -59,19 +81,22 @@ uv build
 
 # Verify contents
 ls -la dist/
+
+# Verify package metadata
+uv tool run twine check dist/*
 ```
 
-### 5. Upload to PyPI
+### 7. Upload to PyPI
 
 ```bash
 # Upload using twine (reads ~/.pypirc)
-uv tool run twine upload dist/*
+uv tool run twine upload --non-interactive dist/*
 
 # Or specify token directly:
 uv tool run twine upload dist/* -u __token__ -p pypi-YOUR-TOKEN
 ```
 
-### 6. Verify Installation
+### 8. Verify Installation
 
 ```bash
 # Test in fresh environment
@@ -81,17 +106,12 @@ rc-db --help
 deactivate && rm -rf /tmp/test-install
 ```
 
-### 7. Tag Release
+### 9. Create GitHub Release (Optional)
+
+Use the `X.Y.Z` section from `docs/CHANGELOG.md` as your GitHub release notes.
 
 ```bash
-git tag vX.Y.Z
-git push origin vX.Y.Z
-```
-
-### 8. Create GitHub Release (Optional)
-
-```bash
-gh release create vX.Y.Z --title "vX.Y.Z" --notes "Release notes here"
+gh release create vX.Y.Z --title "vX.Y.Z" --notes "See docs/CHANGELOG.md"
 ```
 
 ## Troubleshooting

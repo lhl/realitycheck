@@ -1,6 +1,6 @@
 # Reality Check - Development Guide
 
-Please refer to `README.md`, `docs/PLAN-separation.md`, and `docs/IMPLEMENTATION.md` if they exist for project-specific details.
+Please refer to `README.md`, `docs/PLAN-separation.md`, `docs/IMPLEMENTATION.md`, and `docs/DEPLOY.md` for project-specific details.
 This `AGENTS.md`/`CLAUDE.md` is specifically for ground rules, process, and behavior notes.
 
 ## Project Overview
@@ -60,6 +60,8 @@ realitycheck/
 - Treat `docs/` as the source of truth and always prioritize keeping them up to date
 - `docs/PLAN-separation.md` - Architecture and implementation plan
 - `docs/IMPLEMENTATION.md` - Progress tracking (punchlist + worklog)
+- `docs/DEPLOY.md` - Release checklist (PyPI + GitHub)
+- `docs/CHANGELOG.md` - Release notes
 - When making changes: update docs, run tests, then commit
 
 ## Workflow Expectations
