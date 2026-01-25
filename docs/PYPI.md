@@ -50,6 +50,12 @@ version = "X.Y.Z"
 
 Also update any hard-coded references to the old version (README status line, docs examples, etc.).
 
+Verify version consistency:
+```bash
+grep "## X.Y.Z" docs/CHANGELOG.md
+grep "version = \"X.Y.Z\"" pyproject.toml
+```
+
 Follow [Semantic Versioning](https://semver.org/):
 - **MAJOR** (X): Breaking changes
 - **MINOR** (Y): New features, backward compatible
@@ -104,6 +110,11 @@ uv venv /tmp/test-install && source /tmp/test-install/bin/activate
 pip install realitycheck==X.Y.Z
 rc-db --help
 deactivate && rm -rf /tmp/test-install
+```
+
+Alternative (faster, if you have `uvx`):
+```bash
+uvx --from realitycheck==X.Y.Z rc-db --help
 ```
 
 ### 9. Create GitHub Release (Optional)
