@@ -8,6 +8,26 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.1.5 - 2026-01-26
+
+Token usage delta accounting and schema migration tooling.
+
+### Added
+
+- Token usage delta accounting system with lifecycle commands (`analysis start`, `analysis mark`, `analysis complete`).
+- `rc-db migrate` command for schema updates on existing databases.
+- Session auto-detection for Claude Code, Codex, and Amp agent logs.
+- `analysis sessions list` command for session discovery/debugging.
+- `analysis backfill-usage` command for best-effort historical token capture.
+
+### Fixed
+
+- `analysis start` session auto-detection tuple unpacking.
+- `analysis mark` now captures `tokens_cumulative` and `tokens_delta` in stage entries.
+- Validation level consistency (`WARN` instead of `WARNING`).
+- Export fallback for `tokens_check=0` (explicit None check prevents incorrect fallback).
+- Codex backfill now warns about cumulative counter limitation and uses `cumulative_snapshot` mode.
+
 ## 0.1.4 - 2026-01-25
 
 Audit logs, synthesis workflows, and agent ergonomics improvements.
