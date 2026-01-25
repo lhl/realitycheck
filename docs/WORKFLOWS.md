@@ -453,6 +453,26 @@ uv run python scripts/export.py md analysis-logs -o analysis-logs.md
 
 ## Migration Workflow
 
+### Schema Migration
+
+When upgrading the Reality Check framework, existing databases may need schema updates (new columns added to tables). Run the migrate command:
+
+```bash
+# Preview changes
+uv run python scripts/db.py migrate --dry-run
+
+# Apply migrations
+uv run python scripts/db.py migrate
+```
+
+The migrate command:
+- Compares current table schemas against expected schemas
+- Adds missing columns with appropriate defaults
+- Reports what was changed
+- Safe to run multiple times (idempotent)
+
+**Note**: This is for schema updates within the LanceDB format. For migrating from legacy YAML files, see below.
+
 ### Migrate from Legacy YAML
 
 ```bash

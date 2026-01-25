@@ -2348,3 +2348,94 @@ class TestAnalysisLifecycleCLI:
 
         assert_cli_success(result)
         assert "a1b2c3d4" in result.stdout or "Hello" in result.stdout
+
+
+class TestMigrate:
+    """Tests for rc-db migrate command."""
+
+    def test_migrate_no_changes_needed(self, temp_db_path: Path):
+        """Migrate reports no changes when schema is current."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Init creates tables with current schema
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "migrate"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "up to date" in result.stdout or "no changes" in result.stdout.lower()
+
+    def test_migrate_dry_run(self, temp_db_path: Path):
+        """Migrate --dry-run previews changes without applying."""
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "migrate", "--dry-run"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "dry-run" in result.stdout.lower()
+
+    def test_migrate_adds_missing_columns(self, temp_db_path: Path):
+        """Migrate adds missing columns to existing tables."""
+        import lancedb
+        import pyarrow as pa
+
+        # Create a minimal analysis_logs table missing new columns
+        db = lancedb.connect(str(temp_db_path))
+        minimal_schema = pa.schema([
+            pa.field("id", pa.string(), nullable=False),
+            pa.field("source_id", pa.string(), nullable=False),
+            pa.field("pass", pa.int32(), nullable=False),
+            pa.field("status", pa.string(), nullable=False),
+            pa.field("tool", pa.string(), nullable=False),
+            pa.field("created_at", pa.string(), nullable=False),
+        ])
+        db.create_table("analysis_logs", schema=minimal_schema)
+
+        # Add one row
+        table = db.open_table("analysis_logs")
+        table.add([{
+            "id": "ANALYSIS-2026-001",
+            "source_id": "test",
+            "pass": 1,
+            "status": "completed",
+            "tool": "claude-code",
+            "created_at": "2026-01-25T00:00:00Z",
+        }])
+
+        # Run migrate
+        import os
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "migrate"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "Added" in result.stdout
+
+        # Verify columns were added
+        table = db.open_table("analysis_logs")
+        field_names = {f.name for f in table.schema}
+        assert "tokens_baseline" in field_names
+        assert "tokens_check" in field_names
+        assert "usage_session_id" in field_names

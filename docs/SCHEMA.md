@@ -272,6 +272,20 @@ Generate embeddings with:
 uv run rc-embed generate
 ```
 
+## Schema Migration
+
+LanceDB tables are fixed-schema - columns cannot be auto-added when the framework updates. When upgrading Reality Check, run the migrate command to add new columns:
+
+```bash
+# Preview changes
+rc-db migrate --dry-run
+
+# Apply migrations
+rc-db migrate
+```
+
+The migrate command compares current table schemas against expected schemas and adds missing columns with appropriate defaults. It's safe to run multiple times (idempotent).
+
 ## Validation Rules
 
 The `rc-validate` command checks:

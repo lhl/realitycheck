@@ -1550,6 +1550,17 @@ Examples:
         help="Print planned changes without writing",
     )
 
+    # migrate command
+    migrate_parser = subparsers.add_parser(
+        "migrate",
+        help="Migrate database schema to latest version",
+    )
+    migrate_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview changes without applying them",
+    )
+
     # init-project command
     init_project_parser = subparsers.add_parser(
         "init-project",
@@ -2252,6 +2263,100 @@ rc-validate
             print("Repair complete:", flush=True)
             print(f"  Updated sources: {updated_sources}", flush=True)
             print(f"  Created prediction stubs: {created_prediction_stubs}", flush=True)
+
+    elif args.command == "migrate":
+        db = get_db()
+        dry_run = bool(getattr(args, "dry_run", False))
+
+        # Expected schemas for each table
+        expected_schemas = {
+            "claims": CLAIMS_SCHEMA,
+            "sources": SOURCES_SCHEMA,
+            "chains": CHAINS_SCHEMA,
+            "predictions": PREDICTIONS_SCHEMA,
+            "contradictions": CONTRADICTIONS_SCHEMA,
+            "definitions": DEFINITIONS_SCHEMA,
+            "analysis_logs": ANALYSIS_LOGS_SCHEMA,
+        }
+
+        total_added = 0
+        table_changes: dict[str, list[str]] = {}
+
+        for table_name, expected_schema in expected_schemas.items():
+            try:
+                table = db.open_table(table_name)
+            except Exception:
+                # Table doesn't exist - will be created by init
+                continue
+
+            current_fields = {f.name: f for f in table.schema}
+            expected_fields = {f.name: f for f in expected_schema}
+
+            missing_fields = []
+            for field_name, field in expected_fields.items():
+                if field_name not in current_fields:
+                    missing_fields.append(field)
+
+            if not missing_fields:
+                continue
+
+            table_changes[table_name] = []
+
+            for field in missing_fields:
+                field_name = field.name
+                field_type = field.type
+
+                if dry_run:
+                    table_changes[table_name].append(f"{field_name} ({field_type})")
+                    total_added += 1
+                    continue
+
+                # Determine the default expression based on type
+                if pa.types.is_list(field_type):
+                    # List types need make_list()
+                    try:
+                        table.add_columns({field_name: "make_list()"})
+                        table_changes[table_name].append(f"{field_name} ({field_type})")
+                        total_added += 1
+                    except Exception as e:
+                        print(f"  Warning: Failed to add {table_name}.{field_name}: {e}", file=sys.stderr)
+                elif pa.types.is_int32(field_type) or pa.types.is_int64(field_type):
+                    # Integer types
+                    try:
+                        table.add_columns({field_name: "cast(null as int)"})
+                        table_changes[table_name].append(f"{field_name} ({field_type})")
+                        total_added += 1
+                    except Exception as e:
+                        print(f"  Warning: Failed to add {table_name}.{field_name}: {e}", file=sys.stderr)
+                elif pa.types.is_float32(field_type) or pa.types.is_float64(field_type):
+                    # Float types
+                    try:
+                        table.add_columns({field_name: "cast(null as float)"})
+                        table_changes[table_name].append(f"{field_name} ({field_type})")
+                        total_added += 1
+                    except Exception as e:
+                        print(f"  Warning: Failed to add {table_name}.{field_name}: {e}", file=sys.stderr)
+                else:
+                    # String and other types - use null
+                    try:
+                        table.add_columns({field_name: "null"})
+                        table_changes[table_name].append(f"{field_name} ({field_type})")
+                        total_added += 1
+                    except Exception as e:
+                        print(f"  Warning: Failed to add {table_name}.{field_name}: {e}", file=sys.stderr)
+
+        if dry_run:
+            print("Migration dry-run:", flush=True)
+        else:
+            print("Migration complete:", flush=True)
+
+        if total_added == 0:
+            print("  Schema is up to date - no changes needed.", flush=True)
+        else:
+            print(f"  Added {total_added} column(s):", flush=True)
+            for table_name, fields in table_changes.items():
+                for field_desc in fields:
+                    print(f"    {table_name}.{field_desc}", flush=True)
 
     elif args.command == "search":
         results = search_claims(args.query, limit=args.limit, domain=args.domain)

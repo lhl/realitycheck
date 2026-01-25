@@ -265,6 +265,19 @@ Decision: Aggregate across all matching files (more accurate for resumed session
 - [x] Run `make assemble-skills` to regenerate all integration skills
 - [x] Add `--inputs-source-ids` and `--inputs-analysis-ids` flags to `analysis complete` CLI
 
+### Phase 10: Schema Migration Command
+
+LanceDB doesn't auto-add columns to existing tables. Need `rc-db migrate` to update existing databases when schema changes.
+
+- [x] Implement `rc-db migrate` command in `scripts/db.py`:
+  - Compare current table schema vs expected schema
+  - Add missing columns with appropriate defaults
+  - Report what was added/changed
+  - Support `--dry-run` to preview changes
+- [x] Add tests for schema migration in `tests/test_db.py`
+- [x] Update `docs/WORKFLOWS.md` with migration instructions
+- [x] Update `docs/SCHEMA.md` with migration notes
+
 ---
 
 ## Resolved Decisions
@@ -348,6 +361,18 @@ Completed all 9 phases:
 - Fixed migration duplicate prediction issue (stub vs migrated data)
 
 All 265 tests pass.
+
+### 2026-01-25: Phase 10 - Schema Migration Command
+
+Added `rc-db migrate` command to handle schema updates for existing databases:
+- Compares current table schema vs expected schema
+- Adds missing columns with appropriate type defaults (int, float, string, list)
+- Supports `--dry-run` for preview
+- Idempotent - safe to run multiple times
+
+Added 3 tests in `TestMigrate` class. Updated WORKFLOWS.md and SCHEMA.md with migration documentation.
+
+All 268 tests pass.
 
 ---
 
