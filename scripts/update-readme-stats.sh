@@ -73,7 +73,7 @@ print(f'CHAINS={stats[\"chains\"]}')
 print(f'PREDICTIONS={stats[\"predictions\"]}')
 
 # Print domain counts
-for domain in ['TECH', 'LABOR', 'ECON', 'GOV', 'SOC', 'TRANS', 'RESOURCE', 'GEO', 'META']:
+for domain in ['TECH', 'LABOR', 'ECON', 'GOV', 'SOC', 'TRANS', 'RESOURCE', 'GEO', 'INST', 'RISK', 'META']:
     print(f'DOMAIN_{domain}={domain_counts.get(domain, 0)}')
 " 2>/dev/null)
 else
@@ -94,7 +94,7 @@ print(f'SOURCES={stats[\"sources\"]}')
 print(f'CHAINS={stats[\"chains\"]}')
 print(f'PREDICTIONS={stats[\"predictions\"]}')
 
-for domain in ['TECH', 'LABOR', 'ECON', 'GOV', 'SOC', 'TRANS', 'RESOURCE', 'GEO', 'META']:
+for domain in ['TECH', 'LABOR', 'ECON', 'GOV', 'SOC', 'TRANS', 'RESOURCE', 'GEO', 'INST', 'RISK', 'META']:
     print(f'DOMAIN_{domain}={domain_counts.get(domain, 0)}')
 " 2>/dev/null)
 fi
@@ -129,6 +129,8 @@ DOMAINS_TABLE="| Domain | Description | Claims |
 | TRANS | Transition Dynamics | $DOMAIN_TRANS |
 | RESOURCE | Resource Constraints | $DOMAIN_RESOURCE |
 | GEO | Geopolitics | $DOMAIN_GEO |
+| INST | Institutions & Organizations | $DOMAIN_INST |
+| RISK | Risk Assessment | $DOMAIN_RISK |
 | META | Framework & Methodology | $DOMAIN_META |"
 
 # Update README using Python for reliable text replacement
@@ -163,6 +165,8 @@ domains_repl = '''| Domain | Description | Claims |
 | TRANS | Transition Dynamics | $DOMAIN_TRANS |
 | RESOURCE | Resource Constraints | $DOMAIN_RESOURCE |
 | GEO | Geopolitics | $DOMAIN_GEO |
+| INST | Institutions & Organizations | $DOMAIN_INST |
+| RISK | Risk Assessment | $DOMAIN_RISK |
 | META | Framework & Methodology | $DOMAIN_META |'''
 content = re.sub(
     r'\| Domain \| Description \| Claims \|[\s\S]*?\| META \| Framework & Methodology \| \d+ \|',
