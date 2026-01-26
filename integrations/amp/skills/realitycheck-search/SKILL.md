@@ -26,6 +26,12 @@ rc-db search "query" --limit 10
 # or: uv run python scripts/db.py search "query" --limit 10
 ```
 
+**Note:** Semantic search requires embeddings. If search fails with embedding errors:
+- Ensure `sentence-transformers` is installed (included in realitycheck dependencies)
+- Check embedding status: `rc-db embed status` or `uv run python scripts/embed.py status`
+- Generate missing embeddings: `rc-db embed generate` or `uv run python scripts/embed.py generate`
+- **Do not** set `REALITYCHECK_EMBED_SKIP=1` unless you explicitly want to disable embeddings (used for CI/testing)
+
 ## Options
 
 - `--domain`: Filter by domain (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)

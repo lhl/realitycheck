@@ -32,6 +32,20 @@ export REALITYCHECK_DATA=/path/to/realitycheck-data/data/realitycheck.lance
 
 The `PROJECT_ROOT` is derived from this path - all analysis files go there.
 
+### CLI Commands
+
+Reality Check provides CLI tools (`rc-db`, `rc-validate`, `rc-export`, `rc-embed`).
+
+**Check availability:**
+```bash
+which rc-db  # Should show path if pip-installed
+```
+
+**If commands are not found**, either:
+1. Install: `pip install realitycheck` (recommended)
+2. Use `uv run` from framework directory: `uv run python scripts/db.py ...`
+3. Add framework as submodule and use: `.framework/scripts/db.py ...`
+
 ### Red Flags: Wrong Repository
 
 **IMPORTANT**: Always write to the DATA repository, never to the framework repository.
@@ -465,6 +479,30 @@ To maintain well-calibrated credence:
 
 ## Database Commands
 
+### Command Availability
+
+Reality Check commands can be invoked in two ways:
+
+1. **`rc-db` / `rc-validate` / etc.** - Works if you pip-installed `realitycheck`
+2. **`uv run python scripts/db.py`** - Works from the framework repo with uv
+
+**Check which is available:**
+
+```bash
+# Test pip-installed version
+which rc-db && rc-db --version
+
+# If not installed, use uv from framework directory
+# (requires being in realitycheck repo or having it as submodule)
+uv run python scripts/db.py --help
+```
+
+**If neither works:**
+- Install: `pip install realitycheck` or `uv pip install realitycheck`
+- Or clone/submodule the framework and use `uv run` from that directory
+
+### Usage Examples
+
 Use installed commands if available, otherwise fall back to uv:
 
 ```bash
@@ -569,6 +607,30 @@ rc-export yaml analysis-logs -o analysis-logs.yaml
 rc-export md summary -o summary.md
 rc-export md analysis-logs -o analysis-logs.md
 ```
+
+### Embedding Management
+
+Semantic search requires embeddings. Check and manage embedding status:
+
+```bash
+# Check embedding coverage
+rc-embed status
+# or: uv run python scripts/embed.py status
+
+# Generate missing embeddings (backfill)
+rc-embed generate --verbose
+# or: uv run python scripts/embed.py generate --verbose
+
+# Regenerate all embeddings (after model change)
+rc-embed regenerate --verbose
+# or: uv run python scripts/embed.py regenerate --verbose
+```
+
+**Troubleshooting:**
+- If `rc-embed` not found: `pip install realitycheck` or use `uv run python scripts/embed.py`
+- If embedding generation fails: check `sentence-transformers` is installed
+- Default model: `all-MiniLM-L6-v2` (CPU-based, 384 dimensions)
+- To skip embeddings in CI/tests: `export REALITYCHECK_EMBED_SKIP=1`
 
 ---
 

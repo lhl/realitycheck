@@ -32,6 +32,20 @@ export REALITYCHECK_DATA=/path/to/realitycheck-data/data/realitycheck.lance
 
 The `PROJECT_ROOT` is derived from this path - all analysis files go there.
 
+### CLI Commands
+
+Reality Check provides CLI tools (`rc-db`, `rc-validate`, `rc-export`, `rc-embed`).
+
+**Check availability:**
+```bash
+which rc-db  # Should show path if pip-installed
+```
+
+**If commands are not found**, either:
+1. Install: `pip install realitycheck` (recommended)
+2. Use `uv run` from framework directory: `uv run python scripts/db.py ...`
+3. Add framework as submodule and use: `.framework/scripts/db.py ...`
+
 ### Red Flags: Wrong Repository
 
 **IMPORTANT**: Always write to the DATA repository, never to the framework repository.
