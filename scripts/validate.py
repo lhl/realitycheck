@@ -27,26 +27,42 @@ from typing import Any, Optional
 
 import yaml
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from db import (
-    VALID_DOMAINS,
-    VALID_ANALYSIS_STATUSES,
-    VALID_ANALYSIS_TOOLS,
-    find_project_root,
-    resolve_db_path_from_project_root,
-    get_db,
-    get_table_names,
-    list_claims,
-    list_sources,
-    list_chains,
-    list_predictions,
-    list_contradictions,
-    list_definitions,
-    list_analysis_logs,
-    get_stats,
-)
+if __package__:
+    from .db import (
+        VALID_DOMAINS,
+        VALID_ANALYSIS_STATUSES,
+        VALID_ANALYSIS_TOOLS,
+        find_project_root,
+        resolve_db_path_from_project_root,
+        get_db,
+        get_table_names,
+        list_claims,
+        list_sources,
+        list_chains,
+        list_predictions,
+        list_contradictions,
+        list_definitions,
+        list_analysis_logs,
+        get_stats,
+    )
+else:
+    from db import (
+        VALID_DOMAINS,
+        VALID_ANALYSIS_STATUSES,
+        VALID_ANALYSIS_TOOLS,
+        find_project_root,
+        resolve_db_path_from_project_root,
+        get_db,
+        get_table_names,
+        list_claims,
+        list_sources,
+        list_chains,
+        list_predictions,
+        list_contradictions,
+        list_definitions,
+        list_analysis_logs,
+        get_stats,
+    )
 
 
 # Validation patterns

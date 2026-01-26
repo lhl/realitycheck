@@ -22,25 +22,40 @@ from typing import Any, Optional
 
 import yaml
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from db import (
-    find_project_root,
-    resolve_db_path_from_project_root,
-    get_db,
-    list_claims,
-    list_sources,
-    list_chains,
-    list_predictions,
-    list_contradictions,
-    list_definitions,
-    list_analysis_logs,
-    get_claim,
-    get_source,
-    get_chain,
-    get_stats,
-)
+if __package__:
+    from .db import (
+        find_project_root,
+        resolve_db_path_from_project_root,
+        get_db,
+        list_claims,
+        list_sources,
+        list_chains,
+        list_predictions,
+        list_contradictions,
+        list_definitions,
+        list_analysis_logs,
+        get_claim,
+        get_source,
+        get_chain,
+        get_stats,
+    )
+else:
+    from db import (
+        find_project_root,
+        resolve_db_path_from_project_root,
+        get_db,
+        list_claims,
+        list_sources,
+        list_chains,
+        list_predictions,
+        list_contradictions,
+        list_definitions,
+        list_analysis_logs,
+        get_claim,
+        get_source,
+        get_chain,
+        get_stats,
+    )
 
 
 # =============================================================================

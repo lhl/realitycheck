@@ -21,10 +21,34 @@ import pyarrow as pa
 
 if __package__:
     from .analysis_log_writer import upsert_analysis_log_section
-    from .usage_capture import estimate_cost_usd, parse_usage_from_source
+    from .usage_capture import (
+        estimate_cost_usd,
+        parse_usage_from_source,
+        get_current_session_path,
+        get_session_token_count,
+        get_session_token_count_by_uuid,
+        list_sessions,
+        NoSessionFoundError,
+        AmbiguousSessionError,
+        _tool_to_provider,
+        _extract_uuid_from_filename,
+        _get_session_paths,
+    )
 else:
     from analysis_log_writer import upsert_analysis_log_section
-    from usage_capture import estimate_cost_usd, parse_usage_from_source
+    from usage_capture import (
+        estimate_cost_usd,
+        parse_usage_from_source,
+        get_current_session_path,
+        get_session_token_count,
+        get_session_token_count_by_uuid,
+        list_sessions,
+        NoSessionFoundError,
+        AmbiguousSessionError,
+        _tool_to_provider,
+        _extract_uuid_from_filename,
+        _get_session_paths,
+    )
 
 # Configuration
 DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
@@ -2784,13 +2808,6 @@ rc-validate
         elif args.analysis_command == "start":
             # Lifecycle: start an analysis with baseline snapshot
             from datetime import datetime as dt
-            from usage_capture import (
-                get_current_session_path,
-                get_session_token_count,
-                NoSessionFoundError,
-                AmbiguousSessionError,
-                _tool_to_provider,
-            )
 
             tool = args.tool
             provider = _tool_to_provider(tool)
@@ -2804,12 +2821,10 @@ rc-validate
                 tokens_baseline = get_session_token_count(session_path, provider)
                 if not session_id:
                     # Extract UUID from path
-                    from usage_capture import _extract_uuid_from_filename
                     session_id = _extract_uuid_from_filename(session_path.name, provider)
             elif session_id:
                 # Have ID but not path - try to find path and get tokens
                 try:
-                    from usage_capture import get_session_token_count_by_uuid
                     tokens_baseline = get_session_token_count_by_uuid(session_id, provider)
                 except Exception:
                     pass  # OK if we can't get baseline, can still track session ID
@@ -2851,7 +2866,6 @@ rc-validate
             # Lifecycle: mark a stage checkpoint with token delta
             import json as json_module
             from datetime import datetime as dt
-            from usage_capture import get_session_token_count_by_uuid
 
             log_id = args.analysis_id
             stage_name = args.stage
@@ -2912,7 +2926,6 @@ rc-validate
             # Lifecycle: complete an analysis with final snapshot
             import json as json_module
             from datetime import datetime as dt
-            from usage_capture import get_session_token_count_by_uuid, _tool_to_provider
 
             log_id = args.analysis_id
 
@@ -2977,8 +2990,6 @@ rc-validate
         elif args.analysis_command == "sessions":
             # Session discovery helpers
             if getattr(args, "sessions_command", None) == "list":
-                from usage_capture import list_sessions, _tool_to_provider
-
                 tool = args.tool
                 provider = _tool_to_provider(tool)
                 limit = getattr(args, "limit", 10)
@@ -3001,12 +3012,6 @@ rc-validate
         elif args.analysis_command == "backfill-usage":
             # Backfill token usage for historical entries
             from datetime import datetime as dt
-            from usage_capture import (
-                parse_usage_from_source,
-                _tool_to_provider,
-                _get_session_paths,
-                _extract_uuid_from_filename,
-            )
 
             dry_run = getattr(args, "dry_run", False)
             force = getattr(args, "force", False)

@@ -22,22 +22,34 @@ from typing import Any, Optional
 
 import yaml
 
-# Add scripts directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
-
-from db import (
-    DOMAIN_MIGRATION,
-    VALID_DOMAINS,
-    add_chain,
-    add_claim,
-    add_prediction,
-    add_source,
-    drop_tables,
-    get_db,
-    get_prediction,
-    init_tables,
-    get_stats,
-)
+if __package__:
+    from .db import (
+        DOMAIN_MIGRATION,
+        VALID_DOMAINS,
+        add_chain,
+        add_claim,
+        add_prediction,
+        add_source,
+        drop_tables,
+        get_db,
+        get_prediction,
+        init_tables,
+        get_stats,
+    )
+else:
+    from db import (
+        DOMAIN_MIGRATION,
+        VALID_DOMAINS,
+        add_chain,
+        add_claim,
+        add_prediction,
+        add_source,
+        drop_tables,
+        get_db,
+        get_prediction,
+        init_tables,
+        get_stats,
+    )
 
 
 def load_yaml(path: Path) -> dict:

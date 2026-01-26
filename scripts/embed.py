@@ -16,21 +16,32 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-# Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent))
-
-from db import (
-    get_db,
-    embed_text,
-    embed_texts,
-    list_claims,
-    list_sources,
-    list_chains,
-    get_claim,
-    get_source,
-    get_chain,
-    EMBEDDING_MODEL,
-)
+if __package__:
+    from .db import (
+        get_db,
+        embed_text,
+        embed_texts,
+        list_claims,
+        list_sources,
+        list_chains,
+        get_claim,
+        get_source,
+        get_chain,
+        EMBEDDING_MODEL,
+    )
+else:
+    from db import (
+        get_db,
+        embed_text,
+        embed_texts,
+        list_claims,
+        list_sources,
+        list_chains,
+        get_claim,
+        get_source,
+        get_chain,
+        EMBEDDING_MODEL,
+    )
 
 
 def check_embeddings(db_path: Optional[Path] = None) -> dict:
