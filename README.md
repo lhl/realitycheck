@@ -18,7 +18,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.1.7** - Fixed package imports for pip-installed distribution; 277 passing tests.
+**v0.1.8** - Improved CLI and embedding troubleshooting docs; 277 passing tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 

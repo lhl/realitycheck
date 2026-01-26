@@ -8,6 +8,22 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.1.8 - 2026-01-26
+
+Improved documentation for CLI availability and embedding troubleshooting.
+
+### Added
+
+- CLI Commands section in prerequisites explaining `rc-db` availability and fallbacks
+- Command Availability section in db-commands with pip vs uv invocation options
+- Embedding Management section with `rc-embed status/generate/regenerate` commands
+- Embedding troubleshooting notes in search skill template
+- Prerequisites section in Codex README with installation and embedding commands
+
+### Fixed
+
+- Backfilled 8 claims missing embeddings (GOV-2026-043 through GOV-2026-051)
+
 ## 0.1.7 - 2026-01-26
 
 Fixed package imports that broke pip-installed distributions.
