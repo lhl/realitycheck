@@ -18,7 +18,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.1.6** - Token usage delta accounting and schema migration tooling; 272 passing tests.
+**v0.1.7** - Fixed package imports for pip-installed distribution; 277 passing tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 

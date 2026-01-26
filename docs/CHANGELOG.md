@@ -8,6 +8,20 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.1.7 - 2026-01-26
+
+Fixed package imports that broke pip-installed distributions.
+
+### Fixed
+
+- Package imports now work correctly when installed via pip (not just from source).
+- Replaced fragile `sys.path.insert()` workarounds with proper `if __package__:` conditional imports in embed.py, export.py, migrate.py, and validate.py.
+- Consolidated inline `usage_capture` imports in db.py that caused `ModuleNotFoundError`.
+
+### Added
+
+- `tests/test_installation.py`: 22 new tests verifying package imports, cross-module imports, CLI entry points, and package structure to catch installation issues before release.
+
 ## 0.1.6 - 2026-01-26
 
 Re-release of 0.1.5 with corrected README (PyPI is immutable).
