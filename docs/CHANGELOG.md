@@ -8,6 +8,20 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.1.9 - 2026-01-28
+
+Added OpenCode integration with full skill support.
+
+### Added
+
+- OpenCode integration with 9 skills (check, search, validate, stats, analyze, extract, register, export, synthesize)
+- OpenCode README and installation via `make install-skills-opencode`
+- OpenCode section in main README
+
+### Fixed
+
+- README stats now include INST and RISK domain codes
+
 ## 0.1.8 - 2026-01-26
 
 Improved documentation for CLI availability and embedding troubleshooting.
