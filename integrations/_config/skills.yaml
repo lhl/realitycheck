@@ -13,6 +13,9 @@ defaults:
   codex:
     name_prefix: ""  # e.g., check
     skill_dir: "codex/skills"
+  opencode:
+    name_prefix: "realitycheck-"  # e.g., realitycheck-check
+    skill_dir: "opencode/skills"
 
 # Skill definitions
 skills:
@@ -45,6 +48,9 @@ skills:
     codex:
       invocation: "$check <url>"
 
+    opencode:
+      argument_hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
+
   synthesize:
     title: "Cross-Source Synthesis"
     description: "Create a cross-source synthesis across multiple source analyses and claims. Use after checking multiple sources or when producing a higher-level, decision-oriented view."
@@ -73,6 +79,9 @@ skills:
     codex:
       invocation: "$synthesize <topic>"
 
+    opencode:
+      argument_hint: "<topic> [source-ids/claim-ids in prompt]"
+
   analyze:
     title: "Manual 3-Stage Analysis"
     description: "Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration."
@@ -98,6 +107,9 @@ skills:
     codex:
       invocation: "$analyze <url>"
 
+    opencode:
+      argument_hint: "<url_or_source_id>"
+
   extract:
     title: "Quick Claim Extraction"
     description: "Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources."
@@ -122,6 +134,9 @@ skills:
     codex:
       invocation: "$extract <source>"
 
+    opencode:
+      argument_hint: "<source>"
+
   search:
     title: "Semantic Search"
     description: "Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis."
@@ -142,6 +157,9 @@ skills:
 
     codex:
       invocation: "$search <query>"
+
+    opencode:
+      argument_hint: "<query> [--domain DOMAIN] [--limit N]"
 
   validate:
     title: "Data Validation"
@@ -164,6 +182,9 @@ skills:
     codex:
       invocation: "$validate"
 
+    opencode:
+      argument_hint: "[--strict] [--json]"
+
   export:
     title: "Data Export"
     description: "Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation."
@@ -185,6 +206,9 @@ skills:
     codex:
       invocation: "$export <format> <type>"
 
+    opencode:
+      argument_hint: "<format> <type> [--id ID] [-o OUTPUT]"
+
   stats:
     title: "Database Statistics"
     description: "Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions."
@@ -205,3 +229,6 @@ skills:
 
     codex:
       invocation: "$stats"
+
+    opencode:
+      argument_hint: ""

@@ -29,7 +29,7 @@ TEMPLATES_DIR = SCRIPT_DIR / "_templates"
 CONFIG_FILE = SCRIPT_DIR / "_config" / "skills.yaml"
 CHECK_CORE_PATH = REPO_ROOT / "methodology" / "workflows" / "check-core.md"
 
-INTEGRATIONS = ["amp", "claude", "codex"]
+INTEGRATIONS = ["amp", "claude", "codex", "opencode"]
 
 
 def load_config() -> dict:

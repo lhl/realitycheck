@@ -2,8 +2,8 @@
 
 .PHONY: help test test-all init clean
 .PHONY: assemble-skills check-skills
-.PHONY: install-skills-all install-skills-amp install-skills-claude install-skills-codex
-.PHONY: uninstall-skills-all uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex
+.PHONY: install-skills-all install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
+.PHONY: uninstall-skills-all uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode
 .PHONY: install-plugin-claude uninstall-plugin-claude
 
 help:
@@ -14,11 +14,13 @@ help:
 	@echo "    install-skills-amp       Install Amp skills (~/.config/agents/skills/)"
 	@echo "    install-skills-claude    Install Claude Code skills (~/.claude/skills/)"
 	@echo "    install-skills-codex     Install Codex skills"
+	@echo "    install-skills-opencode  Install OpenCode skills (~/.config/opencode/skills/)"
 	@echo ""
 	@echo "    uninstall-skills-all     Remove skills from all integrations"
 	@echo "    uninstall-skills-amp     Remove Amp skills"
 	@echo "    uninstall-skills-claude  Remove Claude Code skills"
 	@echo "    uninstall-skills-codex   Remove Codex skills"
+	@echo "    uninstall-skills-opencode Remove OpenCode skills"
 	@echo ""
 	@echo "  Plugin (Claude Code only):"
 	@echo "    install-plugin-claude    Install Claude plugin (--plugin-dir)"
@@ -50,11 +52,11 @@ check-skills:
 # =============================================================================
 
 # Install all
-install-skills-all: install-skills-amp install-skills-claude install-skills-codex
+install-skills-all: install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
 	@echo ""
 	@echo "All skills installed. Restart your tools to use them."
 
-uninstall-skills-all: uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex
+uninstall-skills-all: uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode
 	@echo ""
 	@echo "All skills removed."
 
@@ -119,6 +121,33 @@ install-skills-codex:
 uninstall-skills-codex:
 	@echo "Removing Codex skills..."
 	@bash integrations/codex/uninstall.sh
+
+# OpenCode
+OPENCODE_SKILLS_SRC := $(CURDIR)/integrations/opencode/skills
+OPENCODE_SKILLS_DST := $(HOME)/.config/opencode/skills
+OPENCODE_SKILLS := realitycheck realitycheck-check realitycheck-synthesize realitycheck-analyze realitycheck-extract realitycheck-search realitycheck-validate realitycheck-export realitycheck-stats
+
+install-skills-opencode:
+	@echo "Installing Reality Check skills for OpenCode..."
+	@mkdir -p $(OPENCODE_SKILLS_DST)
+	@for skill in $(OPENCODE_SKILLS); do \
+		if [ -L "$(OPENCODE_SKILLS_DST)/$$skill" ]; then rm "$(OPENCODE_SKILLS_DST)/$$skill"; fi; \
+		if [ -d "$(OPENCODE_SKILLS_SRC)/$$skill" ]; then \
+			ln -s "$(OPENCODE_SKILLS_SRC)/$$skill" "$(OPENCODE_SKILLS_DST)/$$skill"; \
+			echo "  Installed: $$skill"; \
+		fi; \
+	done
+	@echo "Skills installed to $(OPENCODE_SKILLS_DST)"
+	@echo "Restart OpenCode to use them."
+
+uninstall-skills-opencode:
+	@echo "Removing OpenCode skills..."
+	@for skill in $(OPENCODE_SKILLS); do \
+		if [ -L "$(OPENCODE_SKILLS_DST)/$$skill" ]; then \
+			rm "$(OPENCODE_SKILLS_DST)/$$skill"; \
+			echo "  Removed: $$skill"; \
+		fi; \
+	done
 
 # =============================================================================
 # Claude Plugin (separate from skills)

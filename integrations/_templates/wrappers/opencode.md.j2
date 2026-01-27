@@ -1,0 +1,40 @@
+{#- OpenCode skill wrapper template -#}
+{#- Variables: name, description, argument_hint, title, template, related -#}
+{#- OpenCode only recognizes: name, description, license, compatibility, metadata -#}
+{#- See: https://opencode.ai/docs/skills/ -#}
+---
+name: {{ name }}
+description: {{ description }}
+license: Apache-2.0
+compatibility: opencode
+metadata:
+  project: realitycheck
+---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
+# {{ title }}
+
+{{ description }}
+
+{% if argument_hint %}
+## Usage
+
+```
+{{ argument_hint }}
+```
+
+{% endif %}
+{% include "skills/" ~ template %}
+
+{% if related %}
+---
+
+## Related Skills
+
+{% for r in related %}
+- `{{ amp_prefix }}{{ r }}`
+{% endfor %}
+{% endif %}

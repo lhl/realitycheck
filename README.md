@@ -28,6 +28,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 - **[Claude Code](https://github.com/anthropics/claude-code/)** (optional) - For plugin integration
 - **[OpenAI Codex](https://github.com/openai/codex)** (optional) - For skills integration
 - **[Amp](https://ampcode.com)** (optional) - For skills integration
+- **[OpenCode](https://opencode.ai)** (optional) - For skills integration
 
 ## Installation
 
@@ -325,6 +326,42 @@ Skills activate automatically based on natural language:
 ```
 
 See `integrations/amp/README.md` for full documentation.
+
+## OpenCode Skills
+
+[OpenCode](https://opencode.ai) is an open-source AI coding agent with 80K+ GitHub stars. Reality Check includes skills that integrate with OpenCode's skill system.
+
+### Install Skills
+
+```bash
+make install-skills-opencode
+```
+
+### Usage
+
+Skills are loaded on-demand via OpenCode's `skill` tool:
+
+```
+Load the realitycheck skill
+```
+
+Or reference skills in prompts:
+
+```
+Using the realitycheck-check skill, analyze https://example.com/article
+```
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| `realitycheck` | Main entry point |
+| `realitycheck-check` | Full analysis workflow |
+| `realitycheck-search` | Semantic search |
+| `realitycheck-validate` | Data validation |
+| `realitycheck-stats` | Database statistics |
+
+See `integrations/opencode/README.md` for full documentation.
 
 ## Taxonomy Reference
 
