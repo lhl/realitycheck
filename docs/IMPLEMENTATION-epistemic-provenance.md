@@ -40,6 +40,7 @@ docs/
 
 integrations/_templates/
  ├── UPDATE skills/check.md.j2       # Add evidence linking + reasoning steps
+ ├── UPDATE tables/claim-summary.md.j2  # Support reasoning links in ID column
  ├── UPDATE partials/db-commands.md.j2  # Add evidence/reasoning CLI reference
  └── NEW partials/provenance-workflow.md.j2  # Reusable provenance capture section
 
@@ -54,7 +55,7 @@ methodology/
 | Versioning model | Explicit `status`/`supersedes_id` | Rigorous audit trail, supports agent disagreement tracking |
 | Auto-linking from `source_ids` | Explicit only (v1) | Extraction ≠ support; avoid false confidence |
 | Formatter/validator linked IDs | Update to support `[ID](path)` | Cleanest UX, enables inline reasoning links |
-| Validation threshold | Configurable (warn default, `--strict` errors) | Soft enforcement by default, strict for production |
+| Validation threshold | Reuse existing `--strict` flag | High-credence backing emits WARNs; existing `--strict` escalates to errors |
 | CLI namespace | Flat (`rc-db evidence`, `rc-db reasoning`) | Simpler, follows existing pattern |
 | ID format | `EVLINK-YYYY-NNN`, `REASON-YYYY-NNN` | No domain prefix needed for supporting data |
 | Evidence granularity | Per-source with optional `location` | Specific locations when needed, not required |
@@ -158,9 +159,11 @@ methodology/
   - [ ] `test_export_reasoning_relative_links_valid`
   - [ ] `test_export_reasoning_skips_claims_without_trails`
 
-- [ ] `TestExportEvidenceBySource`
+- [ ] `TestExportEvidenceIndex`
   - [ ] `test_export_evidence_by_source_single`
   - [ ] `test_export_evidence_by_source_all`
+  - [ ] `test_export_evidence_by_claim_single`
+  - [ ] `test_export_evidence_by_claim_all`
 
 - [ ] `TestExportProvenanceYAML`
   - [ ] `test_export_provenance_yaml_evidence_links`
@@ -260,16 +263,20 @@ methodology/
   - Return created record
 
 - [ ] Implement `get_reasoning_trail(id=None, claim_id=None)`:
-  - Get by ID or get current (active) for claim
+  - Get by ID, or get **current active** trail for claim
   - Return single record or None
+  - **Note**: Multiple trails can exist for a claim (agent disagreement, corrections).
+    This function returns only the single active trail. Use `list_reasoning_trails()`
+    or `get_reasoning_history()` to see all trails including superseded ones.
 
 - [ ] Implement `list_reasoning_trails(claim_id=None, include_superseded=False)`:
   - Filter by claim
-  - Default: only active status
+  - Default: only active status (one per claim unless disagreement)
+  - With `include_superseded=True`: returns all trails for audit/history
 
 - [ ] Implement `get_reasoning_history(claim_id)`:
-  - Return all trails for claim ordered by created_at
-  - Include superseded for full history
+  - Return **all** trails for claim ordered by created_at (oldest first)
+  - Always includes superseded trails for full credence evolution history
 
 - [ ] Implement `supersede_reasoning_trail(old_id, **new_fields)`:
   - Create new record with supersedes_id pointing to old
@@ -323,20 +330,19 @@ methodology/
     - Check ≥1 evidence_links row with direction in [supports, strengthens]
     - If high-credence supporting link exists, check it has `location` (soft warn)
     - If high-credence supporting link exists, check it has `reasoning` (soft warn)
-  - Configurable severity: WARN (default) or ERROR (`--strict`)
-
-- [ ] Add `--strict` flag to `rc-validate` CLI:
-  - When set, high-credence backing issues become errors (exit 1)
-  - Default: warnings only (exit 0 if no other errors)
+  - Emit WARN level (existing `--strict` flag escalates all warnings to errors)
 
 - [ ] Wire new validation into `validate_db()` main function
+  - Note: `--strict` flag already exists in validate.py:547, no changes needed to CLI
 
 ---
 
 ### Phase 5: Export / Render (`scripts/export.py`)
 
-- [ ] Implement `export_reasoning_md(claim_id, output_dir)`:
-  - Generate `{output_dir}/{claim_id}.md` with:
+**Note**: Align with existing CLI pattern: `rc-export <format> <type> [options]`
+
+- [ ] Implement `export_reasoning_md(claim_id, output_path)`:
+  - Generate `{output_path}` (caller specifies full path) with:
     - Claim text, credence, evidence level, domain header
     - Evidence Summary table (direction, source, location, strength, summary)
     - Reasoning Chain section (from `reasoning_text`)
@@ -348,17 +354,17 @@ methodology/
 
 - [ ] Implement `export_all_reasoning_md(output_dir)`:
   - Find all claims with reasoning trails
-  - Generate reasoning doc for each
+  - Generate `{output_dir}/{claim_id}.md` for each
   - Return list of generated paths
 
-- [ ] Implement `export_evidence_by_source_md(source_id, output_dir)`:
-  - Generate `{output_dir}/by-source/{source_id}.md` with:
+- [ ] Implement `export_evidence_by_source_md(source_id, output_path)`:
+  - Generate `{output_path}` (caller specifies full path) with:
     - Source metadata header
     - Table of all claims this source supports/contradicts
   - Return path
 
-- [ ] Implement `export_evidence_by_claim_md(claim_id, output_dir)`:
-  - Generate `{output_dir}/by-claim/{claim_id}.md` with:
+- [ ] Implement `export_evidence_by_claim_md(claim_id, output_path)`:
+  - Generate `{output_path}` (caller specifies full path) with:
     - Claim text header
     - Table of all evidence links for this claim
   - Return path
@@ -371,13 +377,18 @@ methodology/
 - [ ] Implement `export_provenance_json(output_path)`:
   - Same as YAML but JSON format
 
-- [ ] Add CLI commands:
-  - `rc-export md reasoning --claim-id ID --output-dir DIR`
-  - `rc-export md reasoning --all --output-dir DIR`
-  - `rc-export md evidence-by-source --source-id ID --output-dir DIR`
-  - `rc-export md evidence-by-source --all --output-dir DIR`
-  - `rc-export yaml provenance -o FILE`
-  - `rc-export json provenance -o FILE`
+- [ ] Add CLI commands (following existing `rc-export <format> <type>` pattern):
+  - Add `reasoning` type to `rc-export md`:
+    - `rc-export md reasoning --id CLAIM-ID -o FILE` (single claim)
+    - `rc-export md reasoning --all --output-dir DIR` (all claims)
+  - Add `evidence` type to `rc-export md`:
+    - `rc-export md evidence --claim-id ID -o FILE`
+    - `rc-export md evidence --source-id ID -o FILE`
+    - `rc-export md evidence --all --output-dir DIR`
+  - Add `provenance` type to `rc-export yaml`:
+    - `rc-export yaml provenance -o FILE`
+  - Add `provenance` type to `rc-export json` (if json subcommand exists, else add it):
+    - `rc-export json provenance -o FILE`
 
 ---
 
@@ -451,6 +462,11 @@ methodology/
   - Add `reasoning_trails` table if missing
   - Handle schema evolution for existing tables
 
+- [ ] Update `rc-db init-project` to create provenance directories:
+  - Add `analysis/reasoning/` to directory list (db.py:2037)
+  - Add `analysis/evidence/by-claim/` to directory list
+  - Add `analysis/evidence/by-source/` to directory list
+
 - [ ] Test migration on existing databases
 
 ---
@@ -506,14 +522,16 @@ rc-db reasoning get --id REASON-2026-001 --format text
 rc-db reasoning list --claim-id TECH-2026-042
 rc-db reasoning history --claim-id TECH-2026-042
 
-# Export / Render
-rc-export md reasoning --claim-id TECH-2026-042 --output-dir analysis/reasoning
+# Export / Render (follows existing rc-export <format> <type> pattern)
+rc-export md reasoning --id TECH-2026-042 -o analysis/reasoning/TECH-2026-042.md
 rc-export md reasoning --all --output-dir analysis/reasoning
-rc-export md evidence-by-source --all --output-dir analysis/evidence/by-source
+rc-export md evidence --claim-id TECH-2026-042 -o analysis/evidence/by-claim/TECH-2026-042.md
+rc-export md evidence --source-id author-2024 -o analysis/evidence/by-source/author-2024.md
+rc-export md evidence --all --output-dir analysis/evidence
 rc-export yaml provenance -o analysis/provenance.yaml
 rc-export json provenance -o analysis/provenance.json
 
-# Validation
+# Validation (--strict already exists, escalates WARNs to errors)
 rc-validate                    # Warnings for missing backing
 rc-validate --strict           # Errors for missing backing
 ```
@@ -529,6 +547,21 @@ rc-validate --strict           # Errors for missing backing
 - Defined 9 implementation phases
 - Detailed test plan with ~60 test cases
 - Ready for Phase 1 (tests first)
+
+### 2026-01-30: Review Feedback Fixes
+
+Applied fixes from code review:
+
+1. **--strict reuse**: Removed "add --strict" from Phase 4; existing flag in validate.py:547 already escalates warnings to errors
+2. **Export CLI alignment**: Updated Phase 5 to follow existing `rc-export <format> <type>` pattern instead of new subcommands
+3. **Output-dir semantics**: Changed export functions to write directly to caller-specified path (no auto-created subdirectories)
+4. **Missing tests**: Added `test_export_evidence_by_claim_single` and `test_export_evidence_by_claim_all` to Phase 1
+5. **Multiple trails clarification**: Added API semantics note explaining `get_reasoning_trail()` returns active only, while `list/history` show all
+6. **init-project dirs**: Added `analysis/reasoning/` and `analysis/evidence/` to Phase 9
+
+Also fixed in PLAN doc:
+- Normalized counterargument disposition enum to `integrated|discounted|unresolved`
+- Fixed template reference from `claim-table.md.j2` to `tables/claim-summary.md.j2`
 
 ---
 

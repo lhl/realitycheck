@@ -112,7 +112,7 @@ reasoning_trails:
   counterarguments_considered:
     - argument: "Study X found opposite result"
       response: "Study X used different methodology; not directly comparable"
-      disposition: "acknowledged_but_discounted"  # integrated|discounted|unresolved
+      disposition: "discounted"  # integrated|discounted|unresolved
   
   # Overall reasoning
   reasoning_text: |
@@ -323,7 +323,7 @@ tests/
 
 integrations/_templates/
   skills/check.md.j2                 # Add evidence linking + reasoning steps
-  partials/claim-table.md.j2         # (new) Claim table with reasoning links
+  tables/claim-summary.md.j2         # Update to support reasoning links in ID column
 
 methodology/
   reasoning-trails.md                # (new) Methodology for reasoning capture
