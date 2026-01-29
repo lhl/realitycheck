@@ -1,7 +1,8 @@
 # Plan: Epistemic Provenance (Reasoning Trails)
 
-**Status**: Planning
+**Status**: Ready for Implementation
 **Created**: 2026-01-24
+**Implementation**: [IMPLEMENTATION-epistemic-provenance.md](IMPLEMENTATION-epistemic-provenance.md)
 
 ## Motivation
 
@@ -361,15 +362,20 @@ methodology/
 6. **Workflow integration**: Update skills to include evidence/reasoning steps
 7. **Docs**: SCHEMA.md, WORKFLOWS.md, methodology
 
-## Open questions
+## Open questions (RESOLVED)
 
-- **Granularity**: Should evidence links be per-source or per-source-location? (Current: per-source with optional location field)
-- **Versioning**: Do we model `status`/`supersedes_id` explicitly (as above), or rely on timestamps alone?
-- **Auto-linking**: Can we infer evidence links from `source_ids` + analysis context? (Risky - may want explicit only)
-- **Rendering trigger**: Render on every change, or on-demand? (Current: on-demand via `rc-export md reasoning --all`)
-- **Storage**: Should `reasoning_text` be stored in DB or rendered from structured fields? (Current: explicit text + structured components)
-- **Output contract compatibility**: Should we update `scripts/analysis_formatter.py` to accept markdown-linked IDs like `[TECH-2026-001](...)` in tables (to enable linkification without breaking extraction)?
-- **Evidence snapshots**: How should we store durable snapshots of URLs (ArchiveBox / other) and link them from `sources` / `evidence_links`?
+All open questions have been resolved. See [IMPLEMENTATION-epistemic-provenance.md](IMPLEMENTATION-epistemic-provenance.md) for the full decisions log.
+
+| Question | Resolution |
+|----------|------------|
+| Granularity | Per-source with optional `location` field |
+| Versioning | Explicit `status`/`supersedes_id` for rigorous audit trail |
+| Auto-linking | Explicit only for v1 (no inference from `source_ids`) |
+| Rendering trigger | On-demand via `rc-export md reasoning` |
+| Storage | Both explicit `reasoning_text` + structured fields |
+| Output contract | Update validator/formatter to support `[ID](path)` links |
+| Evidence snapshots | Deferred to future work (out of scope for v1) |
+| Validation threshold | Configurable: warn by default, `--strict` for errors |
 
 ## Relationship to other features
 

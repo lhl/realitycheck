@@ -25,6 +25,7 @@ Tracking future work items.
 ## Epistemic Provenance / Reasoning Trails (Major Feature)
 
 **Plan**: [PLAN-epistemic-provenance.md](PLAN-epistemic-provenance.md)
+**Implementation**: [IMPLEMENTATION-epistemic-provenance.md](IMPLEMENTATION-epistemic-provenance.md)
 
 **Problem**: Reality Check extracts claims and assigns credence, but lacks structured traceability for *why* a claim has a given credence. We risk becoming a source of unconfirmable bias.
 
@@ -32,14 +33,14 @@ Tracking future work items.
 - `evidence_links` table: Explicit links between claims and supporting/contradicting sources
 - `reasoning_trails` table: Capture the reasoning chain for credence assignments
 - Rendered markdown: Per-claim reasoning docs browsable in data repo
-- Validation: Enforce that high-credence claims (≥0.7) have explicit backing
+- Validation: Enforce that high-credence claims (≥0.7) have explicit backing (configurable: warn default, `--strict` errors)
 - Portability export: Deterministic YAML/JSON dump of provenance (regen from DB)
 - Audit-log linkage: Attribute evidence/reasoning to specific analysis passes (tool/model)
 - Workflow integration: Evidence linking + reasoning capture in `/check`
 
-**Scope**: Large feature sprint - schema changes, CLI, validation, rendering, workflow updates.
+**Scope**: Large feature sprint - schema changes, CLI, validation, rendering, workflow updates (9 phases, ~60 test cases).
 
-**Status**: Planning - see PLAN doc for full design.
+**Status**: 🚧 Implementation planned - ready for Phase 1 (tests first).
 
 ---
 
