@@ -32,6 +32,9 @@ if __package__:
         VALID_DOMAINS,
         VALID_ANALYSIS_STATUSES,
         VALID_ANALYSIS_TOOLS,
+        VALID_EVIDENCE_DIRECTIONS,
+        VALID_EVIDENCE_STATUSES,
+        VALID_REASONING_STATUSES,
         find_project_root,
         resolve_db_path_from_project_root,
         get_db,
@@ -43,6 +46,8 @@ if __package__:
         list_contradictions,
         list_definitions,
         list_analysis_logs,
+        list_evidence_links,
+        list_reasoning_trails,
         get_stats,
     )
 else:
@@ -50,6 +55,9 @@ else:
         VALID_DOMAINS,
         VALID_ANALYSIS_STATUSES,
         VALID_ANALYSIS_TOOLS,
+        VALID_EVIDENCE_DIRECTIONS,
+        VALID_EVIDENCE_STATUSES,
+        VALID_REASONING_STATUSES,
         find_project_root,
         resolve_db_path_from_project_root,
         get_db,
@@ -61,6 +69,8 @@ else:
         list_contradictions,
         list_definitions,
         list_analysis_logs,
+        list_evidence_links,
+        list_reasoning_trails,
         get_stats,
     )
 
@@ -97,8 +107,16 @@ def _is_probability(value: Any) -> bool:
 # Database Validation
 # =============================================================================
 
-def validate_db(db_path: Optional[Path] = None) -> list[Finding]:
-    """Validate LanceDB database integrity."""
+def validate_db(db_path: Optional[Path] = None, strict: bool = False) -> list[Finding]:
+    """Validate LanceDB database integrity.
+
+    Args:
+        db_path: Path to LanceDB database (optional, uses env or auto-detect)
+        strict: If True, high-credence backing warnings become errors
+
+    Returns:
+        List of Finding objects (errors and warnings)
+    """
     findings: list[Finding] = []
 
     if db_path is None and not os.getenv("REALITYCHECK_DATA"):
@@ -387,6 +405,148 @@ def validate_db(db_path: Optional[Path] = None) -> list[Finding]:
                         findings.append(Finding("ERROR", "ANALYSIS_SYNTHESIS_INPUT_MISSING",
                             f"{log_id}: inputs_analysis_ids references unknown analysis '{input_id}'"))
 
+    # ==========================================================================
+    # Evidence Links Validation
+    # ==========================================================================
+    evidence_links = {}
+    if "evidence_links" in existing_tables:
+        try:
+            evidence_links = {e["id"]: e for e in list_evidence_links(include_superseded=True, limit=100000, db=db)}
+        except Exception as e:
+            findings.append(Finding("ERROR", "EVIDENCE_LINKS_READ", f"Error reading evidence_links: {e}"))
+
+        evidence_link_ids = set(evidence_links.keys())
+
+        for link_id, link in evidence_links.items():
+            # Claim exists
+            link_claim_id = link.get("claim_id")
+            if link_claim_id not in claim_ids:
+                findings.append(Finding("ERROR", "EVLINK_CLAIM_MISSING",
+                    f"{link_id}: References unknown claim '{link_claim_id}'"))
+
+            # Source exists
+            link_source_id = link.get("source_id")
+            if link_source_id not in source_ids:
+                findings.append(Finding("ERROR", "EVLINK_SOURCE_MISSING",
+                    f"{link_id}: References unknown source '{link_source_id}'"))
+
+            # Direction is valid
+            direction = link.get("direction")
+            if direction not in VALID_EVIDENCE_DIRECTIONS:
+                findings.append(Finding("ERROR", "EVLINK_DIRECTION_INVALID",
+                    f"{link_id}: Invalid direction '{direction}'"))
+
+            # Status is valid
+            status = link.get("status")
+            if status not in VALID_EVIDENCE_STATUSES:
+                findings.append(Finding("ERROR", "EVLINK_STATUS_INVALID",
+                    f"{link_id}: Invalid status '{status}'"))
+
+            # Supersedes reference exists (warning only)
+            supersedes_id = link.get("supersedes_id")
+            if supersedes_id and supersedes_id not in evidence_link_ids:
+                findings.append(Finding("WARN", "EVLINK_SUPERSEDES_MISSING",
+                    f"{link_id}: supersedes_id references unknown link '{supersedes_id}'"))
+
+    # ==========================================================================
+    # Reasoning Trails Validation
+    # ==========================================================================
+    reasoning_trails = {}
+    if "reasoning_trails" in existing_tables:
+        try:
+            reasoning_trails = {r["id"]: r for r in list_reasoning_trails(include_superseded=True, limit=100000, db=db)}
+        except Exception as e:
+            findings.append(Finding("ERROR", "REASONING_TRAILS_READ", f"Error reading reasoning_trails: {e}"))
+
+        reasoning_trail_ids = set(reasoning_trails.keys())
+        evidence_link_ids = set(evidence_links.keys())
+
+        for trail_id, trail in reasoning_trails.items():
+            # Claim exists
+            trail_claim_id = trail.get("claim_id")
+            if trail_claim_id not in claim_ids:
+                findings.append(Finding("ERROR", "REASONING_CLAIM_MISSING",
+                    f"{trail_id}: References unknown claim '{trail_claim_id}'"))
+                continue  # Skip further checks if claim doesn't exist
+
+            # Evidence links exist
+            for evlink_id in trail.get("supporting_evidence") or []:
+                if evlink_id not in evidence_link_ids:
+                    findings.append(Finding("WARN", "REASONING_EVLINK_MISSING",
+                        f"{trail_id}: supporting_evidence references unknown link '{evlink_id}'"))
+
+            for evlink_id in trail.get("contradicting_evidence") or []:
+                if evlink_id not in evidence_link_ids:
+                    findings.append(Finding("WARN", "REASONING_EVLINK_MISSING",
+                        f"{trail_id}: contradicting_evidence references unknown link '{evlink_id}'"))
+
+            # Check for stale credence (active trails only)
+            if trail.get("status") == "active" and trail_claim_id in claims:
+                claim = claims[trail_claim_id]
+                trail_credence = trail.get("credence_at_time")
+                claim_credence = claim.get("credence")
+                if trail_credence is not None and claim_credence is not None:
+                    if abs(float(trail_credence) - float(claim_credence)) > 0.01:
+                        findings.append(Finding("WARN", "REASONING_CREDENCE_STALE",
+                            f"{trail_id}: credence_at_time ({trail_credence}) differs from claim credence ({claim_credence})"))
+
+                trail_evidence_level = trail.get("evidence_level_at_time")
+                claim_evidence_level = claim.get("evidence_level")
+                if trail_evidence_level and claim_evidence_level:
+                    if trail_evidence_level != claim_evidence_level:
+                        findings.append(Finding("WARN", "REASONING_EVIDENCE_STALE",
+                            f"{trail_id}: evidence_level_at_time ({trail_evidence_level}) differs from claim ({claim_evidence_level})"))
+
+    # ==========================================================================
+    # High Credence Backing Validation
+    # ==========================================================================
+    # Claims with credence >= 0.7 OR evidence level E1/E2 must have supporting evidence
+    high_evidence_levels = {"E1", "E2"}
+    backing_level = "ERROR" if strict else "WARN"
+
+    # Build a map of claim_id -> supporting evidence links
+    claims_with_backing = set()
+    claims_missing_location = set()
+    claims_missing_reasoning = set()
+
+    for link_id, link in evidence_links.items():
+        if link.get("status") != "active":
+            continue
+        direction = link.get("direction")
+        if direction in ("supports", "strengthens"):
+            claim_id = link.get("claim_id")
+            claims_with_backing.add(claim_id)
+
+            # Check for location and reasoning on supporting evidence
+            if not link.get("location"):
+                claims_missing_location.add(claim_id)
+            if not link.get("reasoning"):
+                claims_missing_reasoning.add(claim_id)
+
+    for claim_id, claim in claims.items():
+        credence = claim.get("credence")
+        evidence_level = claim.get("evidence_level")
+
+        # Check if claim requires backing
+        requires_backing = (
+            (credence is not None and credence >= 0.7) or
+            (evidence_level in high_evidence_levels)
+        )
+
+        if requires_backing:
+            if claim_id not in claims_with_backing:
+                findings.append(Finding(backing_level, "HIGH_CREDENCE_NO_BACKING",
+                    f"{claim_id}: High credence ({credence}) or evidence level ({evidence_level}) "
+                    "requires supporting evidence link"))
+            else:
+                # Check for specificity (location and reasoning)
+                if claim_id in claims_missing_location:
+                    findings.append(Finding("WARN", "HIGH_CREDENCE_MISSING_LOCATION",
+                        f"{claim_id}: Supporting evidence link missing 'location' field"))
+                if claim_id in claims_missing_reasoning:
+                    findings.append(Finding("WARN", "HIGH_CREDENCE_MISSING_REASONING",
+                        f"{claim_id}: Supporting evidence link missing 'reasoning' field"))
+
     return findings
 
 
@@ -557,7 +717,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.mode == "db":
-        findings = validate_db(args.db_path)
+        findings = validate_db(args.db_path, strict=args.strict)
     else:
         repo_root = args.repo_root or Path.cwd()
         findings = validate_yaml(repo_root, strict_paths=args.strict)

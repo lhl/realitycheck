@@ -440,6 +440,61 @@ VALID_ANALYSIS_STATUSES = {"started", "completed", "failed", "canceled", "draft"
 # Valid analysis log tools
 VALID_ANALYSIS_TOOLS = {"claude-code", "codex", "amp", "manual", "other"}
 
+# =============================================================================
+# Evidence Links Schema (Epistemic Provenance)
+# =============================================================================
+
+EVIDENCE_LINKS_SCHEMA = pa.schema([
+    pa.field("id", pa.string(), nullable=False),  # EVLINK-YYYY-NNN
+    pa.field("claim_id", pa.string(), nullable=False),
+    pa.field("source_id", pa.string(), nullable=False),
+    pa.field("direction", pa.string(), nullable=False),  # supports|contradicts|strengthens|weakens
+    pa.field("status", pa.string(), nullable=False),  # active|superseded|retracted
+    pa.field("supersedes_id", pa.string(), nullable=True),  # Pointer for corrections
+    pa.field("strength", pa.float32(), nullable=True),  # Coarse impact estimate
+    pa.field("location", pa.string(), nullable=True),  # Specific location in source
+    pa.field("quote", pa.string(), nullable=True),  # Relevant excerpt
+    pa.field("reasoning", pa.string(), nullable=True),  # Why this evidence matters
+    pa.field("analysis_log_id", pa.string(), nullable=True),  # Link to audit log pass
+    pa.field("created_at", pa.string(), nullable=False),  # ISO timestamp
+    pa.field("created_by", pa.string(), nullable=False),  # Tool/user that created this
+])
+
+# Valid evidence link directions
+VALID_EVIDENCE_DIRECTIONS = {"supports", "contradicts", "strengthens", "weakens"}
+
+# Valid evidence link statuses
+VALID_EVIDENCE_STATUSES = {"active", "superseded", "retracted"}
+
+# =============================================================================
+# Reasoning Trails Schema (Epistemic Provenance)
+# =============================================================================
+
+REASONING_TRAILS_SCHEMA = pa.schema([
+    pa.field("id", pa.string(), nullable=False),  # REASON-YYYY-NNN
+    pa.field("claim_id", pa.string(), nullable=False),
+    pa.field("status", pa.string(), nullable=False),  # active|superseded
+    pa.field("supersedes_id", pa.string(), nullable=True),
+    pa.field("credence_at_time", pa.float32(), nullable=False),
+    pa.field("evidence_level_at_time", pa.string(), nullable=False),
+    pa.field("evidence_summary", pa.string(), nullable=True),
+    pa.field("supporting_evidence", pa.list_(pa.string()), nullable=True),  # Evidence link IDs
+    pa.field("contradicting_evidence", pa.list_(pa.string()), nullable=True),  # Evidence link IDs
+    pa.field("assumptions_made", pa.list_(pa.string()), nullable=True),
+    pa.field("counterarguments_json", pa.string(), nullable=True),  # JSON-encoded list
+    pa.field("reasoning_text", pa.string(), nullable=False),  # Publishable rationale
+    pa.field("analysis_pass", pa.int32(), nullable=True),
+    pa.field("analysis_log_id", pa.string(), nullable=True),  # Link to audit log pass
+    pa.field("created_at", pa.string(), nullable=False),  # ISO timestamp
+    pa.field("created_by", pa.string(), nullable=False),  # Tool/user that created this
+])
+
+# Valid reasoning trail statuses
+VALID_REASONING_STATUSES = {"active", "superseded"}
+
+# Valid counterargument dispositions (for validation)
+VALID_COUNTERARGUMENT_DISPOSITIONS = {"integrated", "discounted", "unresolved"}
+
 # Domain mapping for migration (old -> new)
 DOMAIN_MIGRATION = {
     "VALUE": "ECON",
@@ -479,6 +534,8 @@ def init_tables(db: Optional[lancedb.DBConnection] = None) -> dict[str, Any]:
         ("contradictions", CONTRADICTIONS_SCHEMA),
         ("definitions", DEFINITIONS_SCHEMA),
         ("analysis_logs", ANALYSIS_LOGS_SCHEMA),
+        ("evidence_links", EVIDENCE_LINKS_SCHEMA),
+        ("reasoning_trails", REASONING_TRAILS_SCHEMA),
     ]
 
     existing_tables = get_table_names(db)
@@ -497,7 +554,7 @@ def drop_tables(db: Optional[lancedb.DBConnection] = None) -> None:
         db = get_db()
 
     existing_tables = get_table_names(db)
-    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs"]:
+    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs", "evidence_links", "reasoning_trails"]:
         if table_name in existing_tables:
             db.drop_table(table_name)
 
@@ -1397,6 +1454,517 @@ def update_analysis_log(
 
 
 # =============================================================================
+# CRUD Operations - Evidence Links
+# =============================================================================
+
+def _generate_evidence_link_id(db: lancedb.DBConnection) -> str:
+    """Generate next evidence link ID."""
+    year = date.today().year
+    existing_tables = get_table_names(db)
+    if "evidence_links" not in existing_tables:
+        return f"EVLINK-{year}-001"
+
+    table = db.open_table("evidence_links")
+    rows = table.search().select(["id"]).limit(10000).to_list()
+    existing_ids = [r["id"] for r in rows if r["id"].startswith(f"EVLINK-{year}-")]
+
+    if not existing_ids:
+        return f"EVLINK-{year}-001"
+
+    max_num = 0
+    for eid in existing_ids:
+        try:
+            num = int(eid.split("-")[-1])
+            max_num = max(max_num, num)
+        except ValueError:
+            continue
+    return f"EVLINK-{year}-{max_num + 1:03d}"
+
+
+def add_evidence_link(
+    link_data: dict,
+    db: Optional[lancedb.DBConnection] = None,
+) -> dict:
+    """Add an evidence link.
+
+    Args:
+        link_data: Evidence link data with required fields:
+            - claim_id: Claim this evidence supports/contradicts
+            - source_id: Source providing the evidence
+            - direction: supports|contradicts|strengthens|weakens
+            - created_by: Tool/user that created this
+        db: Database connection (optional, uses default if not provided)
+
+    Returns:
+        The created evidence link record.
+
+    Raises:
+        ValueError: If claim_id or source_id don't exist, or direction is invalid.
+    """
+    if db is None:
+        db = get_db()
+
+    claim_id = link_data.get("claim_id")
+    source_id = link_data.get("source_id")
+    direction = link_data.get("direction")
+
+    # Validate claim exists
+    if not claim_id or not get_claim(claim_id, db):
+        raise ValueError(f"Claim '{claim_id}' not found")
+
+    # Validate source exists
+    if not source_id or not get_source(source_id, db):
+        raise ValueError(f"Source '{source_id}' not found")
+
+    # Validate direction
+    if direction not in VALID_EVIDENCE_DIRECTIONS:
+        raise ValueError(f"Invalid direction '{direction}'. Must be one of: {VALID_EVIDENCE_DIRECTIONS}")
+
+    # Generate ID if not provided
+    link_id = link_data.get("id") or _generate_evidence_link_id(db)
+
+    # Set defaults
+    now = date.today().isoformat()
+    record = {
+        "id": link_id,
+        "claim_id": claim_id,
+        "source_id": source_id,
+        "direction": direction,
+        "status": link_data.get("status", "active"),
+        "supersedes_id": link_data.get("supersedes_id"),
+        "strength": link_data.get("strength"),
+        "location": link_data.get("location"),
+        "quote": link_data.get("quote"),
+        "reasoning": link_data.get("reasoning"),
+        "analysis_log_id": link_data.get("analysis_log_id"),
+        "created_at": link_data.get("created_at", now),
+        "created_by": link_data.get("created_by", "unknown"),
+    }
+
+    # Ensure table exists
+    init_tables(db)
+    table = db.open_table("evidence_links")
+    table.add([record])
+
+    return record
+
+
+def get_evidence_link(link_id: str, db: Optional[lancedb.DBConnection] = None) -> Optional[dict]:
+    """Get an evidence link by ID."""
+    if db is None:
+        db = get_db()
+
+    existing_tables = get_table_names(db)
+    if "evidence_links" not in existing_tables:
+        return None
+
+    table = db.open_table("evidence_links")
+    results = table.search().where(f"id = '{link_id}'").limit(1).to_list()
+    return dict(results[0]) if results else None
+
+
+def list_evidence_links(
+    claim_id: Optional[str] = None,
+    source_id: Optional[str] = None,
+    direction: Optional[str] = None,
+    include_superseded: bool = False,
+    limit: int = 100,
+    db: Optional[lancedb.DBConnection] = None,
+) -> list[dict]:
+    """List evidence links with optional filters.
+
+    Args:
+        claim_id: Filter by claim
+        source_id: Filter by source
+        direction: Filter by direction (supports/contradicts/etc.)
+        include_superseded: Include superseded/retracted links
+        limit: Maximum results to return
+        db: Database connection (optional, uses default if not provided)
+
+    Returns:
+        List of evidence link records.
+    """
+    if db is None:
+        db = get_db()
+
+    existing_tables = get_table_names(db)
+    if "evidence_links" not in existing_tables:
+        return []
+
+    table = db.open_table("evidence_links")
+    query = table.search()
+
+    # Build filter conditions
+    conditions = []
+    if claim_id:
+        conditions.append(f"claim_id = '{claim_id}'")
+    if source_id:
+        conditions.append(f"source_id = '{source_id}'")
+    if direction:
+        conditions.append(f"direction = '{direction}'")
+    if not include_superseded:
+        conditions.append("status = 'active'")
+
+    if conditions:
+        query = query.where(" AND ".join(conditions))
+
+    results = query.limit(limit).to_list()
+    return [dict(r) for r in results]
+
+
+def update_evidence_link(
+    link_id: str,
+    db: Optional[lancedb.DBConnection] = None,
+    **fields: Any,
+) -> None:
+    """Update an evidence link.
+
+    Args:
+        link_id: ID of link to update
+        db: Database connection (optional)
+        **fields: Fields to update
+
+    Raises:
+        ValueError: If link_id not found.
+    """
+    if db is None:
+        db = get_db()
+
+    existing = get_evidence_link(link_id, db)
+    if not existing:
+        raise ValueError(f"Evidence link '{link_id}' not found")
+
+    # Merge updates
+    updated = dict(existing)
+    for key, value in fields.items():
+        if value is not None:
+            updated[key] = value
+
+    # Remove internal fields
+    schema_fields = {f.name for f in EVIDENCE_LINKS_SCHEMA}
+    updated = {k: v for k, v in updated.items() if k in schema_fields}
+
+    # Delete and re-add (LanceDB pattern)
+    table = db.open_table("evidence_links")
+    table.delete(f"id = '{link_id}'")
+    table.add([updated])
+
+
+def supersede_evidence_link(
+    old_link_id: str,
+    db: Optional[lancedb.DBConnection] = None,
+    **new_fields: Any,
+) -> dict:
+    """Create a new evidence link that supersedes an existing one.
+
+    The old link is marked as superseded, and a new link is created
+    with supersedes_id pointing to the old one.
+
+    Args:
+        old_link_id: ID of link to supersede
+        db: Database connection (optional)
+        **new_fields: Fields for the new link (inherits from old if not specified)
+
+    Returns:
+        The new evidence link record.
+
+    Raises:
+        ValueError: If old_link_id not found.
+    """
+    if db is None:
+        db = get_db()
+
+    old_link = get_evidence_link(old_link_id, db)
+    if not old_link:
+        raise ValueError(f"Evidence link '{old_link_id}' not found")
+
+    # Mark old link as superseded
+    update_evidence_link(old_link_id, db, status="superseded")
+
+    # Create new link inheriting from old
+    new_link_data = {
+        "claim_id": old_link["claim_id"],
+        "source_id": old_link["source_id"],
+        "direction": new_fields.get("direction", old_link["direction"]),
+        "status": "active",
+        "supersedes_id": old_link_id,
+        "strength": new_fields.get("strength", old_link.get("strength")),
+        "location": new_fields.get("location", old_link.get("location")),
+        "quote": new_fields.get("quote", old_link.get("quote")),
+        "reasoning": new_fields.get("reasoning", old_link.get("reasoning")),
+        "analysis_log_id": new_fields.get("analysis_log_id"),
+        "created_by": new_fields.get("created_by", old_link.get("created_by", "unknown")),
+    }
+
+    return add_evidence_link(new_link_data, db)
+
+
+# =============================================================================
+# CRUD Operations - Reasoning Trails
+# =============================================================================
+
+def _generate_reasoning_trail_id(db: lancedb.DBConnection) -> str:
+    """Generate next reasoning trail ID."""
+    year = date.today().year
+    existing_tables = get_table_names(db)
+    if "reasoning_trails" not in existing_tables:
+        return f"REASON-{year}-001"
+
+    table = db.open_table("reasoning_trails")
+    rows = table.search().select(["id"]).limit(10000).to_list()
+    existing_ids = [r["id"] for r in rows if r["id"].startswith(f"REASON-{year}-")]
+
+    if not existing_ids:
+        return f"REASON-{year}-001"
+
+    max_num = 0
+    for rid in existing_ids:
+        try:
+            num = int(rid.split("-")[-1])
+            max_num = max(max_num, num)
+        except ValueError:
+            continue
+    return f"REASON-{year}-{max_num + 1:03d}"
+
+
+def add_reasoning_trail(
+    trail_data: dict,
+    db: Optional[lancedb.DBConnection] = None,
+) -> dict:
+    """Add a reasoning trail.
+
+    Args:
+        trail_data: Reasoning trail data with required fields:
+            - claim_id: Claim this reasoning is for
+            - credence_at_time: Credence rating this reasoning produced
+            - evidence_level_at_time: Evidence level assigned
+            - reasoning_text: Publishable rationale
+            - created_by: Tool/user that created this
+        db: Database connection (optional, uses default if not provided)
+
+    Returns:
+        The created reasoning trail record.
+
+    Raises:
+        ValueError: If claim_id doesn't exist or evidence links are invalid.
+    """
+    if db is None:
+        db = get_db()
+
+    claim_id = trail_data.get("claim_id")
+
+    # Validate claim exists
+    if not claim_id or not get_claim(claim_id, db):
+        raise ValueError(f"Claim '{claim_id}' not found")
+
+    # Validate evidence link references if provided
+    supporting = trail_data.get("supporting_evidence") or []
+    contradicting = trail_data.get("contradicting_evidence") or []
+    for evlink_id in supporting + contradicting:
+        if not get_evidence_link(evlink_id, db):
+            raise ValueError(f"Evidence link '{evlink_id}' not found")
+
+    # Generate ID if not provided
+    trail_id = trail_data.get("id") or _generate_reasoning_trail_id(db)
+
+    # Set defaults
+    now = date.today().isoformat()
+    record = {
+        "id": trail_id,
+        "claim_id": claim_id,
+        "status": trail_data.get("status", "active"),
+        "supersedes_id": trail_data.get("supersedes_id"),
+        "credence_at_time": float(trail_data.get("credence_at_time", 0.5)),
+        "evidence_level_at_time": trail_data.get("evidence_level_at_time", "E4"),
+        "evidence_summary": trail_data.get("evidence_summary"),
+        "supporting_evidence": supporting or [],
+        "contradicting_evidence": contradicting or [],
+        "assumptions_made": trail_data.get("assumptions_made") or [],
+        "counterarguments_json": trail_data.get("counterarguments_json"),
+        "reasoning_text": trail_data.get("reasoning_text", ""),
+        "analysis_pass": trail_data.get("analysis_pass"),
+        "analysis_log_id": trail_data.get("analysis_log_id"),
+        "created_at": trail_data.get("created_at", now),
+        "created_by": trail_data.get("created_by", "unknown"),
+    }
+
+    # Ensure table exists
+    init_tables(db)
+    table = db.open_table("reasoning_trails")
+    table.add([record])
+
+    return record
+
+
+def get_reasoning_trail(
+    id: Optional[str] = None,
+    claim_id: Optional[str] = None,
+    db: Optional[lancedb.DBConnection] = None,
+) -> Optional[dict]:
+    """Get a reasoning trail by ID or claim_id (returns active trail for claim).
+
+    Args:
+        id: Trail ID (takes precedence)
+        claim_id: Claim ID (returns current active trail)
+        db: Database connection (optional, uses default if not provided)
+
+    Returns:
+        Reasoning trail record or None.
+    """
+    if db is None:
+        db = get_db()
+
+    existing_tables = get_table_names(db)
+    if "reasoning_trails" not in existing_tables:
+        return None
+
+    table = db.open_table("reasoning_trails")
+
+    if id:
+        results = table.search().where(f"id = '{id}'").limit(1).to_list()
+    elif claim_id:
+        results = table.search().where(f"claim_id = '{claim_id}' AND status = 'active'").limit(1).to_list()
+    else:
+        return None
+
+    return dict(results[0]) if results else None
+
+
+def list_reasoning_trails(
+    claim_id: Optional[str] = None,
+    include_superseded: bool = False,
+    limit: int = 100,
+    db: Optional[lancedb.DBConnection] = None,
+) -> list[dict]:
+    """List reasoning trails with optional filters.
+
+    Args:
+        claim_id: Filter by claim
+        include_superseded: Include superseded trails
+        limit: Maximum results to return
+        db: Database connection (optional, uses default if not provided)
+
+    Returns:
+        List of reasoning trail records.
+    """
+    if db is None:
+        db = get_db()
+
+    existing_tables = get_table_names(db)
+    if "reasoning_trails" not in existing_tables:
+        return []
+
+    table = db.open_table("reasoning_trails")
+    query = table.search()
+
+    conditions = []
+    if claim_id:
+        conditions.append(f"claim_id = '{claim_id}'")
+    if not include_superseded:
+        conditions.append("status = 'active'")
+
+    if conditions:
+        query = query.where(" AND ".join(conditions))
+
+    results = query.limit(limit).to_list()
+    return [dict(r) for r in results]
+
+
+def get_reasoning_history(
+    claim_id: str,
+    db: Optional[lancedb.DBConnection] = None,
+) -> list[dict]:
+    """Get all reasoning trails for a claim, ordered by created_at.
+
+    Returns the full credence evolution history including superseded trails.
+
+    Args:
+        claim_id: Claim ID
+        db: Database connection (optional, uses default if not provided)
+
+    Returns:
+        List of reasoning trail records ordered by created_at (oldest first).
+    """
+    if db is None:
+        db = get_db()
+
+    existing_tables = get_table_names(db)
+    if "reasoning_trails" not in existing_tables:
+        return []
+
+    table = db.open_table("reasoning_trails")
+    results = table.search().where(f"claim_id = '{claim_id}'").limit(1000).to_list()
+
+    # Sort by created_at (oldest first)
+    sorted_results = sorted(results, key=lambda r: r.get("created_at", ""))
+    return [dict(r) for r in sorted_results]
+
+
+def supersede_reasoning_trail(
+    old_trail_id: str,
+    db: Optional[lancedb.DBConnection] = None,
+    **new_fields: Any,
+) -> dict:
+    """Create a new reasoning trail that supersedes an existing one.
+
+    Args:
+        old_trail_id: ID of trail to supersede
+        db: Database connection (optional)
+        **new_fields: Fields for the new trail (inherits from old if not specified)
+
+    Returns:
+        The new reasoning trail record.
+
+    Raises:
+        ValueError: If old_trail_id not found.
+    """
+    if db is None:
+        db = get_db()
+
+    old_trail = get_reasoning_trail(id=old_trail_id, db=db)
+    if not old_trail:
+        raise ValueError(f"Reasoning trail '{old_trail_id}' not found")
+
+    # Mark old trail as superseded
+    existing_tables = get_table_names(db)
+    if "reasoning_trails" in existing_tables:
+        table = db.open_table("reasoning_trails")
+        # Update old trail
+        old_updated = dict(old_trail)
+        old_updated["status"] = "superseded"
+        schema_fields = {f.name for f in REASONING_TRAILS_SCHEMA}
+        old_updated = {k: v for k, v in old_updated.items() if k in schema_fields}
+        # Ensure list fields are lists
+        for field in ["supporting_evidence", "contradicting_evidence", "assumptions_made"]:
+            if old_updated.get(field) is None:
+                old_updated[field] = []
+            elif hasattr(old_updated[field], 'tolist'):
+                old_updated[field] = old_updated[field].tolist()
+        table.delete(f"id = '{old_trail_id}'")
+        table.add([old_updated])
+
+    # Create new trail inheriting from old
+    new_trail_data = {
+        "claim_id": old_trail["claim_id"],
+        "status": "active",
+        "supersedes_id": old_trail_id,
+        "credence_at_time": new_fields.get("credence_at_time", old_trail.get("credence_at_time")),
+        "evidence_level_at_time": new_fields.get("evidence_level_at_time", old_trail.get("evidence_level_at_time")),
+        "evidence_summary": new_fields.get("evidence_summary", old_trail.get("evidence_summary")),
+        "supporting_evidence": new_fields.get("supporting_evidence") or (list(old_trail.get("supporting_evidence") or []) if old_trail.get("supporting_evidence") is not None else []),
+        "contradicting_evidence": new_fields.get("contradicting_evidence") or (list(old_trail.get("contradicting_evidence") or []) if old_trail.get("contradicting_evidence") is not None else []),
+        "assumptions_made": new_fields.get("assumptions_made") or (list(old_trail.get("assumptions_made") or []) if old_trail.get("assumptions_made") is not None else []),
+        "counterarguments_json": new_fields.get("counterarguments_json", old_trail.get("counterarguments_json")),
+        "reasoning_text": new_fields.get("reasoning_text", old_trail.get("reasoning_text", "")),
+        "analysis_pass": new_fields.get("analysis_pass"),
+        "analysis_log_id": new_fields.get("analysis_log_id"),
+        "created_by": new_fields.get("created_by", old_trail.get("created_by", "unknown")),
+    }
+
+    return add_reasoning_trail(new_trail_data, db)
+
+
+# =============================================================================
 # Statistics
 # =============================================================================
 
@@ -1407,7 +1975,7 @@ def get_stats(db: Optional[lancedb.DBConnection] = None) -> dict:
 
     stats = {}
     existing_tables = get_table_names(db)
-    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs"]:
+    for table_name in ["claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs", "evidence_links", "reasoning_trails"]:
         if table_name in existing_tables:
             table = db.open_table(table_name)
             stats[table_name] = table.count_rows()
@@ -1482,6 +2050,25 @@ def _format_record_text(record: dict, record_type: str = "claim") -> str:
         lines.append(f"  Tokens: {tokens_str} | Cost: {cost_str}")
         if record.get("notes"):
             lines.append(f"  Notes: {record['notes']}")
+    elif record_type == "evidence_link":
+        lines.append(f"[{record['id']}] {record['direction']} {record['claim_id']}")
+        lines.append(f"  Source: {record['source_id']} | Status: {record.get('status', 'active')}")
+        if record.get('location'):
+            lines.append(f"  Location: {record['location']}")
+        strength = record.get('strength')
+        if strength is not None:
+            lines.append(f"  Strength: {strength:.2f}")
+        if record.get('reasoning'):
+            lines.append(f"  Reasoning: {record['reasoning'][:80]}{'...' if len(record.get('reasoning', '')) > 80 else ''}")
+    elif record_type == "reasoning_trail":
+        lines.append(f"[{record['id']}] Claim: {record['claim_id']}")
+        credence = record.get('credence_at_time')
+        credence_str = f"{credence:.2f}" if credence is not None else "N/A"
+        lines.append(f"  Credence: {credence_str} | Evidence: {record.get('evidence_level_at_time', 'N/A')} | Status: {record.get('status', 'active')}")
+        if record.get('evidence_summary'):
+            lines.append(f"  Summary: {record['evidence_summary'][:80]}{'...' if len(record.get('evidence_summary', '')) > 80 else ''}")
+        if record.get('reasoning_text'):
+            lines.append(f"  Reasoning: {record['reasoning_text'][:80]}{'...' if len(record.get('reasoning_text', '')) > 80 else ''}")
     return "\n".join(lines)
 
 
@@ -1887,6 +2474,91 @@ Examples:
     analysis_backfill.add_argument("--dry-run", action="store_true", help="Show what would be updated without making changes")
     analysis_backfill.add_argument("--limit", type=int, default=100, help="Max entries to process")
     analysis_backfill.add_argument("--force", action="store_true", help="Overwrite existing token values")
+
+    # -------------------------------------------------------------------------
+    # Evidence links commands
+    # -------------------------------------------------------------------------
+    evidence_parser = subparsers.add_parser("evidence", help="Evidence link operations")
+    evidence_subparsers = evidence_parser.add_subparsers(dest="evidence_command")
+
+    # evidence add
+    evidence_add = evidence_subparsers.add_parser("add", help="Add an evidence link")
+    evidence_add.add_argument("--id", help="Evidence link ID (auto-generated if omitted)")
+    evidence_add.add_argument("--claim-id", required=True, help="Claim this evidence supports/contradicts")
+    evidence_add.add_argument("--source-id", required=True, help="Source providing the evidence")
+    evidence_add.add_argument("--direction", required=True, choices=["supports", "contradicts", "strengthens", "weakens"],
+                              help="How this evidence relates to the claim")
+    evidence_add.add_argument("--strength", type=float, help="Impact strength (0.0-1.0)")
+    evidence_add.add_argument("--location", help="Specific location in source (e.g., 'Table 3, p.15')")
+    evidence_add.add_argument("--quote", help="Relevant excerpt from source")
+    evidence_add.add_argument("--reasoning", help="Why this evidence matters for the claim")
+    evidence_add.add_argument("--analysis-log-id", help="Link to analysis log entry")
+    evidence_add.add_argument("--created-by", default="cli", help="Tool/user creating this link")
+
+    # evidence get
+    evidence_get = evidence_subparsers.add_parser("get", help="Get an evidence link by ID")
+    evidence_get.add_argument("link_id", help="Evidence link ID")
+    evidence_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # evidence list
+    evidence_list = evidence_subparsers.add_parser("list", help="List evidence links")
+    evidence_list.add_argument("--claim-id", help="Filter by claim ID")
+    evidence_list.add_argument("--source-id", help="Filter by source ID")
+    evidence_list.add_argument("--direction", help="Filter by direction")
+    evidence_list.add_argument("--include-superseded", action="store_true", help="Include superseded/retracted links")
+    evidence_list.add_argument("--limit", type=int, default=100, help="Max results")
+    evidence_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # evidence supersede
+    evidence_supersede = evidence_subparsers.add_parser("supersede", help="Supersede an evidence link with a new one")
+    evidence_supersede.add_argument("link_id", help="ID of link to supersede")
+    evidence_supersede.add_argument("--direction", help="New direction (optional)")
+    evidence_supersede.add_argument("--strength", type=float, help="New strength (optional)")
+    evidence_supersede.add_argument("--location", help="New location (optional)")
+    evidence_supersede.add_argument("--quote", help="New quote (optional)")
+    evidence_supersede.add_argument("--reasoning", help="New reasoning (required for supersede)")
+    evidence_supersede.add_argument("--created-by", default="cli", help="Tool/user creating new link")
+
+    # -------------------------------------------------------------------------
+    # Reasoning trails commands
+    # -------------------------------------------------------------------------
+    reasoning_parser = subparsers.add_parser("reasoning", help="Reasoning trail operations")
+    reasoning_subparsers = reasoning_parser.add_subparsers(dest="reasoning_command")
+
+    # reasoning add
+    reasoning_add = reasoning_subparsers.add_parser("add", help="Add a reasoning trail")
+    reasoning_add.add_argument("--id", help="Reasoning trail ID (auto-generated if omitted)")
+    reasoning_add.add_argument("--claim-id", required=True, help="Claim this reasoning is for")
+    reasoning_add.add_argument("--credence", required=True, type=float, help="Credence rating (0.0-1.0)")
+    reasoning_add.add_argument("--evidence-level", required=True, help="Evidence level (E1-E6)")
+    reasoning_add.add_argument("--reasoning-text", required=True, help="Publishable rationale for the credence")
+    reasoning_add.add_argument("--evidence-summary", help="Summary of evidence basis")
+    reasoning_add.add_argument("--supporting-evidence", help="Comma-separated evidence link IDs that support")
+    reasoning_add.add_argument("--contradicting-evidence", help="Comma-separated evidence link IDs that contradict")
+    reasoning_add.add_argument("--assumptions", help="Comma-separated assumptions made")
+    reasoning_add.add_argument("--counterarguments-json", help="JSON array of counterarguments considered")
+    reasoning_add.add_argument("--analysis-pass", type=int, help="Analysis pass number")
+    reasoning_add.add_argument("--analysis-log-id", help="Link to analysis log entry")
+    reasoning_add.add_argument("--status", default="active", choices=["active", "superseded"], help="Trail status")
+    reasoning_add.add_argument("--created-by", default="cli", help="Tool/user creating this trail")
+
+    # reasoning get
+    reasoning_get = reasoning_subparsers.add_parser("get", help="Get a reasoning trail")
+    reasoning_get.add_argument("--id", help="Reasoning trail ID")
+    reasoning_get.add_argument("--claim-id", help="Claim ID (returns current active trail)")
+    reasoning_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # reasoning list
+    reasoning_list = reasoning_subparsers.add_parser("list", help="List reasoning trails")
+    reasoning_list.add_argument("--claim-id", help="Filter by claim ID")
+    reasoning_list.add_argument("--include-superseded", action="store_true", help="Include superseded trails")
+    reasoning_list.add_argument("--limit", type=int, default=100, help="Max results")
+    reasoning_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+
+    # reasoning history
+    reasoning_history = reasoning_subparsers.add_parser("history", help="Show credence evolution history for a claim")
+    reasoning_history.add_argument("--claim-id", required=True, help="Claim ID")
+    reasoning_history.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
 
     # -------------------------------------------------------------------------
     # Related command
@@ -3125,6 +3797,160 @@ rc-validate
 
         else:
             analysis_parser.print_help()
+
+    # Evidence links commands
+    elif args.command == "evidence":
+        db = get_db()
+
+        if args.evidence_command == "add":
+            link_data = {
+                "id": args.id,
+                "claim_id": args.claim_id,
+                "source_id": args.source_id,
+                "direction": args.direction,
+                "strength": args.strength,
+                "location": args.location,
+                "quote": args.quote,
+                "reasoning": args.reasoning,
+                "analysis_log_id": getattr(args, "analysis_log_id", None),
+                "created_by": args.created_by,
+            }
+            try:
+                result = add_evidence_link(link_data, db=db)
+                print(f"Created evidence link: {result['id']}", flush=True)
+            except ValueError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.evidence_command == "get":
+            result = get_evidence_link(args.link_id, db=db)
+            if result:
+                _output_result(result, args.format, "evidence_link")
+            else:
+                print(f"Evidence link not found: {args.link_id}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.evidence_command == "list":
+            results = list_evidence_links(
+                claim_id=getattr(args, "claim_id", None),
+                source_id=getattr(args, "source_id", None),
+                direction=args.direction,
+                include_superseded=args.include_superseded,
+                limit=args.limit,
+                db=db,
+            )
+            _output_result(results, args.format, "evidence_link")
+
+        elif args.evidence_command == "supersede":
+            try:
+                new_fields = {}
+                if args.direction:
+                    new_fields["direction"] = args.direction
+                if args.strength is not None:
+                    new_fields["strength"] = args.strength
+                if args.location:
+                    new_fields["location"] = args.location
+                if args.quote:
+                    new_fields["quote"] = args.quote
+                if args.reasoning:
+                    new_fields["reasoning"] = args.reasoning
+                new_fields["created_by"] = args.created_by
+
+                result = supersede_evidence_link(args.link_id, db=db, **new_fields)
+                print(f"Created new evidence link: {result['id']} (supersedes {args.link_id})", flush=True)
+            except ValueError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                sys.exit(1)
+
+        else:
+            evidence_parser.print_help()
+
+    # Reasoning trails commands
+    elif args.command == "reasoning":
+        db = get_db()
+
+        if args.reasoning_command == "add":
+            trail_data = {
+                "id": args.id,
+                "claim_id": args.claim_id,
+                "credence_at_time": args.credence,
+                "evidence_level_at_time": args.evidence_level,
+                "reasoning_text": args.reasoning_text,
+                "evidence_summary": getattr(args, "evidence_summary", None),
+                "analysis_pass": getattr(args, "analysis_pass", None),
+                "analysis_log_id": getattr(args, "analysis_log_id", None),
+                "status": args.status,
+                "created_by": args.created_by,
+            }
+
+            # Handle comma-separated lists
+            if getattr(args, "supporting_evidence", None):
+                trail_data["supporting_evidence"] = [s.strip() for s in args.supporting_evidence.split(",")]
+            if getattr(args, "contradicting_evidence", None):
+                trail_data["contradicting_evidence"] = [s.strip() for s in args.contradicting_evidence.split(",")]
+            if getattr(args, "assumptions", None):
+                trail_data["assumptions_made"] = [a.strip() for a in args.assumptions.split(",")]
+            if getattr(args, "counterarguments_json", None):
+                trail_data["counterarguments_json"] = args.counterarguments_json
+
+            try:
+                result = add_reasoning_trail(trail_data, db=db)
+                print(f"Created reasoning trail: {result['id']}", flush=True)
+            except ValueError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.reasoning_command == "get":
+            if not args.id and not args.claim_id:
+                print("Error: either --id or --claim-id is required", file=sys.stderr)
+                sys.exit(1)
+            result = get_reasoning_trail(id=args.id, claim_id=getattr(args, "claim_id", None), db=db)
+            if result:
+                _output_result(result, args.format, "reasoning_trail")
+            else:
+                target = args.id or args.claim_id
+                print(f"Reasoning trail not found for: {target}", file=sys.stderr)
+                sys.exit(1)
+
+        elif args.reasoning_command == "list":
+            results = list_reasoning_trails(
+                claim_id=getattr(args, "claim_id", None),
+                include_superseded=args.include_superseded,
+                limit=args.limit,
+                db=db,
+            )
+            _output_result(results, args.format, "reasoning_trail")
+
+        elif args.reasoning_command == "history":
+            results = get_reasoning_history(args.claim_id, db=db)
+            if not results:
+                print(f"No reasoning history found for: {args.claim_id}", file=sys.stderr)
+                sys.exit(1)
+            if args.format == "json":
+                import json
+                def clean_for_json(obj):
+                    if hasattr(obj, 'tolist'):
+                        return obj.tolist()
+                    elif isinstance(obj, dict):
+                        return {k: clean_for_json(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [clean_for_json(v) for v in obj]
+                    elif hasattr(obj, 'as_py'):
+                        return obj.as_py()
+                    return obj
+                print(json.dumps([clean_for_json(r) for r in results], indent=2, default=str), flush=True)
+            else:
+                print(f"Credence history for {args.claim_id}:", flush=True)
+                for trail in results:
+                    status = trail.get("status", "unknown")
+                    credence = trail.get("credence_at_time", "?")
+                    ev_level = trail.get("evidence_level_at_time", "?")
+                    created = trail.get("created_at", "?")
+                    print(f"  [{trail['id']}] {created}: credence={credence}, evidence={ev_level} ({status})")
+                sys.stdout.flush()
+
+        else:
+            reasoning_parser.print_help()
 
     # Related command
     elif args.command == "related":

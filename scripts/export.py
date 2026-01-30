@@ -34,6 +34,9 @@ if __package__:
         list_contradictions,
         list_definitions,
         list_analysis_logs,
+        list_evidence_links,
+        list_reasoning_trails,
+        get_reasoning_history,
         get_claim,
         get_source,
         get_chain,
@@ -51,6 +54,9 @@ else:
         list_contradictions,
         list_definitions,
         list_analysis_logs,
+        list_evidence_links,
+        list_reasoning_trails,
+        get_reasoning_history,
         get_claim,
         get_source,
         get_chain,
@@ -608,6 +614,323 @@ def export_analysis_logs_md(db_path: Optional[Path] = None) -> str:
 
 
 # =============================================================================
+# Reasoning/Provenance Export
+# =============================================================================
+
+def export_reasoning_md(claim_id: str, db_path: Optional[Path] = None, output_dir: Optional[Path] = None) -> str:
+    """Export reasoning trail for a single claim as Markdown.
+
+    Args:
+        claim_id: ID of the claim to export reasoning for
+        db_path: Path to LanceDB database
+        output_dir: If provided, generate relative links to sources
+
+    Returns:
+        Markdown string with reasoning trail
+    """
+    db = get_db(db_path)
+    claim = get_claim(claim_id, db)
+
+    if not claim:
+        return f"# Reasoning: {claim_id}\n\nClaim not found."
+
+    # Get active reasoning trail for this claim
+    trails = list_reasoning_trails(claim_id=claim_id, db=db)
+    trail = trails[0] if trails else None
+
+    # Get evidence links for this claim
+    evidence_links = list_evidence_links(claim_id=claim_id, db=db)
+
+    # Build source links (relative if output_dir provided)
+    def source_link(source_id: str) -> str:
+        if output_dir:
+            return f"[{source_id}](../sources/{source_id}.md)"
+        return source_id
+
+    lines = [
+        f"# Reasoning: {claim_id}",
+        "",
+        f"> **Claim**: {claim['text']}",
+        f"> **Credence**: {claim.get('credence', 0):.2f} ({claim.get('evidence_level', 'N/A')})",
+        f"> **Domain**: {claim.get('domain', 'N/A')}",
+        "",
+        "## Evidence Summary",
+        "",
+    ]
+
+    if evidence_links:
+        lines.extend([
+            "| Direction | Source | Location | Strength | Summary |",
+            "|-----------|--------|----------|----------|---------|",
+        ])
+        for link in evidence_links:
+            direction = link.get("direction", "")
+            source_id = link.get("source_id", "")
+            location = link.get("location", "")
+            strength = link.get("strength")
+            strength_str = f"{strength:.1f}" if strength is not None else ""
+            reasoning = (link.get("reasoning") or "")[:50]
+            if len(link.get("reasoning", "")) > 50:
+                reasoning += "..."
+            lines.append(f"| {direction.title()} | {source_link(source_id)} | {location} | {strength_str} | {reasoning} |")
+        lines.append("")
+    else:
+        lines.append("*No evidence links found for this claim.*")
+        lines.append("")
+
+    # Reasoning Chain
+    lines.extend([
+        "## Reasoning Chain",
+        "",
+    ])
+
+    if trail:
+        if trail.get("reasoning_text"):
+            lines.append(trail["reasoning_text"])
+            lines.append("")
+
+        # Counterarguments
+        counterarguments_json = trail.get("counterarguments_json")
+        if counterarguments_json:
+            try:
+                counterarguments = json.loads(counterarguments_json) if isinstance(counterarguments_json, str) else counterarguments_json
+                if counterarguments:
+                    lines.extend([
+                        "## Counterarguments Considered",
+                        "",
+                    ])
+                    for ca in counterarguments:
+                        lines.append(f"### \"{ca.get('argument', 'Unknown')}\"")
+                        lines.append(f"**Response**: {ca.get('response', '')}")
+                        lines.append(f"**Disposition**: {ca.get('disposition', 'unresolved').title()}")
+                        lines.append("")
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        # Assumptions
+        assumptions = trail.get("assumptions_made") or []
+        if assumptions:
+            lines.extend([
+                "## Assumptions",
+                "",
+            ])
+            for assumption in assumptions:
+                lines.append(f"- {assumption}")
+            lines.append("")
+    else:
+        lines.append("*No reasoning trail found for this claim.*")
+        lines.append("")
+
+    # Trail History
+    history = get_reasoning_history(claim_id, db=db)
+    if history:
+        lines.extend([
+            "## Trail History",
+            "",
+            "| Date | Credence | Evidence | Status | Pass |",
+            "|------|----------|----------|--------|------|",
+        ])
+        for h in history:
+            created = (h.get("created_at") or "")[:10]
+            credence = h.get("credence_at_time")
+            credence_str = f"{credence:.2f}" if credence is not None else "?"
+            ev_level = h.get("evidence_level_at_time", "?")
+            status = h.get("status", "?")
+            analysis_pass = h.get("analysis_pass", "?")
+            lines.append(f"| {created} | {credence_str} | {ev_level} | {status} | {analysis_pass} |")
+        lines.append("")
+
+    # Portable YAML block
+    if trail:
+        lines.extend([
+            "## Data (portable)",
+            "",
+            "```yaml",
+            f"claim_id: \"{claim_id}\"",
+            f"reasoning_trail_id: \"{trail.get('id', 'N/A')}\"",
+            f"credence_at_time: {trail.get('credence_at_time', 'null')}",
+            f"evidence_level_at_time: \"{trail.get('evidence_level_at_time', 'N/A')}\"",
+            f"supporting_evidence: {json.dumps(trail.get('supporting_evidence') or [])}",
+            f"contradicting_evidence: {json.dumps(trail.get('contradicting_evidence') or [])}",
+            "```",
+            "",
+        ])
+
+    return "\n".join(lines)
+
+
+def export_reasoning_all_md(db_path: Optional[Path] = None, output_dir: Optional[Path] = None) -> dict[str, str]:
+    """Export reasoning trails for all claims with trails.
+
+    Args:
+        db_path: Path to LanceDB database
+        output_dir: Output directory for generated files
+
+    Returns:
+        Dict mapping claim_id to markdown content
+    """
+    db = get_db(db_path)
+    trails = list_reasoning_trails(include_superseded=False, limit=100000, db=db)
+
+    # Get unique claim IDs that have trails
+    claim_ids_with_trails = set(t.get("claim_id") for t in trails if t.get("claim_id"))
+
+    results = {}
+    for claim_id in sorted(claim_ids_with_trails):
+        results[claim_id] = export_reasoning_md(claim_id, db_path, output_dir)
+
+    return results
+
+
+def export_evidence_by_claim_md(claim_id: str, db_path: Optional[Path] = None) -> str:
+    """Export all evidence links for a specific claim."""
+    db = get_db(db_path)
+    claim = get_claim(claim_id, db)
+    evidence_links = list_evidence_links(claim_id=claim_id, include_superseded=True, db=db)
+
+    lines = [
+        f"# Evidence: {claim_id}",
+        "",
+    ]
+
+    if claim:
+        lines.append(f"> {claim['text']}")
+        lines.append("")
+
+    if not evidence_links:
+        lines.append("*No evidence links found for this claim.*")
+        return "\n".join(lines)
+
+    lines.extend([
+        "| ID | Direction | Source | Location | Strength | Status |",
+        "|----|-----------|--------|----------|----------|--------|",
+    ])
+
+    for link in evidence_links:
+        link_id = link.get("id", "")
+        direction = link.get("direction", "")
+        source_id = link.get("source_id", "")
+        location = link.get("location", "")
+        strength = link.get("strength")
+        strength_str = f"{strength:.2f}" if strength is not None else ""
+        status = link.get("status", "active")
+        lines.append(f"| {link_id} | {direction} | {source_id} | {location} | {strength_str} | {status} |")
+
+    return "\n".join(lines)
+
+
+def export_evidence_by_source_md(source_id: str, db_path: Optional[Path] = None) -> str:
+    """Export all evidence links from a specific source."""
+    db = get_db(db_path)
+    source = get_source(source_id, db)
+    evidence_links = list_evidence_links(source_id=source_id, include_superseded=True, db=db)
+
+    lines = [
+        f"# Evidence from: {source_id}",
+        "",
+    ]
+
+    if source:
+        lines.append(f"> {source.get('title', 'Unknown title')}")
+        lines.append("")
+
+    if not evidence_links:
+        lines.append("*No evidence links found from this source.*")
+        return "\n".join(lines)
+
+    lines.extend([
+        "| ID | Claim | Direction | Location | Strength | Status |",
+        "|----|-------|-----------|----------|----------|--------|",
+    ])
+
+    for link in evidence_links:
+        link_id = link.get("id", "")
+        claim_id = link.get("claim_id", "")
+        direction = link.get("direction", "")
+        location = link.get("location", "")
+        strength = link.get("strength")
+        strength_str = f"{strength:.2f}" if strength is not None else ""
+        status = link.get("status", "active")
+        lines.append(f"| {link_id} | {claim_id} | {direction} | {location} | {strength_str} | {status} |")
+
+    return "\n".join(lines)
+
+
+def _clean_for_export(obj: Any) -> Any:
+    """Clean an object for YAML/JSON export."""
+    if hasattr(obj, 'tolist'):  # numpy array
+        return obj.tolist()
+    elif hasattr(obj, 'to_pylist'):  # pyarrow array
+        return obj.to_pylist()
+    elif isinstance(obj, (list, tuple)):
+        return [_clean_for_export(v) for v in obj]
+    elif isinstance(obj, dict):
+        return {k: _clean_for_export(v) for k, v in obj.items()}
+    elif hasattr(obj, 'as_py'):  # pyarrow scalar
+        return obj.as_py()
+    return obj
+
+
+def export_provenance_yaml(db_path: Optional[Path] = None) -> str:
+    """Export evidence_links and reasoning_trails as YAML.
+
+    Output is deterministic (sorted by claim_id, then created_at, then id).
+    """
+    db = get_db(db_path)
+
+    evidence_links = list_evidence_links(include_superseded=True, limit=100000, db=db)
+    reasoning_trails = list_reasoning_trails(include_superseded=True, limit=100000, db=db)
+
+    # Sort deterministically
+    evidence_links_sorted = sorted(
+        evidence_links,
+        key=lambda x: (x.get("claim_id", ""), x.get("created_at", ""), x.get("id", ""))
+    )
+    reasoning_trails_sorted = sorted(
+        reasoning_trails,
+        key=lambda x: (x.get("claim_id", ""), x.get("created_at", ""), x.get("id", ""))
+    )
+
+    # Clean for export
+    output = {
+        "evidence_links": [_clean_for_export(e) for e in evidence_links_sorted],
+        "reasoning_trails": [_clean_for_export(r) for r in reasoning_trails_sorted],
+    }
+
+    header = f"# Reality Check Provenance Export\n# Generated: {date.today().isoformat()}\n\n"
+    return header + yaml.dump(output, default_flow_style=False, sort_keys=False, allow_unicode=True)
+
+
+def export_provenance_json(db_path: Optional[Path] = None) -> str:
+    """Export evidence_links and reasoning_trails as JSON.
+
+    Output is deterministic (sorted by claim_id, then created_at, then id).
+    """
+    db = get_db(db_path)
+
+    evidence_links = list_evidence_links(include_superseded=True, limit=100000, db=db)
+    reasoning_trails = list_reasoning_trails(include_superseded=True, limit=100000, db=db)
+
+    # Sort deterministically
+    evidence_links_sorted = sorted(
+        evidence_links,
+        key=lambda x: (x.get("claim_id", ""), x.get("created_at", ""), x.get("id", ""))
+    )
+    reasoning_trails_sorted = sorted(
+        reasoning_trails,
+        key=lambda x: (x.get("claim_id", ""), x.get("created_at", ""), x.get("id", ""))
+    )
+
+    # Clean for export
+    output = {
+        "evidence_links": [_clean_for_export(e) for e in evidence_links_sorted],
+        "reasoning_trails": [_clean_for_export(r) for r in reasoning_trails_sorted],
+    }
+
+    return json.dumps(output, indent=2, default=str)
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 
@@ -641,14 +964,33 @@ def main():
     md_parser = subparsers.add_parser("md", help="Export to Markdown format")
     md_parser.add_argument(
         "type",
-        choices=["claim", "chain", "predictions", "summary", "analysis-logs"],
+        choices=["claim", "chain", "predictions", "summary", "analysis-logs", "reasoning", "evidence-by-claim", "evidence-by-source"],
         help="What to export"
     )
     md_parser.add_argument(
         "--id",
-        help="ID for claim/chain export"
+        help="ID for claim/chain/reasoning/evidence export"
     )
     md_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Export all (for reasoning type)"
+    )
+    md_parser.add_argument(
+        "-o", "--output",
+        type=Path,
+        help="Output file or directory (default: stdout)"
+    )
+
+    # provenance command
+    provenance_parser = subparsers.add_parser("provenance", help="Export provenance data (evidence links + reasoning trails)")
+    provenance_parser.add_argument(
+        "--format",
+        choices=["yaml", "json"],
+        default="yaml",
+        help="Output format (default: yaml)"
+    )
+    provenance_parser.add_argument(
         "-o", "--output",
         type=Path,
         help="Output file (default: stdout)"
@@ -713,8 +1055,47 @@ def main():
             content = export_predictions_md(selected_db_path)
         elif args.type == "analysis-logs":
             content = export_analysis_logs_md(selected_db_path)
+        elif args.type == "reasoning":
+            if getattr(args, "all", False):
+                # Export all reasoning trails
+                results = export_reasoning_all_md(selected_db_path, args.output)
+                if args.output:
+                    args.output.mkdir(parents=True, exist_ok=True)
+                    for claim_id, md_content in results.items():
+                        out_file = args.output / f"{claim_id}.md"
+                        out_file.write_text(md_content)
+                    print(f"Exported {len(results)} reasoning files to {args.output}")
+                else:
+                    for claim_id, md_content in results.items():
+                        print(md_content)
+                        print("\n---\n")
+                content = None  # Already handled
+            else:
+                if not args.id:
+                    print("Error: --id required for reasoning export (or use --all)", file=sys.stderr)
+                    sys.exit(1)
+                content = export_reasoning_md(args.id, selected_db_path, args.output.parent if args.output else None)
+        elif args.type == "evidence-by-claim":
+            if not args.id:
+                print("Error: --id required for evidence-by-claim export", file=sys.stderr)
+                sys.exit(1)
+            content = export_evidence_by_claim_md(args.id, selected_db_path)
+        elif args.type == "evidence-by-source":
+            if not args.id:
+                print("Error: --id required for evidence-by-source export", file=sys.stderr)
+                sys.exit(1)
+            content = export_evidence_by_source_md(args.id, selected_db_path)
         else:  # summary
             content = export_summary_md(selected_db_path)
+
+        if content is not None:  # Some exports handle their own output
+            output_result(content, args.output)
+
+    elif args.command == "provenance":
+        if args.format == "json":
+            content = export_provenance_json(selected_db_path)
+        else:
+            content = export_provenance_yaml(selected_db_path)
         output_result(content, args.output)
 
     elif args.command == "stats":

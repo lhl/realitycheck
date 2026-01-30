@@ -62,6 +62,18 @@ from db import (
     add_analysis_log,
     get_analysis_log,
     list_analysis_logs,
+    # Evidence links
+    add_evidence_link,
+    get_evidence_link,
+    list_evidence_links,
+    update_evidence_link,
+    supersede_evidence_link,
+    # Reasoning trails
+    add_reasoning_trail,
+    get_reasoning_trail,
+    list_reasoning_trails,
+    get_reasoning_history,
+    supersede_reasoning_trail,
     VALID_DOMAINS,
     DOMAIN_MIGRATION,
 )
@@ -81,7 +93,7 @@ class TestDatabaseInitialization:
         db = get_db(temp_db_path)
         tables = init_tables(db)
 
-        expected_tables = {"claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs"}
+        expected_tables = {"claims", "sources", "chains", "predictions", "contradictions", "definitions", "analysis_logs", "evidence_links", "reasoning_trails"}
         assert set(tables.keys()) == expected_tables
 
     def test_drop_tables_removes_all_tables(self, initialized_db):
@@ -2619,3 +2631,1049 @@ class TestMigrate:
         assert "tokens_baseline" in field_names
         assert "tokens_check" in field_names
         assert "usage_session_id" in field_names
+
+
+# =============================================================================
+# Evidence Links Tests
+# =============================================================================
+
+class TestEvidenceLinksCRUD:
+    """Tests for evidence_links table operations."""
+
+    def test_add_evidence_link_creates_record(self, initialized_db, sample_source, sample_claim, sample_evidence_link):
+        """add_evidence_link creates a new evidence link."""
+        from db import add_evidence_link, get_evidence_link, add_source, add_claim
+
+        # Add prerequisite source and claim
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        result = add_evidence_link(sample_evidence_link, initialized_db)
+
+        assert result["id"] == "EVLINK-2026-001"
+        assert result["claim_id"] == "TECH-2026-001"
+        assert result["source_id"] == "test-source-001"
+        assert result["direction"] == "supports"
+
+        # Verify it's retrievable
+        retrieved = get_evidence_link("EVLINK-2026-001", db=initialized_db)
+        assert retrieved is not None
+        assert retrieved["id"] == "EVLINK-2026-001"
+
+    def test_add_evidence_link_validates_claim_exists(self, initialized_db, sample_source, sample_evidence_link):
+        """add_evidence_link raises error if claim doesn't exist."""
+        from db import add_evidence_link, add_source
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        with pytest.raises(ValueError, match="Claim .* not found"):
+            add_evidence_link(sample_evidence_link, initialized_db)
+
+    def test_add_evidence_link_validates_source_exists(self, initialized_db, sample_claim, sample_evidence_link):
+        """add_evidence_link raises error if source doesn't exist."""
+        from db import add_evidence_link, add_claim
+
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        with pytest.raises(ValueError, match="Source .* not found"):
+            add_evidence_link(sample_evidence_link, initialized_db)
+
+    def test_add_evidence_link_auto_generates_id(self, initialized_db, sample_source, sample_claim):
+        """add_evidence_link auto-generates ID when not provided."""
+        from db import add_evidence_link, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        link_data = {
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "created_by": "test",
+        }
+        result = add_evidence_link(link_data, initialized_db)
+
+        assert result["id"].startswith("EVLINK-")
+        assert len(result["id"]) > 10  # Has year and number
+
+    def test_add_evidence_link_all_directions(self, initialized_db, sample_source, sample_claim):
+        """add_evidence_link accepts all valid directions."""
+        from db import add_evidence_link, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        directions = ["supports", "contradicts", "strengthens", "weakens"]
+        for i, direction in enumerate(directions):
+            link_data = {
+                "id": f"EVLINK-2026-{i+1:03d}",
+                "claim_id": "TECH-2026-001",
+                "source_id": "test-source-001",
+                "direction": direction,
+                "created_by": "test",
+            }
+            result = add_evidence_link(link_data, initialized_db)
+            assert result["direction"] == direction
+
+    def test_get_evidence_link_by_id(self, initialized_db, sample_source, sample_claim, sample_evidence_link):
+        """get_evidence_link returns evidence link by ID."""
+        from db import add_evidence_link, get_evidence_link, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+
+        result = get_evidence_link("EVLINK-2026-001", db=initialized_db)
+
+        assert result is not None
+        assert result["id"] == "EVLINK-2026-001"
+        assert result["location"] == "Table 3, p.15"
+
+    def test_get_evidence_link_not_found(self, initialized_db):
+        """get_evidence_link returns None for non-existent ID."""
+        from db import get_evidence_link
+
+        result = get_evidence_link("EVLINK-9999-999", db=initialized_db)
+        assert result is None
+
+    def test_list_evidence_links_by_claim(self, initialized_db, sample_source, sample_claim):
+        """list_evidence_links filters by claim_id."""
+        from db import add_evidence_link, list_evidence_links, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add two links for same claim
+        for i in range(2):
+            add_evidence_link({
+                "id": f"EVLINK-2026-{i+1:03d}",
+                "claim_id": "TECH-2026-001",
+                "source_id": "test-source-001",
+                "direction": "supports",
+                "created_by": "test",
+            }, db=initialized_db)
+
+        results = list_evidence_links(claim_id="TECH-2026-001", db=initialized_db)
+        assert len(results) == 2
+
+    def test_list_evidence_links_by_source(self, initialized_db, sample_source, sample_claim):
+        """list_evidence_links filters by source_id."""
+        from db import add_evidence_link, list_evidence_links, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        add_evidence_link({
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        results = list_evidence_links(source_id="test-source-001", db=initialized_db)
+        assert len(results) == 1
+
+    def test_list_evidence_links_by_direction(self, initialized_db, sample_source, sample_claim):
+        """list_evidence_links filters by direction."""
+        from db import add_evidence_link, list_evidence_links, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add links with different directions
+        add_evidence_link({
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "created_by": "test",
+        }, db=initialized_db)
+        add_evidence_link({
+            "id": "EVLINK-2026-002",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "contradicts",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        supports = list_evidence_links(direction="supports", db=initialized_db)
+        assert len(supports) == 1
+        assert supports[0]["direction"] == "supports"
+
+    def test_list_evidence_links_active_only_default(self, initialized_db, sample_source, sample_claim):
+        """list_evidence_links returns only active links by default."""
+        from db import add_evidence_link, list_evidence_links, update_evidence_link, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        add_evidence_link({
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "active",
+            "created_by": "test",
+        }, db=initialized_db)
+        add_evidence_link({
+            "id": "EVLINK-2026-002",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "superseded",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        results = list_evidence_links(claim_id="TECH-2026-001", db=initialized_db)
+        assert len(results) == 1
+        assert results[0]["id"] == "EVLINK-2026-001"
+
+    def test_list_evidence_links_include_superseded(self, initialized_db, sample_source, sample_claim):
+        """list_evidence_links can include superseded links."""
+        from db import add_evidence_link, list_evidence_links, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        add_evidence_link({
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "active",
+            "created_by": "test",
+        }, db=initialized_db)
+        add_evidence_link({
+            "id": "EVLINK-2026-002",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "superseded",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        results = list_evidence_links(claim_id="TECH-2026-001", include_superseded=True, db=initialized_db)
+        assert len(results) == 2
+
+    def test_update_evidence_link_status_superseded(self, initialized_db, sample_source, sample_claim, sample_evidence_link):
+        """update_evidence_link can change status to superseded."""
+        from db import add_evidence_link, update_evidence_link, get_evidence_link, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+
+        update_evidence_link("EVLINK-2026-001", status="superseded", db=initialized_db)
+
+        result = get_evidence_link("EVLINK-2026-001", db=initialized_db)
+        assert result["status"] == "superseded"
+
+    def test_supersede_evidence_link_creates_new_with_reference(self, initialized_db, sample_source, sample_claim, sample_evidence_link):
+        """supersede_evidence_link creates new link with supersedes_id."""
+        from db import add_evidence_link, supersede_evidence_link, get_evidence_link, add_source, add_claim
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+
+        new_link = supersede_evidence_link(
+            "EVLINK-2026-001",
+            direction="weakens",
+            reasoning="Re-evaluated: methodology concerns reduce support",
+            db=initialized_db
+        )
+
+        # New link should reference old
+        assert new_link["supersedes_id"] == "EVLINK-2026-001"
+        assert new_link["direction"] == "weakens"
+
+        # Old link should be superseded
+        old_link = get_evidence_link("EVLINK-2026-001", db=initialized_db)
+        assert old_link["status"] == "superseded"
+
+
+class TestReasoningTrailsCRUD:
+    """Tests for reasoning_trails table operations."""
+
+    def test_add_reasoning_trail_creates_record(self, initialized_db, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """add_reasoning_trail creates a new reasoning trail."""
+        from db import add_reasoning_trail, get_reasoning_trail, add_claim, add_source, add_evidence_link
+
+        # Add prerequisites (source, claim, evidence link)
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+
+        result = add_reasoning_trail(sample_reasoning_trail, initialized_db)
+
+        assert result["id"] == "REASON-2026-001"
+        assert result["claim_id"] == "TECH-2026-001"
+        assert result["credence_at_time"] == 0.75
+
+        # Verify it's retrievable
+        retrieved = get_reasoning_trail(id="REASON-2026-001", db=initialized_db)
+        assert retrieved is not None
+        assert retrieved["id"] == "REASON-2026-001"
+
+    def test_add_reasoning_trail_validates_claim_exists(self, initialized_db, sample_reasoning_trail):
+        """add_reasoning_trail raises error if claim doesn't exist."""
+        from db import add_reasoning_trail
+
+        with pytest.raises(ValueError, match="Claim .* not found"):
+            add_reasoning_trail(sample_reasoning_trail, initialized_db)
+
+    def test_add_reasoning_trail_auto_generates_id(self, initialized_db, sample_claim):
+        """add_reasoning_trail auto-generates ID when not provided."""
+        from db import add_reasoning_trail, add_claim
+
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        trail_data = {
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Test reasoning",
+            "created_by": "test",
+        }
+        result = add_reasoning_trail(trail_data, initialized_db)
+
+        assert result["id"].startswith("REASON-")
+        assert len(result["id"]) > 10
+
+    def test_add_reasoning_trail_validates_evidence_links_exist(self, initialized_db, sample_claim, sample_source):
+        """add_reasoning_trail validates referenced evidence links exist."""
+        from db import add_reasoning_trail, add_claim, add_source, add_evidence_link
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add a valid evidence link
+        add_evidence_link({
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        # Trail referencing non-existent link should fail
+        trail_data = {
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Test reasoning",
+            "supporting_evidence": ["EVLINK-2026-001", "EVLINK-9999-999"],
+            "created_by": "test",
+        }
+        with pytest.raises(ValueError, match="Evidence link .* not found"):
+            add_reasoning_trail(trail_data, initialized_db)
+
+    def test_get_reasoning_trail_by_id(self, initialized_db, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """get_reasoning_trail returns trail by ID."""
+        from db import add_reasoning_trail, get_reasoning_trail, add_claim, add_source, add_evidence_link
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, initialized_db)
+
+        result = get_reasoning_trail(id="REASON-2026-001", db=initialized_db)
+
+        assert result is not None
+        assert result["id"] == "REASON-2026-001"
+        assert "E2 based on" in result["evidence_summary"]
+
+    def test_get_reasoning_trail_by_claim(self, initialized_db, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """get_reasoning_trail returns current active trail for claim."""
+        from db import add_reasoning_trail, get_reasoning_trail, add_claim, add_source, add_evidence_link
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, initialized_db)
+
+        result = get_reasoning_trail(claim_id="TECH-2026-001", db=initialized_db)
+
+        assert result is not None
+        assert result["claim_id"] == "TECH-2026-001"
+        assert result["status"] == "active"
+
+    def test_get_reasoning_trail_not_found(self, initialized_db):
+        """get_reasoning_trail returns None for non-existent ID."""
+        from db import get_reasoning_trail
+
+        result = get_reasoning_trail(id="REASON-9999-999", db=initialized_db)
+        assert result is None
+
+    def test_list_reasoning_trails_by_claim(self, initialized_db, sample_claim):
+        """list_reasoning_trails filters by claim_id."""
+        from db import add_reasoning_trail, list_reasoning_trails, add_claim
+
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        add_reasoning_trail({
+            "id": "REASON-2026-001",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "First trail",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        results = list_reasoning_trails(claim_id="TECH-2026-001", db=initialized_db)
+        assert len(results) == 1
+
+    def test_list_reasoning_trails_active_only_default(self, initialized_db, sample_claim):
+        """list_reasoning_trails returns only active trails by default."""
+        from db import add_reasoning_trail, list_reasoning_trails, add_claim
+
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        add_reasoning_trail({
+            "id": "REASON-2026-001",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Active trail",
+            "status": "active",
+            "created_by": "test",
+        }, db=initialized_db)
+        add_reasoning_trail({
+            "id": "REASON-2026-002",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.70,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Old trail",
+            "status": "superseded",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        results = list_reasoning_trails(claim_id="TECH-2026-001", db=initialized_db)
+        assert len(results) == 1
+        assert results[0]["id"] == "REASON-2026-001"
+
+    def test_reasoning_history_shows_credence_evolution(self, initialized_db, sample_claim):
+        """get_reasoning_history returns all trails ordered by created_at."""
+        from db import add_reasoning_trail, get_reasoning_history, add_claim
+
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add trails with different timestamps
+        add_reasoning_trail({
+            "id": "REASON-2026-001",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.60,
+            "evidence_level_at_time": "E3",
+            "reasoning_text": "Initial assessment",
+            "status": "superseded",
+            "created_at": "2026-01-29T10:00:00Z",
+            "created_by": "test",
+        }, db=initialized_db)
+        add_reasoning_trail({
+            "id": "REASON-2026-002",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Updated after new evidence",
+            "status": "active",
+            "created_at": "2026-01-30T10:00:00Z",
+            "created_by": "test",
+        }, db=initialized_db)
+
+        history = get_reasoning_history("TECH-2026-001", db=initialized_db)
+
+        assert len(history) == 2
+        # Should be ordered by created_at (oldest first)
+        assert history[0]["credence_at_time"] == pytest.approx(0.60, rel=1e-5)
+        assert history[1]["credence_at_time"] == pytest.approx(0.75, rel=1e-5)
+
+    def test_supersede_reasoning_trail_creates_new_with_reference(self, initialized_db, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """supersede_reasoning_trail creates new trail with supersedes_id."""
+        from db import add_reasoning_trail, supersede_reasoning_trail, get_reasoning_trail, add_claim, add_source, add_evidence_link
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, initialized_db)
+
+        new_trail = supersede_reasoning_trail(
+            "REASON-2026-001",
+            credence_at_time=0.80,
+            reasoning_text="Upgraded after replication study confirmed",
+            db=initialized_db
+        )
+
+        # New trail should reference old
+        assert new_trail["supersedes_id"] == "REASON-2026-001"
+        assert new_trail["credence_at_time"] == 0.80
+
+        # Old trail should be superseded
+        old_trail = get_reasoning_trail(id="REASON-2026-001", db=initialized_db)
+        assert old_trail["status"] == "superseded"
+
+
+# =============================================================================
+# Evidence Links CLI Tests
+# =============================================================================
+
+class TestEvidenceCLI:
+    """Tests for evidence CLI subcommands."""
+
+    def test_evidence_add_minimal(self, temp_db_path: Path):
+        """evidence add creates evidence link with minimal args."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Initialize and add prerequisites
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test Source", "--type", "REPORT",
+             "--author", "Test Author", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test claim", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        # Add evidence link
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--claim-id", "TECH-2026-001", "--source-id", "test-source-001",
+             "--direction", "supports"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "EVLINK-" in result.stdout
+
+    def test_evidence_add_full_options(self, temp_db_path: Path):
+        """evidence add accepts all optional flags."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Initialize and add prerequisites
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test Source", "--type", "REPORT",
+             "--author", "Test Author", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test claim", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--id", "EVLINK-2026-001",
+             "--claim-id", "TECH-2026-001",
+             "--source-id", "test-source-001",
+             "--direction", "supports",
+             "--strength", "0.8",
+             "--location", "Table 3, p.15",
+             "--quote", "The study found...",
+             "--reasoning", "Direct measurement supports the claim"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "EVLINK-2026-001" in result.stdout
+
+    def test_evidence_add_missing_claim_errors(self, temp_db_path: Path):
+        """evidence add errors when claim doesn't exist."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test Source", "--type", "REPORT",
+             "--author", "Test Author", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--claim-id", "TECH-9999-999", "--source-id", "test-source-001",
+             "--direction", "supports"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode != 0
+        assert "not found" in result.stderr.lower() or "not found" in result.stdout.lower()
+
+    def test_evidence_add_missing_source_errors(self, temp_db_path: Path):
+        """evidence add errors when source doesn't exist."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test claim", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--claim-id", "TECH-2026-001", "--source-id", "nonexistent-source",
+             "--direction", "supports"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert result.returncode != 0
+
+    def test_evidence_get_json_format(self, temp_db_path: Path):
+        """evidence get returns JSON by default."""
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--id", "EVLINK-2026-001", "--claim-id", "TECH-2026-001",
+             "--source-id", "test-source-001", "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "get", "EVLINK-2026-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        data = json.loads(result.stdout)
+        assert data["id"] == "EVLINK-2026-001"
+
+    def test_evidence_get_text_format(self, temp_db_path: Path):
+        """evidence get --format text returns human-readable output."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--id", "EVLINK-2026-001", "--claim-id", "TECH-2026-001",
+             "--source-id", "test-source-001", "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "get", "EVLINK-2026-001",
+             "--format", "text"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "EVLINK-2026-001" in result.stdout
+        assert "supports" in result.stdout
+
+    def test_evidence_list_by_claim(self, temp_db_path: Path):
+        """evidence list --claim-id filters by claim."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--claim-id", "TECH-2026-001", "--source-id", "test-source-001",
+             "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "list",
+             "--claim-id", "TECH-2026-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "EVLINK-" in result.stdout
+
+    def test_evidence_list_by_source(self, temp_db_path: Path):
+        """evidence list --source-id filters by source."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--claim-id", "TECH-2026-001", "--source-id", "test-source-001",
+             "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "list",
+             "--source-id", "test-source-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "EVLINK-" in result.stdout
+
+    def test_evidence_list_format_options(self, temp_db_path: Path):
+        """evidence list supports --format text."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--claim-id", "TECH-2026-001", "--source-id", "test-source-001",
+             "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "list", "--format", "text"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+
+    def test_evidence_supersede(self, temp_db_path: Path):
+        """evidence supersede creates new link and marks old as superseded."""
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--id", "EVLINK-2026-001", "--claim-id", "TECH-2026-001",
+             "--source-id", "test-source-001", "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        # Supersede
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "supersede", "EVLINK-2026-001",
+             "--direction", "weakens", "--reasoning", "Re-evaluated"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+
+        # Verify old is superseded
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "evidence", "get", "EVLINK-2026-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        old_data = json.loads(get_result.stdout)
+        assert old_data["status"] == "superseded"
+
+
+# =============================================================================
+# Reasoning Trails CLI Tests
+# =============================================================================
+
+class TestReasoningCLI:
+    """Tests for reasoning CLI subcommands."""
+
+    def test_reasoning_add_minimal(self, temp_db_path: Path):
+        """reasoning add creates trail with minimal args."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--claim-id", "TECH-2026-001",
+             "--credence", "0.75",
+             "--evidence-level", "E2",
+             "--reasoning-text", "Assigned 0.75 because of supporting evidence"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "REASON-" in result.stdout
+
+    def test_reasoning_add_full_options(self, temp_db_path: Path):
+        """reasoning add accepts all optional flags."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--id", "REASON-2026-001",
+             "--claim-id", "TECH-2026-001",
+             "--credence", "0.75",
+             "--evidence-level", "E2",
+             "--evidence-summary", "E2 based on 2 supporting sources",
+             "--assumptions", "Current paradigm continues,Funding remains stable",
+             "--reasoning-text", "Assigned 0.75 because of supporting evidence"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "REASON-2026-001" in result.stdout
+
+    def test_reasoning_add_with_evidence_refs(self, temp_db_path: Path):
+        """reasoning add with --supporting-evidence references."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup with evidence link
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "source", "add",
+             "--id", "test-source-001", "--title", "Test", "--type", "REPORT",
+             "--author", "Test", "--year", "2026"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "evidence", "add",
+             "--id", "EVLINK-2026-001", "--claim-id", "TECH-2026-001",
+             "--source-id", "test-source-001", "--direction", "supports"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--claim-id", "TECH-2026-001",
+             "--credence", "0.75",
+             "--evidence-level", "E2",
+             "--supporting-evidence", "EVLINK-2026-001",
+             "--reasoning-text", "Based on supporting evidence"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+
+    def test_reasoning_add_with_counterarguments_json(self, temp_db_path: Path):
+        """reasoning add with --counterarguments-json."""
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        counterargs = json.dumps([{
+            "argument": "Study X disagrees",
+            "response": "Different methodology",
+            "disposition": "discounted"
+        }])
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--claim-id", "TECH-2026-001",
+             "--credence", "0.75",
+             "--evidence-level", "E2",
+             "--counterarguments-json", counterargs,
+             "--reasoning-text", "Assigned 0.75 despite counterarguments"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+
+    def test_reasoning_get_json_format(self, temp_db_path: Path):
+        """reasoning get returns JSON by default."""
+        import json
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--id", "REASON-2026-001", "--claim-id", "TECH-2026-001",
+             "--credence", "0.75", "--evidence-level", "E2",
+             "--reasoning-text", "Test reasoning"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "get", "--id", "REASON-2026-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        data = json.loads(result.stdout)
+        assert data["id"] == "REASON-2026-001"
+
+    def test_reasoning_get_text_format(self, temp_db_path: Path):
+        """reasoning get --format text returns human-readable output."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--id", "REASON-2026-001", "--claim-id", "TECH-2026-001",
+             "--credence", "0.75", "--evidence-level", "E2",
+             "--reasoning-text", "Test reasoning"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "get", "--id", "REASON-2026-001",
+             "--format", "text"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "REASON-2026-001" in result.stdout
+
+    def test_reasoning_list_by_claim(self, temp_db_path: Path):
+        """reasoning list --claim-id filters by claim."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--claim-id", "TECH-2026-001", "--credence", "0.75",
+             "--evidence-level", "E2", "--reasoning-text", "Test"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "list",
+             "--claim-id", "TECH-2026-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        assert "REASON-" in result.stdout
+
+    def test_reasoning_history(self, temp_db_path: Path):
+        """reasoning history shows credence evolution."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        # Setup
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TECH-2026-001", "--text", "Test", "--type", "[F]",
+             "--domain", "TECH", "--evidence-level", "E2", "--credence", "0.75"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        # Add first trail
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--id", "REASON-2026-001", "--claim-id", "TECH-2026-001",
+             "--credence", "0.60", "--evidence-level", "E3",
+             "--reasoning-text", "Initial assessment", "--status", "superseded"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        # Add second trail
+        subprocess.run(["uv", "run", "python", "scripts/db.py", "reasoning", "add",
+             "--id", "REASON-2026-002", "--claim-id", "TECH-2026-001",
+             "--credence", "0.75", "--evidence-level", "E2",
+             "--reasoning-text", "Updated after new evidence"],
+            env=env, capture_output=True, cwd=Path(__file__).parent.parent)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "reasoning", "history",
+             "--claim-id", "TECH-2026-001"],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result)
+        # Should show both trails
+        assert "REASON-2026-001" in result.stdout or "0.60" in result.stdout
+        assert "REASON-2026-002" in result.stdout or "0.75" in result.stdout

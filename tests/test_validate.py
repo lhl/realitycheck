@@ -32,6 +32,8 @@ from db import (
     add_chain,
     add_prediction,
     add_analysis_log,
+    add_evidence_link,
+    add_reasoning_trail,
 )
 
 
@@ -448,3 +450,341 @@ class TestAnalysisLogsValidation:
         findings = validate_db(temp_db_path)
         cost_errors = [f for f in findings if f.code == "ANALYSIS_COST_NEGATIVE"]
         assert len(cost_errors) >= 1
+
+
+# =============================================================================
+# Evidence Links Validation Tests
+# =============================================================================
+
+
+class TestEvidenceLinksValidation:
+    """Tests for evidence links referential integrity validation."""
+
+    def test_evidence_link_missing_claim_errors(self, initialized_db, temp_db_path, sample_source):
+        """Evidence link referencing non-existent claim produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+
+        # Add evidence link with non-existent claim (bypass validation by direct insert)
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "NONEXISTENT-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("evidence_links")
+        tbl.add([link])
+
+        findings = validate_db(temp_db_path)
+        errors = [f for f in findings if f.code == "EVLINK_CLAIM_MISSING"]
+        assert len(errors) >= 1
+
+    def test_evidence_link_missing_source_errors(self, initialized_db, temp_db_path, sample_claim):
+        """Evidence link referencing non-existent source produces error."""
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link with non-existent source (bypass validation)
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "nonexistent-source",
+            "direction": "supports",
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("evidence_links")
+        tbl.add([link])
+
+        findings = validate_db(temp_db_path)
+        errors = [f for f in findings if f.code == "EVLINK_SOURCE_MISSING"]
+        assert len(errors) >= 1
+
+    def test_evidence_link_invalid_direction_errors(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Evidence link with invalid direction produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link with invalid direction (bypass validation)
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "invalid_direction",
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("evidence_links")
+        tbl.add([link])
+
+        findings = validate_db(temp_db_path)
+        errors = [f for f in findings if f.code == "EVLINK_DIRECTION_INVALID"]
+        assert len(errors) >= 1
+
+    def test_evidence_link_invalid_status_errors(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Evidence link with invalid status produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link with invalid status (bypass validation)
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "invalid_status",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("evidence_links")
+        tbl.add([link])
+
+        findings = validate_db(temp_db_path)
+        errors = [f for f in findings if f.code == "EVLINK_STATUS_INVALID"]
+        assert len(errors) >= 1
+
+    def test_evidence_link_supersedes_nonexistent_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Evidence link with non-existent supersedes_id produces warning."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link with non-existent supersedes_id (bypass validation)
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "status": "active",
+            "supersedes_id": "EVLINK-9999-999",  # Non-existent
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("evidence_links")
+        tbl.add([link])
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "EVLINK_SUPERSEDES_MISSING"]
+        assert len(warns) >= 1
+
+
+# =============================================================================
+# Reasoning Trails Validation Tests
+# =============================================================================
+
+
+class TestReasoningTrailsValidation:
+    """Tests for reasoning trails referential integrity validation."""
+
+    def test_reasoning_trail_missing_claim_errors(self, initialized_db, temp_db_path):
+        """Reasoning trail referencing non-existent claim produces error."""
+        # Add reasoning trail with non-existent claim (bypass validation)
+        trail = {
+            "id": "REASON-2026-001",
+            "claim_id": "NONEXISTENT-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Test reasoning",
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("reasoning_trails")
+        tbl.add([trail])
+
+        findings = validate_db(temp_db_path)
+        errors = [f for f in findings if f.code == "REASONING_CLAIM_MISSING"]
+        assert len(errors) >= 1
+
+    def test_reasoning_trail_missing_evidence_link_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Reasoning trail referencing non-existent evidence link produces warning."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add reasoning trail with non-existent evidence link (bypass validation)
+        trail = {
+            "id": "REASON-2026-001",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Test reasoning",
+            "supporting_evidence": ["EVLINK-9999-999"],  # Non-existent
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("reasoning_trails")
+        tbl.add([trail])
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "REASONING_EVLINK_MISSING"]
+        assert len(warns) >= 1
+
+    def test_reasoning_trail_credence_mismatch_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Reasoning trail credence differing from current claim credence warns."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add trail with different credence
+        trail = {
+            "id": "REASON-2026-001",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.60,  # Different from claim's 0.80
+            "evidence_level_at_time": "E2",
+            "reasoning_text": "Test reasoning",
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("reasoning_trails")
+        tbl.add([trail])
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "REASONING_CREDENCE_STALE"]
+        assert len(warns) >= 1
+
+    def test_reasoning_trail_evidence_level_mismatch_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Reasoning trail evidence level differing from current claim warns."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["evidence_level"] = "E1"
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add trail with different evidence level
+        trail = {
+            "id": "REASON-2026-001",
+            "claim_id": "TECH-2026-001",
+            "credence_at_time": 0.75,
+            "evidence_level_at_time": "E3",  # Different from claim's E1
+            "reasoning_text": "Test reasoning",
+            "status": "active",
+            "created_by": "test",
+            "created_at": "2026-01-30T10:00:00Z",
+        }
+        tbl = initialized_db.open_table("reasoning_trails")
+        tbl.add([trail])
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "REASONING_EVIDENCE_STALE"]
+        assert len(warns) >= 1
+
+
+# =============================================================================
+# High Credence Backing Validation Tests
+# =============================================================================
+
+
+class TestHighCredenceBackingValidation:
+    """Tests for high credence backing requirements."""
+
+    def test_high_credence_no_backing_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Claim with credence ≥0.7 and no evidence links produces warning."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        assert len(warns) >= 1
+        assert warns[0].level == "WARN"
+
+    def test_high_credence_with_backing_passes(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link):
+        """Claim with credence ≥0.7 and evidence link passes."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        assert len(warns) == 0
+
+    def test_e1_e2_no_backing_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Claim with E1/E2 evidence level and no evidence links produces warning."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["evidence_level"] = "E1"
+        sample_claim["credence"] = 0.50  # Below 0.7 but E1
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        assert len(warns) >= 1
+
+    def test_e1_e2_with_backing_passes(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link):
+        """Claim with E1/E2 evidence level and evidence link passes."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["evidence_level"] = "E1"
+        sample_claim["credence"] = 0.50
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        assert len(warns) == 0
+
+    def test_high_credence_backing_requires_location_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """High credence claim with evidence link missing location warns (soft)."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link without location
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "created_by": "test",
+            # No location field
+        }
+        add_evidence_link(link, db=initialized_db)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_MISSING_LOCATION"]
+        assert len(warns) >= 1
+
+    def test_high_credence_backing_requires_reasoning_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """High credence claim with evidence link missing reasoning warns (soft)."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link with location but without reasoning
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "location": "Table 3",
+            "created_by": "test",
+            # No reasoning field
+        }
+        add_evidence_link(link, db=initialized_db)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_MISSING_REASONING"]
+        assert len(warns) >= 1
+
+    def test_strict_mode_errors_instead_of_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """In strict mode, high credence without backing produces error."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        findings = validate_db(temp_db_path, strict=True)
+        errors = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        assert len(errors) >= 1
+        assert errors[0].level == "ERROR"
+
+    def test_low_credence_no_backing_passes(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Claim with credence <0.7 and E3-E6 passes without evidence links."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.50
+        sample_claim["evidence_level"] = "E4"
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        assert len(warns) == 0

@@ -2,6 +2,7 @@
 Pytest fixtures for Reality Check tests.
 """
 
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -324,4 +325,53 @@ def sample_analysis_log() -> dict:
         "notes": "Initial analysis",
         "git_commit": "abc123",
         "created_at": "2026-01-23T10:09:00Z",
+    }
+
+
+@pytest.fixture
+def sample_evidence_link() -> dict:
+    """Provide a sample evidence link for testing."""
+    return {
+        "id": "EVLINK-2026-001",
+        "claim_id": "TECH-2026-001",
+        "source_id": "test-source-001",
+        "direction": "supports",
+        "status": "active",
+        "supersedes_id": None,
+        "strength": 0.8,
+        "location": "Table 3, p.15",
+        "quote": "The study found that AI training costs double annually",
+        "reasoning": "Direct measurement of training costs supports the claim",
+        "analysis_log_id": None,
+        "created_at": "2026-01-30T10:00:00Z",
+        "created_by": "claude-code",
+    }
+
+
+@pytest.fixture
+def sample_reasoning_trail() -> dict:
+    """Provide a sample reasoning trail for testing."""
+    return {
+        "id": "REASON-2026-001",
+        "claim_id": "TECH-2026-001",
+        "status": "active",
+        "supersedes_id": None,
+        "credence_at_time": 0.75,
+        "evidence_level_at_time": "E2",
+        "evidence_summary": "E2 based on 2 supporting sources, 1 weak counter",
+        "supporting_evidence": ["EVLINK-2026-001"],
+        "contradicting_evidence": [],
+        "assumptions_made": ["Current paradigm continues"],
+        "counterarguments_json": json.dumps([
+            {
+                "argument": "Study X found opposite result",
+                "response": "Study X used different methodology; not directly comparable",
+                "disposition": "discounted"
+            }
+        ]),
+        "reasoning_text": "Assigned 0.75 credence because:\n1. Two independent studies support the core mechanism\n2. One contradicting study exists but uses incompatible methodology\n3. No direct replication yet (prevents E1)",
+        "analysis_pass": 1,
+        "analysis_log_id": None,
+        "created_at": "2026-01-30T10:00:00Z",
+        "created_by": "claude-code",
     }

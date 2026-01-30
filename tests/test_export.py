@@ -25,6 +25,12 @@ from export import (
     export_summary_md,
     export_analysis_logs_yaml,
     export_analysis_logs_md,
+    export_reasoning_md,
+    export_reasoning_all_md,
+    export_evidence_by_claim_md,
+    export_evidence_by_source_md,
+    export_provenance_yaml,
+    export_provenance_json,
 )
 from db import (
     get_db,
@@ -34,6 +40,8 @@ from db import (
     add_chain,
     add_prediction,
     add_analysis_log,
+    add_evidence_link,
+    add_reasoning_trail,
 )
 
 
@@ -516,3 +524,208 @@ class TestExportCLI:
 
         assert result.returncode == 0, result.stderr
         assert "analysis_logs:" in result.stdout
+
+
+# =============================================================================
+# Reasoning/Provenance Export Tests
+# =============================================================================
+
+
+class TestExportReasoningMarkdown:
+    """Tests for reasoning trail Markdown export."""
+
+    def test_export_reasoning_single_claim(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """export_reasoning_md returns Markdown for a single claim."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        md = export_reasoning_md("TECH-2026-001", temp_db_path)
+
+        assert "# Reasoning: TECH-2026-001" in md
+        assert sample_claim["text"] in md
+
+    def test_export_reasoning_includes_evidence_table(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """Exported reasoning includes evidence table."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        md = export_reasoning_md("TECH-2026-001", temp_db_path)
+
+        assert "## Evidence Summary" in md
+        assert "| Direction | Source | Location | Strength | Summary |" in md
+        assert "supports" in md.lower()
+
+    def test_export_reasoning_includes_counterarguments(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """Exported reasoning includes counterarguments when present."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        md = export_reasoning_md("TECH-2026-001", temp_db_path)
+
+        assert "## Counterarguments Considered" in md
+        assert "Study X found opposite result" in md
+        assert "Discounted" in md
+
+    def test_export_reasoning_includes_trail_history(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """Exported reasoning includes trail history."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        md = export_reasoning_md("TECH-2026-001", temp_db_path)
+
+        assert "## Trail History" in md
+        assert "| Date | Credence | Evidence | Status | Pass |" in md
+
+    def test_export_reasoning_includes_yaml_block(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """Exported reasoning includes portable YAML block."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        md = export_reasoning_md("TECH-2026-001", temp_db_path)
+
+        assert "## Data (portable)" in md
+        assert "```yaml" in md
+        assert 'claim_id: "TECH-2026-001"' in md
+
+    def test_export_reasoning_skips_claims_without_trails(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """export_reasoning_all_md only exports claims with trails."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        # No reasoning trail added
+
+        results = export_reasoning_all_md(temp_db_path)
+
+        assert len(results) == 0
+
+    def test_export_reasoning_all_claims(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """export_reasoning_all_md exports all claims with trails."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        results = export_reasoning_all_md(temp_db_path)
+
+        assert "TECH-2026-001" in results
+        assert "# Reasoning: TECH-2026-001" in results["TECH-2026-001"]
+
+
+class TestExportEvidenceIndex:
+    """Tests for evidence index exports."""
+
+    def test_export_evidence_by_claim_single(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link):
+        """Export evidence links for a single claim."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+
+        md = export_evidence_by_claim_md("TECH-2026-001", temp_db_path)
+
+        assert "# Evidence: TECH-2026-001" in md
+        assert "EVLINK-2026-001" in md
+        assert "test-source-001" in md
+
+    def test_export_evidence_by_source_single(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link):
+        """Export evidence links from a single source."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+
+        md = export_evidence_by_source_md("test-source-001", temp_db_path)
+
+        assert "# Evidence from: test-source-001" in md
+        assert "EVLINK-2026-001" in md
+        assert "TECH-2026-001" in md
+
+
+class TestExportProvenanceYAML:
+    """Tests for provenance YAML/JSON export."""
+
+    def test_export_provenance_yaml_evidence_links(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link):
+        """Provenance YAML includes evidence links."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+
+        yaml_str = export_provenance_yaml(temp_db_path)
+
+        # Parse (skip header)
+        yaml_content = "\n".join(
+            line for line in yaml_str.split("\n")
+            if not line.startswith("#")
+        )
+        data = yaml.safe_load(yaml_content)
+
+        assert "evidence_links" in data
+        assert len(data["evidence_links"]) == 1
+        assert data["evidence_links"][0]["id"] == "EVLINK-2026-001"
+
+    def test_export_provenance_yaml_reasoning_trails(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """Provenance YAML includes reasoning trails."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        yaml_str = export_provenance_yaml(temp_db_path)
+
+        yaml_content = "\n".join(
+            line for line in yaml_str.split("\n")
+            if not line.startswith("#")
+        )
+        data = yaml.safe_load(yaml_content)
+
+        assert "reasoning_trails" in data
+        assert len(data["reasoning_trails"]) == 1
+        assert data["reasoning_trails"][0]["id"] == "REASON-2026-001"
+
+    def test_export_provenance_yaml_deterministic_order(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """Provenance YAML output is deterministic."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add multiple evidence links with different IDs
+        for i in range(3):
+            add_evidence_link({
+                "id": f"EVLINK-2026-{i+1:03d}",
+                "claim_id": "TECH-2026-001",
+                "source_id": "test-source-001",
+                "direction": "supports",
+                "created_by": "test",
+            }, db=initialized_db)
+
+        yaml1 = export_provenance_yaml(temp_db_path)
+        yaml2 = export_provenance_yaml(temp_db_path)
+
+        # Remove timestamp from header for comparison
+        def strip_header(s):
+            return "\n".join(line for line in s.split("\n") if not line.startswith("#"))
+
+        assert strip_header(yaml1) == strip_header(yaml2)
+
+    def test_export_provenance_json_format(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link):
+        """Provenance JSON is valid JSON."""
+        import json as json_module
+
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+
+        json_str = export_provenance_json(temp_db_path)
+
+        # Should not raise
+        data = json_module.loads(json_str)
+
+        assert "evidence_links" in data
+        assert "reasoning_trails" in data
+        assert len(data["evidence_links"]) == 1
