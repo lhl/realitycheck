@@ -23,6 +23,7 @@ from analysis_validator import (
     validate_elements,
     validate_claim_ids,
     check_framework_repo,
+    extract_claim_id,
     FULL_PROFILE_REQUIRED,
     QUICK_PROFILE_REQUIRED,
 )
@@ -206,6 +207,47 @@ No claim IDs here at all.
 """
         warnings = validate_claim_ids(content)
         assert any("No claim IDs found" in w for w in warnings)
+
+    def test_linked_claim_ids_recognized(self):
+        """Markdown-linked claim IDs are recognized."""
+        content = """| [TECH-2026-001](../reasoning/TECH-2026-001.md) | [F] | TECH |"""
+        warnings = validate_claim_ids(content)
+        # Should find the claim ID
+        assert not any("No claim IDs found" in w for w in warnings)
+
+    def test_mixed_linked_and_bare_ids(self):
+        """Both linked and bare claim IDs are found."""
+        content = """| [TECH-2026-001](path) | [F] | TECH |
+| LABOR-2025-042 | [T] | LABOR |"""
+        warnings = validate_claim_ids(content)
+        assert not any("No claim IDs found" in w for w in warnings)
+
+
+class TestExtractClaimId:
+    """Tests for the extract_claim_id helper function."""
+
+    def test_extract_bare_id(self):
+        """Bare claim ID is extracted."""
+        assert extract_claim_id("TECH-2026-001") == "TECH-2026-001"
+
+    def test_extract_linked_id(self):
+        """Linked claim ID is extracted."""
+        assert extract_claim_id("[TECH-2026-001](../reasoning/TECH-2026-001.md)") == "TECH-2026-001"
+
+    def test_extract_linked_id_with_different_path(self):
+        """Linked claim ID with any path is extracted."""
+        assert extract_claim_id("[LABOR-2025-042](/some/other/path.md)") == "LABOR-2025-042"
+
+    def test_extract_invalid_returns_none(self):
+        """Invalid cell text returns None."""
+        assert extract_claim_id("not a claim id") is None
+        assert extract_claim_id("[broken link") is None
+        assert extract_claim_id("") is None
+
+    def test_extract_with_whitespace(self):
+        """Whitespace around cell text is handled."""
+        assert extract_claim_id("  TECH-2026-001  ") == "TECH-2026-001"
+        assert extract_claim_id("  [TECH-2026-001](path)  ") == "TECH-2026-001"
 
 
 class TestFrameworkRepoCheck:

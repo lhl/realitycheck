@@ -85,12 +85,13 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
 7. **Extract** - Format claims as YAML
 8. **Register** - Add source and claims to database
-9. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
-10. **Validate** - Run integrity checks
-11. **README** - Update data project analysis index
-12. **Commit** - Stage and commit changes to data repo
-13. **Push** - Push to remote
-14. **Report** - Generate summary
+9. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
+10. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+11. **Validate** - Run integrity checks
+12. **README** - Update data project analysis index
+13. **Commit** - Stage and commit changes to data repo
+14. **Push** - Push to remote
+15. **Report** - Generate summary
 
 ---
 
@@ -594,11 +595,64 @@ rc-db analysis list --source-id "SOURCE_ID"
 rc-db analysis get ANALYSIS-YYYY-NNN
 ```
 
+### Evidence Links
+
+```bash
+# Add evidence link (connects claim to supporting/contradicting source)
+rc-db evidence add \
+  --claim-id "DOMAIN-YYYY-NNN" \
+  --source-id "source-id" \
+  --direction supports \
+  --strength 0.8 \
+  --location "Table 3, p.15" \
+  --reasoning "Direct measurement supports the claim"
+
+# List evidence for a claim
+rc-db evidence list --claim-id "DOMAIN-YYYY-NNN"
+
+# List evidence from a source
+rc-db evidence list --source-id "source-id"
+
+# Get specific evidence link
+rc-db evidence get EVLINK-2026-001
+
+# Supersede (correct) an evidence link
+rc-db evidence supersede EVLINK-2026-001 \
+  --direction weakens \
+  --reasoning "Re-evaluated: methodology concerns reduce support"
+```
+
+### Reasoning Trails
+
+```bash
+# Add reasoning trail (documents why credence was assigned)
+rc-db reasoning add \
+  --claim-id "DOMAIN-YYYY-NNN" \
+  --credence 0.75 \
+  --evidence-level E2 \
+  --evidence-summary "E2 based on 2 supporting, 1 weak counter" \
+  --supporting-evidence "EVLINK-2026-001,EVLINK-2026-002" \
+  --contradicting-evidence "EVLINK-2026-003" \
+  --reasoning-text "Assigned 0.75 because..."
+
+# Get active reasoning trail for a claim
+rc-db reasoning get --claim-id "DOMAIN-YYYY-NNN"
+
+# List all reasoning trails
+rc-db reasoning list --claim-id "DOMAIN-YYYY-NNN"
+
+# Get full reasoning history (including superseded)
+rc-db reasoning history --claim-id "DOMAIN-YYYY-NNN"
+```
+
 ### Validation
 
 ```bash
 rc-validate
 # or: uv run python scripts/validate.py
+
+# Strict mode (treat warnings as errors, including missing provenance)
+rc-validate --strict
 ```
 
 ### Export
@@ -609,6 +663,14 @@ rc-export yaml sources -o sources.yaml
 rc-export yaml analysis-logs -o analysis-logs.yaml
 rc-export md summary -o summary.md
 rc-export md analysis-logs -o analysis-logs.md
+
+# Provenance exports
+rc-export md reasoning --id DOMAIN-YYYY-NNN -o analysis/reasoning/DOMAIN-YYYY-NNN.md
+rc-export md reasoning --all --output-dir analysis/reasoning
+rc-export md evidence-by-claim --id DOMAIN-YYYY-NNN -o analysis/evidence/by-claim/DOMAIN-YYYY-NNN.md
+rc-export md evidence-by-source --id source-id -o analysis/evidence/by-source/source-id.md
+rc-export provenance --format yaml -o provenance.yaml
+rc-export provenance --format json -o provenance.json
 ```
 
 ### Embedding Management
@@ -634,6 +696,66 @@ rc-embed regenerate --verbose
 - If embedding generation fails: check `sentence-transformers` is installed
 - Default model: `all-MiniLM-L6-v2` (CPU-based, 384 dimensions)
 - To skip embeddings in CI/tests: `export REALITYCHECK_EMBED_SKIP=1`
+
+---
+
+## Epistemic Provenance (Optional but Recommended)
+
+For high-credence claims (≥0.7) or strong evidence (E1/E2), capture the reasoning chain:
+
+### 1. Link Evidence to Claims
+
+Connect claims to their supporting/contradicting sources:
+
+```bash
+# Add evidence link
+rc-db evidence add \
+  --claim-id "DOMAIN-YYYY-NNN" \
+  --source-id "source-id" \
+  --direction supports \
+  --strength 0.8 \
+  --location "Table 3, p.15" \
+  --reasoning "Direct measurement supports the claim"
+
+# Directions: supports, contradicts, strengthens, weakens
+```
+
+### 2. Capture Reasoning Trails
+
+Document why you assigned a particular credence:
+
+```bash
+rc-db reasoning add \
+  --claim-id "DOMAIN-YYYY-NNN" \
+  --credence 0.75 \
+  --evidence-level E2 \
+  --evidence-summary "E2 based on 2 supporting sources, 1 weak counter" \
+  --supporting-evidence "EVLINK-2026-001,EVLINK-2026-002" \
+  --contradicting-evidence "EVLINK-2026-003" \
+  --reasoning-text "Assigned 0.75 because: (1) Two independent studies confirm X, (2) One methodologically weak study contradicts, discounted due to sample size issues"
+```
+
+### 3. Render Provenance Docs (Optional)
+
+Export human-readable provenance for review:
+
+```bash
+# Single claim
+rc-export md reasoning --id DOMAIN-YYYY-NNN -o analysis/reasoning/DOMAIN-YYYY-NNN.md
+
+# All claims with trails
+rc-export md reasoning --all --output-dir analysis/reasoning
+
+# Evidence by source
+rc-export md evidence-by-source --id source-id -o analysis/evidence/by-source/source-id.md
+```
+
+### When to Capture Provenance
+
+- **Always** for claims with credence ≥ 0.7 (validation will warn if missing)
+- **Always** for claims with E1/E2 evidence (high-quality evidence needs documented reasoning)
+- **Recommended** for controversial or novel claims
+- **Optional** for routine factual claims with obvious sourcing
 
 ---
 

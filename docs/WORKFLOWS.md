@@ -417,6 +417,133 @@ uv run python scripts/db.py analysis backfill-usage \
 uv run python scripts/db.py analysis backfill-usage --force
 ```
 
+## Evidence Linking Workflow
+
+Link claims to their supporting and contradicting sources for epistemic provenance.
+
+### Add an Evidence Link
+
+```bash
+# Basic link
+uv run python scripts/db.py evidence add \
+  --claim-id "TECH-2026-001" \
+  --source-id "epoch-2024-training" \
+  --direction supports
+
+# Full detail
+uv run python scripts/db.py evidence add \
+  --claim-id "TECH-2026-001" \
+  --source-id "epoch-2024-training" \
+  --direction supports \
+  --strength 0.8 \
+  --location "Table 3, p.15" \
+  --quote "Training compute has doubled every 6 months since 2012" \
+  --reasoning "Direct measurement of compute growth supports the trend claim"
+```
+
+Directions: `supports`, `contradicts`, `strengthens`, `weakens`
+
+### List Evidence for a Claim
+
+```bash
+# All evidence for a claim
+uv run python scripts/db.py evidence list --claim-id "TECH-2026-001"
+
+# Filter by direction
+uv run python scripts/db.py evidence list --claim-id "TECH-2026-001" --direction supports
+```
+
+### List Evidence from a Source
+
+```bash
+uv run python scripts/db.py evidence list --source-id "epoch-2024-training"
+```
+
+### Supersede an Evidence Link
+
+When your understanding of evidence changes:
+
+```bash
+uv run python scripts/db.py evidence supersede EVLINK-2026-001 \
+  --direction weakens \
+  --reasoning "Re-evaluated: methodology concerns reduce support"
+```
+
+This marks the original link as `superseded` and creates a new link with updated direction/reasoning.
+
+## Reasoning Trails Workflow
+
+Document why you assigned a particular credence to a claim.
+
+### Add a Reasoning Trail
+
+```bash
+uv run python scripts/db.py reasoning add \
+  --claim-id "TECH-2026-001" \
+  --credence 0.75 \
+  --evidence-level E2 \
+  --evidence-summary "E2 based on 2 supporting sources, 1 weak counter" \
+  --supporting-evidence "EVLINK-2026-001,EVLINK-2026-002" \
+  --contradicting-evidence "EVLINK-2026-003" \
+  --reasoning-text "Assigned 0.75 because: (1) Two independent studies confirm the trend, (2) One methodologically weak study contradicts, discounted due to small sample size"
+```
+
+### Get Active Reasoning for a Claim
+
+```bash
+# Returns only the active (non-superseded) reasoning trail
+uv run python scripts/db.py reasoning get --claim-id "TECH-2026-001"
+
+# Human-readable format
+uv run python scripts/db.py reasoning get --claim-id "TECH-2026-001" --format text
+```
+
+### View Reasoning History
+
+```bash
+# All reasoning trails, including superseded
+uv run python scripts/db.py reasoning history --claim-id "TECH-2026-001"
+```
+
+### When to Capture Reasoning
+
+- **Required** for claims with credence ≥ 0.7 (validation warns if missing)
+- **Required** for claims with E1/E2 evidence (high-quality evidence needs documented reasoning)
+- **Recommended** for controversial or novel claims
+- **Optional** for routine factual claims with obvious sourcing
+
+## Export Provenance
+
+### Export Reasoning Documents
+
+```bash
+# Single claim reasoning doc
+uv run python scripts/export.py md reasoning --id TECH-2026-001 -o analysis/reasoning/TECH-2026-001.md
+
+# All claims with reasoning trails
+uv run python scripts/export.py md reasoning --all --output-dir analysis/reasoning
+```
+
+### Export Evidence Indexes
+
+```bash
+# Evidence for a claim
+uv run python scripts/export.py md evidence-by-claim --id TECH-2026-001 -o analysis/evidence/by-claim/TECH-2026-001.md
+
+# Evidence from a source
+uv run python scripts/export.py md evidence-by-source --id epoch-2024-training -o analysis/evidence/by-source/epoch-2024-training.md
+```
+
+### Export Full Provenance
+
+```bash
+# YAML format (deterministic, git-friendly)
+uv run python scripts/export.py provenance --format yaml -o provenance.yaml
+
+# JSON format
+uv run python scripts/export.py provenance --format json -o provenance.json
+```
+
 ## Export Workflow
 
 ### Export to YAML

@@ -26,6 +26,35 @@ class ValidationResult(NamedTuple):
     warnings: list[str]
 
 
+# Regex patterns for claim ID extraction
+BARE_CLAIM_ID_RE = re.compile(r"^([A-Z]+-\d{4}-\d{3})$")
+LINKED_CLAIM_ID_RE = re.compile(r"^\[([A-Z]+-\d{4}-\d{3})\]\([^)]+\)$")
+
+
+def extract_claim_id(cell_text: str) -> str | None:
+    """Extract a claim ID from table cell text.
+
+    Handles both bare IDs and markdown-linked IDs:
+    - "TECH-2026-001" -> "TECH-2026-001"
+    - "[TECH-2026-001](../reasoning/TECH-2026-001.md)" -> "TECH-2026-001"
+
+    Returns None if the text doesn't match either format.
+    """
+    text = cell_text.strip()
+
+    # Try bare ID first
+    bare_match = BARE_CLAIM_ID_RE.match(text)
+    if bare_match:
+        return bare_match.group(1)
+
+    # Try linked ID
+    linked_match = LINKED_CLAIM_ID_RE.match(text)
+    if linked_match:
+        return linked_match.group(1)
+
+    return None
+
+
 # Required elements for full analysis profile
 FULL_PROFILE_REQUIRED = {
     "sections": [
@@ -152,17 +181,22 @@ def validate_elements(content: str, required_elements: list[tuple[str, str]]) ->
 
 
 def validate_claim_ids(content: str) -> list[str]:
-    """Check that claim IDs follow the correct format."""
+    """Check that claim IDs follow the correct format.
+
+    Recognizes both bare IDs (TECH-2026-001) and markdown-linked IDs
+    ([TECH-2026-001](path)).
+    """
     warnings = []
 
-    # Find claim IDs in tables and YAML
+    # Find claim IDs in tables and YAML - matches both bare and linked formats
+    # This pattern captures the ID portion whether bare or in a markdown link
     claim_id_pattern = r"([A-Z]+)-(\d{4})-(\d{3})"
     matches = re.findall(claim_id_pattern, content)
 
     if not matches:
         warnings.append("No claim IDs found matching DOMAIN-YYYY-NNN format")
 
-    # Check for placeholder IDs
+    # Check for placeholder IDs (both bare and linked formats)
     if re.search(r"DOMAIN-YYYY-NNN", content):
         warnings.append("Contains placeholder claim ID (DOMAIN-YYYY-NNN) - replace with actual ID")
 

@@ -1,0 +1,58 @@
+{#- Provenance workflow for evidence linking and reasoning capture -#}
+## Epistemic Provenance (Optional but Recommended)
+
+For high-credence claims (≥0.7) or strong evidence (E1/E2), capture the reasoning chain:
+
+### 1. Link Evidence to Claims
+
+Connect claims to their supporting/contradicting sources:
+
+```bash
+# Add evidence link
+rc-db evidence add \
+  --claim-id "DOMAIN-YYYY-NNN" \
+  --source-id "source-id" \
+  --direction supports \
+  --strength 0.8 \
+  --location "Table 3, p.15" \
+  --reasoning "Direct measurement supports the claim"
+
+# Directions: supports, contradicts, strengthens, weakens
+```
+
+### 2. Capture Reasoning Trails
+
+Document why you assigned a particular credence:
+
+```bash
+rc-db reasoning add \
+  --claim-id "DOMAIN-YYYY-NNN" \
+  --credence 0.75 \
+  --evidence-level E2 \
+  --evidence-summary "E2 based on 2 supporting sources, 1 weak counter" \
+  --supporting-evidence "EVLINK-2026-001,EVLINK-2026-002" \
+  --contradicting-evidence "EVLINK-2026-003" \
+  --reasoning-text "Assigned 0.75 because: (1) Two independent studies confirm X, (2) One methodologically weak study contradicts, discounted due to sample size issues"
+```
+
+### 3. Render Provenance Docs (Optional)
+
+Export human-readable provenance for review:
+
+```bash
+# Single claim
+rc-export md reasoning --id DOMAIN-YYYY-NNN -o analysis/reasoning/DOMAIN-YYYY-NNN.md
+
+# All claims with trails
+rc-export md reasoning --all --output-dir analysis/reasoning
+
+# Evidence by source
+rc-export md evidence-by-source --id source-id -o analysis/evidence/by-source/source-id.md
+```
+
+### When to Capture Provenance
+
+- **Always** for claims with credence ≥ 0.7 (validation will warn if missing)
+- **Always** for claims with E1/E2 evidence (high-quality evidence needs documented reasoning)
+- **Recommended** for controversial or novel claims
+- **Optional** for routine factual claims with obvious sourcing

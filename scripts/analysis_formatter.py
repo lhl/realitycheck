@@ -20,6 +20,44 @@ import yaml
 
 
 # =============================================================================
+# Claim ID Helpers
+# =============================================================================
+
+# Regex patterns for claim ID extraction
+BARE_CLAIM_ID_RE = re.compile(r"^([A-Z]+-\d{4}-\d{3})$")
+LINKED_CLAIM_ID_RE = re.compile(r"^\[([A-Z]+-\d{4}-\d{3})\]\(([^)]+)\)$")
+
+
+def extract_claim_id(cell_text: str) -> str | None:
+    """Extract a claim ID from table cell text.
+
+    Handles both bare IDs and markdown-linked IDs:
+    - "TECH-2026-001" -> "TECH-2026-001"
+    - "[TECH-2026-001](../reasoning/TECH-2026-001.md)" -> "TECH-2026-001"
+
+    Returns None if the text doesn't match either format.
+    """
+    text = cell_text.strip()
+
+    # Try bare ID first
+    bare_match = BARE_CLAIM_ID_RE.match(text)
+    if bare_match:
+        return bare_match.group(1)
+
+    # Try linked ID
+    linked_match = LINKED_CLAIM_ID_RE.match(text)
+    if linked_match:
+        return linked_match.group(1)
+
+    return None
+
+
+def is_linked_claim_id(cell_text: str) -> bool:
+    """Check if cell text is a markdown-linked claim ID."""
+    return bool(LINKED_CLAIM_ID_RE.match(cell_text.strip()))
+
+
+# =============================================================================
 # Template Snippets (from Jinja2 templates)
 # =============================================================================
 
@@ -286,8 +324,10 @@ def extract_claims_from_key_claims_table(content: str) -> list[dict]:
         if not row_cells or len(row_cells) < len(header_cells):
             continue
 
-        claim_id = row_cells[claim_id_idx].strip()
-        if not re.fullmatch(r"[A-Z]+-\d{4}-\d{3}", claim_id):
+        claim_id_cell = row_cells[claim_id_idx].strip()
+        # Extract bare ID from linked or bare format
+        claim_id = extract_claim_id(claim_id_cell)
+        if not claim_id:
             continue
 
         claim_text = row_cells[claim_idx].strip()
@@ -302,16 +342,19 @@ def extract_claims_from_key_claims_table(content: str) -> list[dict]:
         except Exception:
             credence = None
 
-        extracted.append(
-            {
-                "id": claim_id,
-                "text": claim_text,
-                "type": claim_type,
-                "domain": domain,
-                "evidence_level": evidence_level,
-                "credence": credence,
-            }
-        )
+        claim_record: dict = {
+            "id": claim_id,
+            "text": claim_text,
+            "type": claim_type,
+            "domain": domain,
+            "evidence_level": evidence_level,
+            "credence": credence,
+        }
+        # Preserve linked format if present
+        if is_linked_claim_id(claim_id_cell):
+            claim_record["id_display"] = claim_id_cell
+
+        extracted.append(claim_record)
 
     return extracted
 
@@ -324,6 +367,7 @@ def build_claim_summary_table(claims: list[dict]) -> str:
     """Build a Claim Summary table.
 
     Falls back to placeholder if claims is empty.
+    Preserves linked claim IDs if present in id_display field.
     """
     if not claims:
         return CLAIM_SUMMARY_TABLE
@@ -333,7 +377,8 @@ def build_claim_summary_table(claims: list[dict]) -> str:
         "|----|------|--------|----------|----------:|-------|",
     ]
     for claim in claims:
-        claim_id = str(claim.get("id", "")).strip()
+        # Use id_display (linked format) if present, otherwise bare id
+        claim_id = str(claim.get("id_display", claim.get("id", ""))).strip()
         claim_type = str(claim.get("type", "")).strip()
         domain = str(claim.get("domain", "")).strip()
         evidence = str(claim.get("evidence_level", "")).strip()

@@ -19,12 +19,13 @@ The flagship Reality Check command for rigorous source analysis.
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
 7. **Extract** - Format claims as YAML
 8. **Register** - Add source and claims to database
-9. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
-10. **Validate** - Run integrity checks
-11. **README** - Update data project analysis index
-12. **Commit** - Stage and commit changes to data repo
-13. **Push** - Push to remote
-14. **Report** - Generate summary
+9. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
+10. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+11. **Validate** - Run integrity checks
+12. **README** - Update data project analysis index
+13. **Commit** - Stage and commit changes to data repo
+14. **Push** - Push to remote
+15. **Report** - Generate summary
 
 ---
 
@@ -212,6 +213,10 @@ claims:
 ---
 
 {% include "partials/db-commands.md.j2" %}
+
+---
+
+{% include "partials/provenance-workflow.md.j2" %}
 
 ---
 

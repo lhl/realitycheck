@@ -29,6 +29,8 @@ from analysis_formatter import (
     insert_confidence,
     insert_missing_sections,
     format_file,
+    extract_claim_id,
+    is_linked_claim_id,
 )
 
 
@@ -569,3 +571,129 @@ class TestProfileDetection:
 No depth marker.
 """
         assert detect_profile(content) == "full"
+
+
+class TestLinkedClaimIds:
+    """Tests for linked claim ID handling."""
+
+    def test_extract_claim_id_bare(self):
+        """Bare claim ID is extracted."""
+        assert extract_claim_id("TECH-2026-001") == "TECH-2026-001"
+
+    def test_extract_claim_id_linked(self):
+        """Linked claim ID is extracted."""
+        assert extract_claim_id("[TECH-2026-001](../reasoning/TECH-2026-001.md)") == "TECH-2026-001"
+
+    def test_extract_claim_id_linked_different_path(self):
+        """Linked claim ID with any path is extracted."""
+        assert extract_claim_id("[LABOR-2025-042](/some/other/path.md)") == "LABOR-2025-042"
+
+    def test_extract_claim_id_invalid(self):
+        """Invalid cell text returns None."""
+        assert extract_claim_id("not a claim id") is None
+        assert extract_claim_id("[broken link") is None
+        assert extract_claim_id("") is None
+
+    def test_extract_claim_id_whitespace(self):
+        """Whitespace around cell text is handled."""
+        assert extract_claim_id("  TECH-2026-001  ") == "TECH-2026-001"
+        assert extract_claim_id("  [TECH-2026-001](path)  ") == "TECH-2026-001"
+
+    def test_is_linked_claim_id_true(self):
+        """Linked format detected."""
+        assert is_linked_claim_id("[TECH-2026-001](../reasoning/TECH-2026-001.md)") is True
+        assert is_linked_claim_id("[LABOR-2025-042](path)") is True
+
+    def test_is_linked_claim_id_false(self):
+        """Non-linked format not detected as linked."""
+        assert is_linked_claim_id("TECH-2026-001") is False
+        assert is_linked_claim_id("not a claim id") is False
+
+    def test_formatter_preserves_linked_ids(self, tmp_path):
+        """Linked claim IDs in Key Claims are preserved in Claim Summary."""
+        content = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+Test thesis.
+
+### Key Claims
+
+| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|------|----------|-----------|----------------|
+| 1 | Test claim text | [TECH-2026-001](../reasoning/TECH-2026-001.md) | [F] | TECH | E2 | 0.75 | ? | N/A |
+
+## Stage 2: Evaluative Analysis
+### Key Factual Claims Verified
+### Disconfirming Evidence Search
+### Internal Tensions
+### Persuasion Techniques
+### Unstated Assumptions
+## Stage 3: Dialectical Analysis
+### Steelmanned Argument
+### Strongest Counterarguments
+### Supporting Theories
+### Contradicting Theories
+"""
+        test_file = tmp_path / "test-source.md"
+        test_file.write_text(content)
+
+        formatted, _changes = format_file(test_file, profile="full")
+
+        # Claim Summary table should preserve linked format
+        assert "[TECH-2026-001](../reasoning/TECH-2026-001.md)" in formatted
+        # Should appear in Claim Summary section
+        assert "### Claim Summary" in formatted
+
+    def test_formatter_mixed_linked_and_bare_ids(self, tmp_path):
+        """Mixed linked and bare IDs are both handled correctly."""
+        content = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+Test thesis.
+
+### Key Claims
+
+| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|------|----------|-----------|----------------|
+| 1 | First claim | [TECH-2026-001](../reasoning/TECH-2026-001.md) | [F] | TECH | E2 | 0.75 | ? | N/A |
+| 2 | Second claim | LABOR-2025-042 | [T] | LABOR | E3 | 0.60 | ? | N/A |
+
+## Stage 2: Evaluative Analysis
+### Key Factual Claims Verified
+### Disconfirming Evidence Search
+### Internal Tensions
+### Persuasion Techniques
+### Unstated Assumptions
+## Stage 3: Dialectical Analysis
+### Steelmanned Argument
+### Strongest Counterarguments
+### Supporting Theories
+### Contradicting Theories
+"""
+        test_file = tmp_path / "test-source.md"
+        test_file.write_text(content)
+
+        formatted, _changes = format_file(test_file, profile="full")
+
+        # Linked ID should preserve format
+        assert "[TECH-2026-001](../reasoning/TECH-2026-001.md)" in formatted
+        # Bare ID should remain bare
+        assert "LABOR-2025-042" in formatted
+        # Both should be in the Claim Summary
+        assert "### Claim Summary" in formatted

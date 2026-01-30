@@ -118,6 +118,61 @@ Working definitions for key terms.
 | `domain` | string | No | Domain this definition applies to |
 | `analysis_id` | string | No | Source analysis where defined |
 
+### evidence_links
+
+Links between claims and supporting/contradicting sources for epistemic provenance.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique ID: `EVLINK-[YYYY]-[NNN]` |
+| `claim_id` | string | Yes | Reference to claims table |
+| `source_id` | string | Yes | Reference to sources table |
+| `direction` | string | Yes | supports/contradicts/strengthens/weakens |
+| `status` | string | Yes | active/superseded/retracted |
+| `supersedes_id` | string | No | ID of previous link this replaces |
+| `strength` | float32 | No | Coarse impact estimate (0.0-1.0) |
+| `location` | string | No | Specific location in source (e.g., "Table 3, p.15") |
+| `quote` | string | No | Relevant excerpt from source |
+| `reasoning` | string | No | Why this evidence matters |
+| `analysis_log_id` | string | No | Link to audit log pass |
+| `created_at` | string | Yes | ISO timestamp |
+| `created_by` | string | Yes | Tool/agent that created this link |
+
+### reasoning_trails
+
+Reasoning chains for claim credence assignments.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique ID: `REASON-[YYYY]-[NNN]` |
+| `claim_id` | string | Yes | Reference to claims table |
+| `status` | string | Yes | active/superseded |
+| `supersedes_id` | string | No | ID of previous trail this replaces |
+| `credence_at_time` | float32 | Yes | Credence when trail was created |
+| `evidence_level_at_time` | string | Yes | Evidence level when trail was created |
+| `evidence_summary` | string | No | Brief summary of evidence balance |
+| `supporting_evidence` | list[string] | No | Evidence link IDs that support |
+| `contradicting_evidence` | list[string] | No | Evidence link IDs that contradict |
+| `assumptions_made` | list[string] | No | Explicit assumptions in reasoning |
+| `counterarguments_json` | string | No | JSON-encoded counterarguments (see below) |
+| `reasoning_text` | string | Yes | Publishable rationale for credence |
+| `analysis_pass` | int32 | No | Pass number when created |
+| `analysis_log_id` | string | No | Link to audit log |
+| `created_at` | string | Yes | ISO timestamp |
+| `created_by` | string | Yes | Tool/agent that created this trail |
+
+#### Counterarguments JSON Format
+
+```json
+[
+  {
+    "text": "Alternative interpretation of data",
+    "disposition": "integrated",  // integrated/discounted/unresolved
+    "response": "Addressed by considering X"
+  }
+]
+```
+
 ### analysis_logs
 
 Audit trail for analysis passes.
@@ -306,3 +361,25 @@ The `rc-validate` command checks:
    - `duration_seconds` and `cost_usd` must be non-negative (if present)
    - If `tokens_baseline`, `tokens_final`, and `tokens_check` all present, `tokens_check` must equal `tokens_final - tokens_baseline`
    - `inputs_analysis_ids` must reference existing analysis log IDs (for synthesis attribution)
+
+10. **Evidence Links Integrity**:
+    - `claim_id` must reference existing claim
+    - `source_id` must reference existing source
+    - `direction` must be one of: supports/contradicts/strengthens/weakens
+    - `status` must be one of: active/superseded/retracted
+    - If `supersedes_id` is set, it must reference existing evidence link
+    - `strength` must be in [0.0, 1.0] (if present)
+
+11. **Reasoning Trails Integrity**:
+    - `claim_id` must reference existing claim
+    - `status` must be one of: active/superseded
+    - If `supersedes_id` is set, it must reference existing reasoning trail
+    - `credence_at_time` must be in [0.0, 1.0]
+    - `evidence_level_at_time` must be valid (E1-E6)
+    - All IDs in `supporting_evidence` and `contradicting_evidence` must reference existing evidence links
+    - `counterarguments_json` must be valid JSON (if present)
+
+12. **High-Credence Backing** (warnings, errors with --strict):
+    - Claims with credence ≥ 0.7 should have at least one evidence link
+    - Claims with evidence level E1 or E2 should have at least one evidence link
+    - Evidence links should have `location` and `reasoning` fields populated

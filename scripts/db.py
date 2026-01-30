@@ -2710,6 +2710,9 @@ Examples:
             "data",
             "analysis/sources",
             "analysis/syntheses",
+            "analysis/reasoning",
+            "analysis/evidence/by-claim",
+            "analysis/evidence/by-source",
             "tracking/updates",
             "inbox/to-catalog",
             "inbox/to-analyze",
@@ -2973,17 +2976,26 @@ rc-validate
             "contradictions": CONTRADICTIONS_SCHEMA,
             "definitions": DEFINITIONS_SCHEMA,
             "analysis_logs": ANALYSIS_LOGS_SCHEMA,
+            "evidence_links": EVIDENCE_LINKS_SCHEMA,
+            "reasoning_trails": REASONING_TRAILS_SCHEMA,
         }
 
         total_added = 0
         table_changes: dict[str, list[str]] = {}
 
+        tables_created = []
         for table_name, expected_schema in expected_schemas.items():
             try:
                 table = db.open_table(table_name)
             except Exception:
-                # Table doesn't exist - will be created by init
-                continue
+                # Table doesn't exist - create it
+                if dry_run:
+                    tables_created.append(table_name)
+                    continue
+                else:
+                    db.create_table(table_name, schema=expected_schema)
+                    tables_created.append(table_name)
+                    continue
 
             current_fields = {f.name: f for f in table.schema}
             expected_fields = {f.name: f for f in expected_schema}
@@ -3046,13 +3058,18 @@ rc-validate
         else:
             print("Migration complete:", flush=True)
 
-        if total_added == 0:
+        if total_added == 0 and not tables_created:
             print("  Schema is up to date - no changes needed.", flush=True)
         else:
-            print(f"  Added {total_added} column(s):", flush=True)
-            for table_name, fields in table_changes.items():
-                for field_desc in fields:
-                    print(f"    {table_name}.{field_desc}", flush=True)
+            if tables_created:
+                print(f"  Created {len(tables_created)} new table(s):", flush=True)
+                for table_name in tables_created:
+                    print(f"    {table_name}", flush=True)
+            if total_added > 0:
+                print(f"  Added {total_added} column(s):", flush=True)
+                for table_name, fields in table_changes.items():
+                    for field_desc in fields:
+                        print(f"    {table_name}.{field_desc}", flush=True)
 
     elif args.command == "search":
         results = search_claims(args.query, limit=args.limit, domain=args.domain)
