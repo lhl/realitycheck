@@ -8,6 +8,69 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.2.0 - 2026-01-31
+
+**Epistemic Provenance** - A major feature release adding structured audit trails for claim credence assignments.
+
+This release introduces two new database tables (`evidence_links` and `reasoning_trails`) that capture *why* claims are assigned particular credence values, enabling rigorous review, agent disagreement tracking, and full epistemic audit trails.
+
+### Added
+
+#### Evidence Links (`rc-db evidence`)
+- Link claims to supporting/contradicting sources with explicit directionality
+- Track evidence strength, location (e.g., "Table 3, p.15"), quotes, and reasoning
+- Versioning support via `status` (active/superseded/retracted) and `supersedes_id`
+- CLI commands: `evidence add`, `evidence get`, `evidence list`, `evidence supersede`
+
+#### Reasoning Trails (`rc-db reasoning`)
+- Document the full reasoning chain for credence assignments
+- Capture credence/evidence-level at time of assessment
+- Track supporting and contradicting evidence link references
+- Structured counterarguments with dispositions (integrated/discounted/unresolved)
+- Publishable `reasoning_text` field for human-readable rationales
+- CLI commands: `reasoning add`, `reasoning get`, `reasoning list`, `reasoning history`
+
+#### Validation
+- High-credence claims (≥0.7) or strong evidence (E1/E2) now require:
+  - At least one supporting evidence link (`HIGH_CREDENCE_NO_BACKING`)
+  - At least one active reasoning trail (`HIGH_CREDENCE_NO_REASONING_TRAIL`)
+- Staleness warnings when claim credence differs from latest reasoning trail
+- Evidence link validation (claim/source refs, direction/status enums)
+- Reasoning trail validation (evidence link refs, counterarguments schema)
+- Use `--strict` to escalate warnings to errors
+
+#### Export
+- `rc-export md reasoning --id CLAIM-ID` - Per-claim reasoning docs with evidence tables
+- `rc-export md reasoning --all --output-dir DIR` - Bulk export all claims with trails
+- `rc-export md evidence-by-claim --id CLAIM-ID` - Evidence index for a claim
+- `rc-export md evidence-by-source --id SOURCE-ID` - Evidence index for a source
+- `rc-export provenance --format yaml|json` - Deterministic bulk provenance export
+
+#### Documentation
+- `docs/SCHEMA.md` updated with `evidence_links` and `reasoning_trails` tables
+- `docs/WORKFLOWS.md` updated with Evidence Linking, Reasoning Trails, and Export Provenance sections
+- `methodology/reasoning-trails.md` - Full provenance methodology and design philosophy
+
+#### Migration
+- `rc-db migrate` creates new tables automatically for existing databases
+- `rc-db init-project` creates provenance directories (`analysis/reasoning/`, `analysis/evidence/`)
+
+#### Integration Templates
+- `/check` workflow updated with Step 9: Provenance for high-credence claims
+- `partials/provenance-workflow.md.j2` - Reusable evidence linking section
+- All integration skills regenerated (Claude, Codex, Amp, OpenCode)
+
+### Changed
+
+- `list_reasoning_trails()` now returns results sorted by `created_at` descending
+- `get_reasoning_trail(claim_id=...)` returns the latest active trail (deterministic)
+- Counterarguments field standardized on `text` (legacy `argument` still accepted)
+
+### Fixed
+
+- Validator/formatter now support markdown-linked claim IDs (`[ID](path)`)
+- `--output-dir` added as alias for `-o/--output` in export CLI
+
 ## 0.1.9 - 2026-01-28
 
 Added OpenCode integration with full skill support.

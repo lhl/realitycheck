@@ -18,7 +18,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.1.9** - OpenCode integration with 9 skills; 277 passing tests.
+**v0.2.0** - Epistemic Provenance: evidence links, reasoning trails, and audit validation; 385 passing tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
