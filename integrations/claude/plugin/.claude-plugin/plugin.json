@@ -1,6 +1,6 @@
 {
   "name": "reality",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Framework for rigorous analysis of claims, sources, predictions, and argument chains",
   "author": {
     "name": "Leonard Lin",
@@ -9,5 +9,11 @@
   "license": "Apache-2.0",
   "homepage": "https://github.com/lhl/realitycheck",
   "repository": "https://github.com/lhl/realitycheck",
-  "keywords": ["analysis", "claims", "epistemics", "predictions", "sources"]
+  "keywords": [
+    "analysis",
+    "claims",
+    "epistemics",
+    "predictions",
+    "sources"
+  ]
 }

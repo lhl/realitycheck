@@ -2,7 +2,8 @@
 """Assemble Reality Check skills from Jinja2 templates.
 
 This script generates integration-specific SKILL.md files from a shared
-template library and configuration file.
+template library and configuration file. It also syncs the plugin version
+from pyproject.toml to ensure consistency.
 
 Usage:
     python assemble.py                    # Generate all skills for all integrations
@@ -16,6 +17,8 @@ Usage:
 
 import argparse
 import difflib
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -28,6 +31,8 @@ REPO_ROOT = SCRIPT_DIR.parent
 TEMPLATES_DIR = SCRIPT_DIR / "_templates"
 CONFIG_FILE = SCRIPT_DIR / "_config" / "skills.yaml"
 CHECK_CORE_PATH = REPO_ROOT / "methodology" / "workflows" / "check-core.md"
+PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
+PLUGIN_JSON_PATH = SCRIPT_DIR / "claude" / "plugin" / ".claude-plugin" / "plugin.json"
 
 INTEGRATIONS = ["amp", "claude", "codex", "opencode"]
 
@@ -36,6 +41,57 @@ def load_config() -> dict:
     """Load skills configuration from YAML."""
     with open(CONFIG_FILE) as f:
         return yaml.safe_load(f)
+
+
+def get_project_version() -> str:
+    """Read version from pyproject.toml."""
+    content = PYPROJECT_PATH.read_text()
+    match = re.search(r'^version\s*=\s*"([^"]+)"', content, re.MULTILINE)
+    if not match:
+        raise ValueError("Could not find version in pyproject.toml")
+    return match.group(1)
+
+
+def sync_plugin_version(
+    dry_run: bool = False,
+    diff: bool = False,
+    check: bool = False,
+) -> bool:
+    """Sync plugin.json version with pyproject.toml.
+
+    Returns True if file was changed (or would be changed).
+    """
+    project_version = get_project_version()
+
+    # Read current plugin.json
+    plugin_data = json.loads(PLUGIN_JSON_PATH.read_text())
+    current_version = plugin_data.get("version", "")
+
+    if current_version == project_version:
+        if not check:
+            print(f"plugin.json version: {current_version} (in sync)")
+        return False
+
+    # Version needs updating
+    if dry_run:
+        print(f"[DRY-RUN] plugin.json: {current_version} -> {project_version}")
+        return True
+
+    if diff:
+        print(f"\n--- {PLUGIN_JSON_PATH}")
+        print(f"-  \"version\": \"{current_version}\",")
+        print(f"+  \"version\": \"{project_version}\",")
+        return True
+
+    if check:
+        print(f"VERSION MISMATCH: plugin.json ({current_version}) != pyproject.toml ({project_version})")
+        return True
+
+    # Actually update the file
+    plugin_data["version"] = project_version
+    PLUGIN_JSON_PATH.write_text(json.dumps(plugin_data, indent=2) + "\n")
+    print(f"UPDATED: plugin.json version {current_version} -> {project_version}")
+    return True
 
 
 def setup_jinja_env() -> Environment:
@@ -323,8 +379,21 @@ def main():
             total_changed += 1
             any_changed = True
 
+    # Always sync plugin version
+    if args.verbose:
+        print("\n=== VERSION SYNC ===")
+    version_changed = sync_plugin_version(
+        dry_run=args.dry_run,
+        diff=args.diff,
+        check=args.check,
+    )
+    if version_changed:
+        any_changed = True
+
     # Summary
     print(f"\nGenerated: {total_generated} files, {total_changed} changed")
+    if version_changed:
+        print("Plugin version: updated")
 
     # Exit with error if --check and files changed
     if args.check and any_changed:
