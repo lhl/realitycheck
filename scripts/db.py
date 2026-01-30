@@ -1764,6 +1764,27 @@ def add_reasoning_trail(
         if not get_evidence_link(evlink_id, db):
             raise ValueError(f"Evidence link '{evlink_id}' not found")
 
+    # Validate counterarguments_json if provided
+    counterarguments_json = trail_data.get("counterarguments_json")
+    if counterarguments_json:
+        try:
+            counterarguments = json.loads(counterarguments_json) if isinstance(counterarguments_json, str) else counterarguments_json
+            if not isinstance(counterarguments, list):
+                raise ValueError("counterarguments_json must be a JSON array")
+            for i, ca in enumerate(counterarguments):
+                if not isinstance(ca, dict):
+                    raise ValueError(f"counterargument[{i}] must be an object")
+                # Must have 'text' (canonical) or 'argument' (legacy)
+                if not ca.get("text") and not ca.get("argument"):
+                    raise ValueError(f"counterargument[{i}] missing required 'text' field")
+                # Validate disposition if present
+                disposition = ca.get("disposition")
+                if disposition and disposition not in VALID_COUNTERARGUMENT_DISPOSITIONS:
+                    raise ValueError(f"counterargument[{i}] invalid disposition '{disposition}' "
+                        f"(must be one of: {', '.join(sorted(VALID_COUNTERARGUMENT_DISPOSITIONS))})")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"counterarguments_json is not valid JSON: {e}")
+
     # Generate ID if not provided
     trail_id = trail_data.get("id") or _generate_reasoning_trail_id(db)
 
@@ -1823,7 +1844,13 @@ def get_reasoning_trail(
     if id:
         results = table.search().where(f"id = '{id}'").limit(1).to_list()
     elif claim_id:
-        results = table.search().where(f"claim_id = '{claim_id}' AND status = 'active'").limit(1).to_list()
+        # Get all active trails and sort by created_at to get the latest
+        results = table.search().where(f"claim_id = '{claim_id}' AND status = 'active'").limit(100).to_list()
+        if results:
+            # Sort by created_at descending to get the most recent
+            results = sorted(results, key=lambda x: x.get("created_at", ""), reverse=True)
+            return dict(results[0])
+        return None
     else:
         return None
 
@@ -1867,6 +1894,8 @@ def list_reasoning_trails(
         query = query.where(" AND ".join(conditions))
 
     results = query.limit(limit).to_list()
+    # Sort by created_at descending (latest first) for deterministic ordering
+    results = sorted(results, key=lambda x: x.get("created_at", ""), reverse=True)
     return [dict(r) for r in results]
 
 

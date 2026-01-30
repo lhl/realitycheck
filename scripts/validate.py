@@ -480,34 +480,53 @@ def validate_db(db_path: Optional[Path] = None, strict: bool = False) -> list[Fi
                     findings.append(Finding("WARN", "REASONING_EVLINK_MISSING",
                         f"{trail_id}: contradicting_evidence references unknown link '{evlink_id}'"))
 
-            # Check for stale credence (active trails only)
-            if trail.get("status") == "active" and trail_claim_id in claims:
-                claim = claims[trail_claim_id]
-                trail_credence = trail.get("credence_at_time")
-                claim_credence = claim.get("credence")
-                if trail_credence is not None and claim_credence is not None:
-                    if abs(float(trail_credence) - float(claim_credence)) > 0.01:
-                        findings.append(Finding("WARN", "REASONING_CREDENCE_STALE",
-                            f"{trail_id}: credence_at_time ({trail_credence}) differs from claim credence ({claim_credence})"))
+    # Build map of claim_id -> latest active reasoning trail (sorted by created_at desc)
+    # list_reasoning_trails already returns sorted by created_at descending
+    claims_with_reasoning = {}  # claim_id -> latest trail
+    for trail_id, trail in reasoning_trails.items():
+        if trail.get("status") != "active":
+            continue
+        trail_claim_id = trail.get("claim_id")
+        if trail_claim_id not in claims_with_reasoning:
+            # First active trail for this claim is the latest (due to sorting)
+            claims_with_reasoning[trail_claim_id] = trail
 
-                trail_evidence_level = trail.get("evidence_level_at_time")
-                claim_evidence_level = claim.get("evidence_level")
-                if trail_evidence_level and claim_evidence_level:
-                    if trail_evidence_level != claim_evidence_level:
-                        findings.append(Finding("WARN", "REASONING_EVIDENCE_STALE",
-                            f"{trail_id}: evidence_level_at_time ({trail_evidence_level}) differs from claim ({claim_evidence_level})"))
+    # Check staleness only against the LATEST active trail per claim
+    for claim_id, latest_trail in claims_with_reasoning.items():
+        if claim_id not in claims:
+            continue
+        claim = claims[claim_id]
+        trail_id = latest_trail.get("id")
+
+        # Check credence staleness
+        trail_credence = latest_trail.get("credence_at_time")
+        claim_credence = claim.get("credence")
+        if trail_credence is not None and claim_credence is not None:
+            if abs(float(trail_credence) - float(claim_credence)) > 0.01:
+                findings.append(Finding("WARN", "REASONING_CREDENCE_STALE",
+                    f"{trail_id}: credence_at_time ({trail_credence}) differs from claim credence ({claim_credence})"))
+
+        # Check evidence level staleness
+        trail_evidence_level = latest_trail.get("evidence_level_at_time")
+        claim_evidence_level = claim.get("evidence_level")
+        if trail_evidence_level and claim_evidence_level:
+            if trail_evidence_level != claim_evidence_level:
+                findings.append(Finding("WARN", "REASONING_EVIDENCE_STALE",
+                    f"{trail_id}: evidence_level_at_time ({trail_evidence_level}) differs from claim ({claim_evidence_level})"))
 
     # ==========================================================================
     # High Credence Backing Validation
     # ==========================================================================
-    # Claims with credence >= 0.7 OR evidence level E1/E2 must have supporting evidence
+    # Claims with credence >= 0.7 OR evidence level E1/E2 must have:
+    # 1. At least one supporting evidence link
+    # 2. At least one active reasoning trail
     high_evidence_levels = {"E1", "E2"}
     backing_level = "ERROR" if strict else "WARN"
 
     # Build a map of claim_id -> supporting evidence links
     claims_with_backing = set()
     claims_missing_location = set()
-    claims_missing_reasoning = set()
+    claims_missing_evidence_reasoning = set()
 
     for link_id, link in evidence_links.items():
         if link.get("status") != "active":
@@ -521,7 +540,7 @@ def validate_db(db_path: Optional[Path] = None, strict: bool = False) -> list[Fi
             if not link.get("location"):
                 claims_missing_location.add(claim_id)
             if not link.get("reasoning"):
-                claims_missing_reasoning.add(claim_id)
+                claims_missing_evidence_reasoning.add(claim_id)
 
     for claim_id, claim in claims.items():
         credence = claim.get("credence")
@@ -534,18 +553,25 @@ def validate_db(db_path: Optional[Path] = None, strict: bool = False) -> list[Fi
         )
 
         if requires_backing:
+            # Check for evidence link
             if claim_id not in claims_with_backing:
                 findings.append(Finding(backing_level, "HIGH_CREDENCE_NO_BACKING",
                     f"{claim_id}: High credence ({credence}) or evidence level ({evidence_level}) "
                     "requires supporting evidence link"))
             else:
-                # Check for specificity (location and reasoning)
+                # Check for specificity (location and reasoning on evidence)
                 if claim_id in claims_missing_location:
                     findings.append(Finding("WARN", "HIGH_CREDENCE_MISSING_LOCATION",
                         f"{claim_id}: Supporting evidence link missing 'location' field"))
-                if claim_id in claims_missing_reasoning:
+                if claim_id in claims_missing_evidence_reasoning:
                     findings.append(Finding("WARN", "HIGH_CREDENCE_MISSING_REASONING",
                         f"{claim_id}: Supporting evidence link missing 'reasoning' field"))
+
+            # Check for reasoning trail
+            if claim_id not in claims_with_reasoning:
+                findings.append(Finding(backing_level, "HIGH_CREDENCE_NO_REASONING_TRAIL",
+                    f"{claim_id}: High credence ({credence}) or evidence level ({evidence_level}) "
+                    "requires reasoning trail"))
 
     return findings
 

@@ -700,7 +700,9 @@ def export_reasoning_md(claim_id: str, db_path: Optional[Path] = None, output_di
                         "",
                     ])
                     for ca in counterarguments:
-                        lines.append(f"### \"{ca.get('argument', 'Unknown')}\"")
+                        # Accept both 'text' (canonical) and 'argument' (legacy) field names
+                        arg_text = ca.get('text') or ca.get('argument', 'Unknown')
+                        lines.append(f"### \"{arg_text}\"")
                         lines.append(f"**Response**: {ca.get('response', '')}")
                         lines.append(f"**Disposition**: {ca.get('disposition', 'unresolved').title()}")
                         lines.append("")
@@ -977,8 +979,9 @@ def main():
         help="Export all (for reasoning type)"
     )
     md_parser.add_argument(
-        "-o", "--output",
+        "-o", "--output", "--output-dir",
         type=Path,
+        dest="output",
         help="Output file or directory (default: stdout)"
     )
 

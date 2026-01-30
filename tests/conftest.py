@@ -364,7 +364,7 @@ def sample_reasoning_trail() -> dict:
         "assumptions_made": ["Current paradigm continues"],
         "counterarguments_json": json.dumps([
             {
-                "argument": "Study X found opposite result",
+                "text": "Study X found opposite result",
                 "response": "Study X used different methodology; not directly comparable",
                 "disposition": "discounted"
             }

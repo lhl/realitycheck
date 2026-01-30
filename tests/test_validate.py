@@ -788,3 +788,41 @@ class TestHighCredenceBackingValidation:
         findings = validate_db(temp_db_path)
         warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
         assert len(warns) == 0
+
+    def test_high_credence_missing_reasoning_trail_warns(self, initialized_db, temp_db_path, sample_source, sample_claim):
+        """High credence claim with evidence but no reasoning trail warns."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+
+        # Add evidence link (satisfies evidence requirement)
+        link = {
+            "id": "EVLINK-2026-001",
+            "claim_id": "TECH-2026-001",
+            "source_id": "test-source-001",
+            "direction": "supports",
+            "location": "Table 3",
+            "reasoning": "Direct support",
+            "created_by": "test",
+        }
+        add_evidence_link(link, db=initialized_db)
+        # No reasoning trail added
+
+        findings = validate_db(temp_db_path)
+        warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_REASONING_TRAIL"]
+        assert len(warns) >= 1
+        assert "reasoning trail" in warns[0].message.lower()
+
+    def test_high_credence_full_provenance_passes(self, initialized_db, temp_db_path, sample_source, sample_claim, sample_evidence_link, sample_reasoning_trail):
+        """High credence claim with evidence + reasoning trail passes."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        sample_claim["credence"] = 0.80
+        add_claim(sample_claim, initialized_db, generate_embedding=False)
+        add_evidence_link(sample_evidence_link, db=initialized_db)
+        add_reasoning_trail(sample_reasoning_trail, db=initialized_db)
+
+        findings = validate_db(temp_db_path)
+        backing_warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_BACKING"]
+        trail_warns = [f for f in findings if f.code == "HIGH_CREDENCE_NO_REASONING_TRAIL"]
+        assert len(backing_warns) == 0
+        assert len(trail_warns) == 0

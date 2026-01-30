@@ -314,11 +314,10 @@ rc-db reasoning history --claim-id TECH-2026-042
 # Export / Render (follows existing rc-export <format> <type> pattern)
 rc-export md reasoning --id TECH-2026-042 -o analysis/reasoning/TECH-2026-042.md
 rc-export md reasoning --all --output-dir analysis/reasoning
-rc-export md evidence --claim-id TECH-2026-042 -o analysis/evidence/by-claim/TECH-2026-042.md
-rc-export md evidence --source-id author-2024 -o analysis/evidence/by-source/author-2024.md
-rc-export md evidence --all --output-dir analysis/evidence
-rc-export yaml provenance -o analysis/provenance.yaml
-rc-export json provenance -o analysis/provenance.json
+rc-export md evidence-by-claim --id TECH-2026-042 -o analysis/evidence/by-claim/TECH-2026-042.md
+rc-export md evidence-by-source --id author-2024 -o analysis/evidence/by-source/author-2024.md
+rc-export provenance --format yaml -o analysis/provenance.yaml
+rc-export provenance --format json -o analysis/provenance.json
 
 # Validation (--strict already exists, escalates WARNs to errors)
 rc-validate                    # Warnings for missing backing
