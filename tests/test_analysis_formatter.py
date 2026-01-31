@@ -152,7 +152,7 @@ class TestTableInsertion:
     """Tests for table insertion."""
 
     def test_insert_claim_summary_after_header(self):
-        """Claim Summary table inserted after header."""
+        """Claim Summary table inserted after header (rigor-v1 format)."""
         content = """# Source Analysis
 
 ### Claim Summary
@@ -161,7 +161,8 @@ class TestTableInsertion:
 """
         result = insert_claim_summary_table(content)
 
-        assert "| ID | Type | Domain | Evidence | Credence | Claim |" in result
+        # Rigor-v1 format includes Layer/Actor/Scope/Quantifier columns
+        assert "| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |" in result
         # Table should be after the header
         header_pos = result.index("### Claim Summary")
         table_pos = result.index("| ID | Type |")
@@ -571,6 +572,216 @@ class TestProfileDetection:
 No depth marker.
 """
         assert detect_profile(content) == "full"
+
+
+class TestRigorV1TableSnippets:
+    """Tests for rigor-v1 table insertion snippets."""
+
+    def test_key_claims_table_has_rigor_columns(self):
+        """KEY_CLAIMS_TABLE constant includes rigor-v1 columns."""
+        from analysis_formatter import KEY_CLAIMS_TABLE
+        assert "Layer" in KEY_CLAIMS_TABLE
+        assert "Actor" in KEY_CLAIMS_TABLE
+        assert "Scope" in KEY_CLAIMS_TABLE
+        assert "Quantifier" in KEY_CLAIMS_TABLE
+
+    def test_claim_summary_table_has_rigor_columns(self):
+        """CLAIM_SUMMARY_TABLE constant includes rigor-v1 columns."""
+        from analysis_formatter import CLAIM_SUMMARY_TABLE
+        assert "Layer" in CLAIM_SUMMARY_TABLE
+        assert "Actor" in CLAIM_SUMMARY_TABLE
+        assert "Scope" in CLAIM_SUMMARY_TABLE
+        assert "Quantifier" in CLAIM_SUMMARY_TABLE
+
+    def test_corrections_updates_table_exists(self):
+        """CORRECTIONS_UPDATES_TABLE constant exists with correct columns."""
+        from analysis_formatter import CORRECTIONS_UPDATES_TABLE
+        assert "Corrections & Updates" in CORRECTIONS_UPDATES_TABLE
+        assert "Item" in CORRECTIONS_UPDATES_TABLE
+        assert "URL" in CORRECTIONS_UPDATES_TABLE
+        assert "Published" in CORRECTIONS_UPDATES_TABLE
+        assert "Corrected/Updated" in CORRECTIONS_UPDATES_TABLE
+        assert "What Changed" in CORRECTIONS_UPDATES_TABLE
+        assert "Impacted Claim IDs" in CORRECTIONS_UPDATES_TABLE
+        assert "Action Taken" in CORRECTIONS_UPDATES_TABLE
+
+
+class TestCorrectionsUpdatesInsertion:
+    """Tests for Corrections & Updates table insertion."""
+
+    def test_insert_corrections_updates_table(self, tmp_path):
+        """Corrections & Updates table is inserted for full profile."""
+        content = """# Source Analysis: Test
+
+> **Claim types**: `[F]` fact
+> **Evidence**: **E1** test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+| **Analysis Depth** | full |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+Test thesis.
+
+### Key Claims
+
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| 1 | Test | TECH-2026-001 | ASSERTED | ICE | N/A | N/A | [F] | TECH | E2 | 0.75 | ? | N/A |
+
+### Argument Structure
+```
+Premise
+    ↓
+Conclusion
+```
+
+### Theoretical Lineage
+- **Builds on**: none
+- **Departs from**: none
+- **Novel contribution**: test
+
+## Stage 2: Evaluative Analysis
+
+### Key Factual Claims Verified
+
+| Claim | Verification Source | Status | Notes | Crux? |
+|-------|---------------------|--------|-------|-------|
+| test | test | ? | | N |
+
+### Disconfirming Evidence Search
+
+| Claim | Counter-Evidence Sought | Found? | Impact |
+|-------|------------------------|--------|--------|
+| test | test | N | |
+
+### Internal Tensions
+
+| Tension | Claims Involved | Resolution Possible? |
+|---------|-----------------|---------------------|
+| none | | |
+
+### Persuasion Techniques
+
+| Technique | Example | Effect on Analysis |
+|-----------|---------|-------------------|
+| none | | |
+
+### Unstated Assumptions
+
+| Assumption | Required For | If False |
+|------------|--------------|----------|
+| none | | |
+
+## Stage 3: Dialectical Analysis
+
+### Steelmanned Argument
+Test.
+
+### Strongest Counterarguments
+None.
+
+### Supporting Theories
+
+| Theory/Source | How It Supports | Claim IDs Affected |
+|---------------|-----------------|-------------------|
+| none | | |
+
+### Contradicting Theories
+
+| Theory/Source | How It Contradicts | Claim IDs Affected |
+|---------------|-------------------|-------------------|
+| none | | |
+
+### Claim Summary
+
+| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |
+|----|------|--------|-------|-------|-------|------------|----------|----------|-------|
+| TECH-2026-001 | [F] | TECH | ASSERTED | ICE | N/A | N/A | E2 | 0.75 | Test |
+
+### Claims to Register
+
+```yaml
+claims:
+  - id: "TECH-2026-001"
+```
+
+**Credence in Analysis**: 0.7
+"""
+        test_file = tmp_path / "test.md"
+        test_file.write_text(content)
+
+        formatted, changes = format_file(test_file, profile="full")
+
+        # Should have added Corrections & Updates section
+        assert "### Corrections & Updates" in formatted
+        assert "What Changed" in formatted
+
+    def test_corrections_updates_idempotent(self, tmp_path):
+        """Corrections & Updates table not duplicated if already present."""
+        content = """# Source Analysis: Test
+
+> **Claim types**: `[F]` fact
+> **Evidence**: **E1** test
+
+## Metadata
+**Analysis Depth**: full
+
+## Stage 2: Evaluative Analysis
+
+### Corrections & Updates
+
+| Item | URL | Published | Corrected/Updated | What Changed | Impacted Claim IDs | Action Taken |
+|------|-----|-----------|-------------------|--------------|--------------------|-------------|
+| 1 | https://example.com | 2026-01-01 | N/A | N/A | N/A | N/A |
+
+"""
+        test_file = tmp_path / "test.md"
+        test_file.write_text(content)
+
+        formatted, changes = format_file(test_file, profile="full")
+
+        # Count occurrences of the table header
+        corrections_count = formatted.count("### Corrections & Updates")
+        assert corrections_count == 1
+
+
+class TestRigorV1TableExtraction:
+    """Tests for extracting claims from rigor-v1 format tables."""
+
+    def test_extract_claims_from_rigor_v1_key_claims(self, tmp_path):
+        """Claims are extracted from rigor-v1 Key Claims table."""
+        content = """# Source Analysis: Test
+
+## Stage 1: Descriptive Analysis
+
+### Key Claims
+
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| 1 | Test claim text | TECH-2026-001 | ASSERTED | ICE | who=all | some | [F] | TECH | E2 | 0.75 | ? | N/A |
+| 2 | Another claim | TECH-2026-002 | LAWFUL | COURT | N/A | N/A | [T] | TECH | E1 | 0.90 | Yes | N/A |
+
+"""
+        from analysis_formatter import extract_claims_from_key_claims_table
+
+        claims = extract_claims_from_key_claims_table(content)
+
+        assert len(claims) == 2
+        assert claims[0]["id"] == "TECH-2026-001"
+        assert claims[0]["text"] == "Test claim text"
+        assert claims[0]["type"] == "[F]"
+        assert claims[0]["domain"] == "TECH"
+        assert claims[0]["evidence_level"] == "E2"
+        assert claims[0]["credence"] == 0.75
+
+        assert claims[1]["id"] == "TECH-2026-002"
+        assert claims[1]["credence"] == 0.90
 
 
 class TestLinkedClaimIds:

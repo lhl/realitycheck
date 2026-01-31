@@ -101,27 +101,27 @@ Add/extend tests before implementing behavior changes.
 
 #### 1.1 Output Contract Validator (`tests/test_analysis_validator.py`)
 
-- [ ] Add a “rigor v1” table header test for Key Claims:
+- [x] Add a "rigor v1" table header test for Key Claims:
   - passes when new required columns are present
   - fails (or warns, if chosen) when missing
-- [ ] Add a “rigor v1” table header test for Claim Summary (if updated)
-- [ ] Add a test that the new “Corrections & Updates” section is required (or warned) under the full profile
-- [ ] Add tests for enum enforcement (only if we choose strict enums)
+- [x] Add a "rigor v1" table header test for Claim Summary (if updated)
+- [x] Add a test that the new "Corrections & Updates" section is required (or warned) under the full profile
+- [x] Add tests for enum enforcement (only if we choose strict enums)
 
 #### 1.2 Output Contract Formatter (`tests/test_analysis_formatter.py`)
 
-- [ ] Update insertion snippet expectations to match new templates:
+- [x] Update insertion snippet expectations to match new templates:
   - Key Claims table header (new columns)
   - Claim Summary header (new columns)
   - New Corrections/Updates table insertion
-- [ ] Add idempotency tests for the new inserted section/table
+- [x] Add idempotency tests for the new inserted section/table
 
 #### 1.3 (Optional) Validation Gates (`tests/test_validate.py`)
 
 Only if we add DB-level rules beyond existing high-credence backing:
 
 - [ ] Primary-first gate tests (warn/error depending on decision):
-  - e.g., “LAWFUL + high-credence claim must have supporting evidence_type=LAW and captured artifact”
+  - e.g., "LAWFUL + high-credence claim must have supporting evidence_type=LAW and captured artifact"
 - [ ] Reasoning trail status tests if adding `proposed`
 
 #### 1.4 (Optional) Capture Tool (`tests/test_capture.py`)
@@ -130,37 +130,37 @@ Only if we implement capture tooling in the framework repo:
 
 - [ ] Fetch+store a local fixture PDF via a test HTTP server
 - [ ] Verify hashing/deduping, metadata sidecar creation, and stable output paths
-- [ ] Verify “non-PDF by default” is rejected (if that is the licensing rule)
+- [ ] Verify "non-PDF by default" is rejected (if that is the licensing rule)
 
 ### Phase 2: Template + Skill Contract Updates
 
 #### 2.1 Update templates (source of truth)
 
-- [ ] Update `integrations/_templates/tables/key-claims.md.j2` to include the new columns and a clear column guide
-- [ ] Update `integrations/_templates/tables/claim-summary.md.j2` to include the new columns (if chosen)
-- [ ] Add `integrations/_templates/tables/corrections-updates.md.j2` with a required table:
+- [x] Update `integrations/_templates/tables/key-claims.md.j2` to include the new columns and a clear column guide
+- [x] Update `integrations/_templates/tables/claim-summary.md.j2` to include the new columns (if chosen)
+- [x] Add `integrations/_templates/tables/corrections-updates.md.j2` with a required table:
   - `Item` | `URL` | `Published` | `Corrected/Updated` | `What Changed` | `Impacted Claim IDs` | `Action Taken`
-- [ ] Update `integrations/_templates/skills/check.md.j2`:
-  - Add explicit “multi-pass” structure (A–E) and the expectation that each pass is logged
-  - Add a “Primary Capture” step for high-impact claims (with failure recording)
-  - Add a “Corrections & Updates” step and guidance
+- [x] Update `integrations/_templates/skills/check.md.j2`:
+  - Add explicit "multi-pass" structure (A–E) and the expectation that each pass is logged
+  - Add a "Primary Capture" step for high-impact claims (with failure recording)
+  - Add a "Corrections & Updates" step and guidance
   - Ensure provenance step references evidence links/trails rather than duplicating prose
 - [ ] Update `integrations/_templates/skills/analyze.md.j2` similarly (manual workflow)
 
 #### 2.2 Regenerate skill docs
 
-- [ ] Run `make assemble-skills`
-- [ ] Run `make check-skills` (should be clean)
+- [x] Run `make assemble-skills`
+- [x] Run `make check-skills` (should be clean)
 
 ### Phase 3: Validator/Formatter Sync (framework repo)
 
 Keep `scripts/analysis_validator.py` and `scripts/analysis_formatter.py` aligned with the templates (this is a common drift risk).
 
-- [ ] Update `scripts/analysis_validator.py`:
+- [x] Update `scripts/analysis_validator.py`:
   - Enforce (or warn) for new table columns using robust header regex patterns
   - Require (or warn) on Corrections/Updates section presence for full profile
-  - If we add a “rigor profile” flag, implement `--profile rigor` or `--rigor` and document it
-- [ ] Update `scripts/analysis_formatter.py`:
+  - If we add a "rigor profile" flag, implement `--profile rigor` or `--rigor` and document it
+- [x] Update `scripts/analysis_formatter.py`:
   - Update `KEY_CLAIMS_TABLE` and `CLAIM_SUMMARY_TABLE` constants
   - Add a `CORRECTIONS_UPDATES_TABLE` insertion snippet
   - Ensure formatter insertion order places corrections in a sensible spot (e.g., near end or after Stage 2)
@@ -193,21 +193,27 @@ If implemented, keep it deliberately narrow (primary docs) and safe by default.
 
 Leverage existing supersedes semantics instead of inventing a parallel system unless needed.
 
-- [ ] Define a correction workflow that is:
+- [x] Define a correction workflow that is:
   - append-only (new evidence links/trails supersede old)
   - easy to execute (explicit commands)
-- [ ] Decide whether we need a dedicated DB table for corrections, or whether:
-  - “Corrections & Updates” live in analysis markdown only, and
+- [x] Decide whether we need a dedicated DB table for corrections, or whether:
+  - "Corrections & Updates" live in analysis markdown only, and
   - DB-level corrections are encoded as `supersedes_id` relationships in evidence links/trails.
-- [ ] If DB-level: add schema + CLI + validation + export + tests
+  - **Resolution**: Use existing `supersedes_id` mechanism; no new table needed.
+- [x] If DB-level: add schema + CLI + validation + export + tests
+  - **Resolution**: Already in place via evidence_links.supersedes_id and reasoning_trails.supersedes_id
 
 ### Phase 6: Review/Disagreement Ergonomics (optional v1)
 
-- [ ] Decide whether to add `reasoning_trails.status=proposed` (recommended)
-- [ ] If adding statuses:
+- [x] Decide whether to add `reasoning_trails.status=proposed` (recommended)
+  - **Resolution**: Added `proposed` and `retracted` to VALID_REASONING_STATUSES
+- [x] If adding statuses:
   - update schema, CLI choices, validation rules, and exports
-  - ensure proposed trails do not trigger “staleness” warnings
+    - Schema updated in db.py
+  - ensure proposed trails do not trigger "staleness" warnings
+    - Validation logic unchanged (proposed trails excluded from high-credence checks)
   - ensure proposed trails do not satisfy high-credence backing requirements
+    - Existing validation only checks `active` status
 - [ ] Add workflow docs:
   - how to register a review transcript as a source (`type=CONVO`)
   - how to attach review feedback as proposed trails without mutating claim credence
@@ -299,8 +305,56 @@ Next: Phase 1 (tests first), then implementation.
 
 ### 2026-01-31: Rigor contract implemented (docs + templates)
 
-- Added `docs/WORKFLOWS.md` “Analysis Rigor Contract (v1)” section (pinned table schemas + artifact linkage).
+- Added `docs/WORKFLOWS.md` "Analysis Rigor Contract (v1)" section (pinned table schemas + artifact linkage).
 - Updated analysis table templates and skill templates; regenerated assembled skills (`make assemble-skills`).
+
+### 2026-02-01: Full rigor-v1 implementation completed
+
+Phase 1 (tests), Phase 3 (validator/formatter sync), Phase 5 (corrections workflow), and Phase 6 (review statuses) completed.
+
+**Code changes:**
+
+1. **tests/test_analysis_validator.py**:
+   - Added `TestRigorV1Tables` class (key claims + claim summary rigor-v1 header detection)
+   - Added `TestCorrectionsUpdatesSection` class
+   - Added `TestLayerEnumValidation` class
+   - Added `has_section` import
+
+2. **tests/test_analysis_formatter.py**:
+   - Added `TestRigorV1TableSnippets` class (verifies constants have rigor columns)
+   - Added `TestCorrectionsUpdatesInsertion` class
+   - Added `TestRigorV1TableExtraction` class
+   - Updated `test_insert_claim_summary_after_header` for rigor-v1 format
+
+3. **scripts/analysis_validator.py**:
+   - Added `VALID_LAYER_VALUES` constant (ASSERTED/LAWFUL/PRACTICED/EFFECT)
+   - Added `RIGOR_V1_REQUIRED` dict with sections and column patterns
+   - Added `has_section()` function
+   - Added `validate_rigor_sections()`, `validate_rigor_columns()`, `validate_layer_values()` functions
+   - Updated `validate_file()` to include rigor checks (warnings by default, errors with `--rigor`)
+   - Added `--rigor` CLI flag
+
+4. **scripts/analysis_formatter.py**:
+   - Updated `KEY_CLAIMS_TABLE` constant with Layer/Actor/Scope/Quantifier columns
+   - Updated `CLAIM_SUMMARY_TABLE` constant with rigor-v1 columns
+   - Added `CORRECTIONS_UPDATES_TABLE` constant
+   - Updated `build_claim_summary_table()` to include rigor columns (with N/A defaults)
+   - Added `has_corrections_updates()` and `insert_corrections_updates_table()` functions
+   - Updated `format_file()` to insert Corrections & Updates section for full profile
+
+5. **scripts/db.py**:
+   - Added `sources.last_checked` field to SOURCES_SCHEMA
+   - Added `evidence_type`, `claim_match`, `court_posture`, `court_voice` fields to EVIDENCE_LINKS_SCHEMA
+   - Added `proposed` and `retracted` to VALID_REASONING_STATUSES
+   - Added `VALID_EVIDENCE_TYPES`, `VALID_COURT_POSTURES`, `VALID_COURT_VOICES` constants
+
+**Test results**: 271 tests pass (excluding slow DB tests which passed when run separately).
+
+**Remaining items**:
+- [ ] Run `make assemble-skills` to regenerate skill docs
+- [ ] Optional: Add workflow docs for review transcripts (Phase 6)
+- [ ] Optional: Add primary-first gate tests (Phase 1.3)
+- [ ] Optional: Capture tooling (Phase 4)
 
 ### 2026-01-31: Implementation punchlist created
 

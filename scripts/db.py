@@ -343,6 +343,7 @@ SOURCES_SCHEMA = pa.schema([
     pa.field("url", pa.string(), nullable=True),
     pa.field("doi", pa.string(), nullable=True),
     pa.field("accessed", pa.string(), nullable=True),
+    pa.field("last_checked", pa.string(), nullable=True),  # Rigor-v1: when source was last verified for changes
     pa.field("reliability", pa.float32(), nullable=True),  # 0.0-1.0
     pa.field("bias_notes", pa.string(), nullable=True),
     pa.field("claims_extracted", pa.list_(pa.string()), nullable=True),
@@ -454,9 +455,16 @@ EVIDENCE_LINKS_SCHEMA = pa.schema([
     pa.field("status", pa.string(), nullable=False),  # active|superseded|retracted
     pa.field("supersedes_id", pa.string(), nullable=True),  # Pointer for corrections
     pa.field("strength", pa.float32(), nullable=True),  # Coarse impact estimate
-    pa.field("location", pa.string(), nullable=True),  # Specific location in source
+    pa.field("location", pa.string(), nullable=True),  # Specific location in source (rigor-v1: artifact=...; locator=...)
     pa.field("quote", pa.string(), nullable=True),  # Relevant excerpt
     pa.field("reasoning", pa.string(), nullable=True),  # Why this evidence matters
+
+    # Rigor-v1 fields (D1 decision: evidence-level fields on evidence_links)
+    pa.field("evidence_type", pa.string(), nullable=True),  # LAW|REG|COURT_ORDER|FILING|MEMO|POLICY|REPORTING|VIDEO|DATA|STUDY|TESTIMONY|OTHER
+    pa.field("claim_match", pa.string(), nullable=True),  # How directly this evidence supports the claim phrasing
+    pa.field("court_posture", pa.string(), nullable=True),  # stay|merits|preliminary_injunction|appeal|OTHER (court docs only)
+    pa.field("court_voice", pa.string(), nullable=True),  # majority|concurrence|dissent|per_curiam (court docs only)
+
     pa.field("analysis_log_id", pa.string(), nullable=True),  # Link to audit log pass
     pa.field("created_at", pa.string(), nullable=False),  # ISO timestamp
     pa.field("created_by", pa.string(), nullable=False),  # Tool/user that created this
@@ -467,6 +475,18 @@ VALID_EVIDENCE_DIRECTIONS = {"supports", "contradicts", "strengthens", "weakens"
 
 # Valid evidence link statuses
 VALID_EVIDENCE_STATUSES = {"active", "superseded", "retracted"}
+
+# Rigor-v1: Valid evidence types (D3 decision: guidance + escape)
+VALID_EVIDENCE_TYPES = {
+    "LAW", "REG", "COURT_ORDER", "FILING", "MEMO", "POLICY",
+    "REPORTING", "VIDEO", "DATA", "STUDY", "TESTIMONY", "OTHER"
+}
+
+# Rigor-v1: Valid court postures (D7 decision)
+VALID_COURT_POSTURES = {"stay", "merits", "preliminary_injunction", "appeal", "emergency", "OTHER"}
+
+# Rigor-v1: Valid court voices (D7 decision)
+VALID_COURT_VOICES = {"majority", "concurrence", "dissent", "per_curiam"}
 
 # =============================================================================
 # Reasoning Trails Schema (Epistemic Provenance)
@@ -491,8 +511,8 @@ REASONING_TRAILS_SCHEMA = pa.schema([
     pa.field("created_by", pa.string(), nullable=False),  # Tool/user that created this
 ])
 
-# Valid reasoning trail statuses
-VALID_REASONING_STATUSES = {"active", "superseded"}
+# Valid reasoning trail statuses (D6 decision: add proposed and retracted)
+VALID_REASONING_STATUSES = {"active", "superseded", "proposed", "retracted"}
 
 # Valid counterargument dispositions (for validation)
 VALID_COUNTERARGUMENT_DISPOSITIONS = {"integrated", "discounted", "unresolved"}

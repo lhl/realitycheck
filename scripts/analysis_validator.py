@@ -55,6 +55,9 @@ def extract_claim_id(cell_text: str) -> str | None:
     return None
 
 
+# Valid Layer enum values (strict enforcement in rigor mode)
+VALID_LAYER_VALUES = {"ASSERTED", "LAWFUL", "PRACTICED", "EFFECT"}
+
 # Required elements for full analysis profile
 FULL_PROFILE_REQUIRED = {
     "sections": [
@@ -95,6 +98,18 @@ FULL_PROFILE_REQUIRED = {
     ],
 }
 
+# Rigor-v1 additional requirements (WARN by default, ERROR with --rigor)
+RIGOR_V1_REQUIRED = {
+    "sections": [
+        "### Corrections & Updates",
+    ],
+    "rigor_columns": {
+        # Check that claim tables have Layer/Actor/Scope/Quantifier columns
+        "key_claims": (r"\|\s*#\s*\|.*\|.*Layer.*\|.*Actor.*\|.*Scope.*\|.*Quantifier.*\|", "Key Claims table rigor columns"),
+        "claim_summary": (r"\|\s*ID\s*\|.*\|.*Layer.*\|.*Actor.*\|.*Scope.*\|.*Quantifier.*\|", "Claim Summary table rigor columns"),
+    },
+}
+
 # Required elements for quick analysis profile
 QUICK_PROFILE_REQUIRED = {
     "sections": [
@@ -132,6 +147,12 @@ def detect_profile(content: str) -> str:
     if re.search(r"\*\*Analysis Depth\*\*.*quick", content, re.IGNORECASE):
         return "quick"
     return "full"
+
+
+def has_section(content: str, section: str) -> bool:
+    """Check if a section header exists (case-insensitive)."""
+    pattern = re.escape(section)
+    return bool(re.search(pattern, content, re.IGNORECASE))
 
 
 def check_framework_repo(path: Path) -> list[str]:
@@ -203,8 +224,96 @@ def validate_claim_ids(content: str) -> list[str]:
     return warnings
 
 
-def validate_file(path: Path, profile: str | None = None) -> ValidationResult:
-    """Validate a single analysis file."""
+def validate_rigor_sections(content: str) -> list[str]:
+    """Check for rigor-v1 required sections (returns warnings, not errors)."""
+    warnings = []
+    for section in RIGOR_V1_REQUIRED["sections"]:
+        if not has_section(content, section):
+            warnings.append(f"Missing rigor-v1 section: {section}")
+    return warnings
+
+
+def validate_rigor_columns(content: str) -> list[str]:
+    """Check that claim tables have rigor-v1 columns (Layer/Actor/Scope/Quantifier)."""
+    warnings = []
+
+    # Only check if tables exist at all
+    for table_name, (pattern, description) in RIGOR_V1_REQUIRED["rigor_columns"].items():
+        # Check if the table exists with basic pattern first
+        basic_pattern = r"\|\s*#\s*\|" if table_name == "key_claims" else r"\|\s*ID\s*\|"
+        if re.search(basic_pattern, content, re.IGNORECASE):
+            # Table exists, check for rigor columns
+            if not re.search(pattern, content, re.IGNORECASE):
+                warnings.append(f"Missing {description} (Layer/Actor/Scope/Quantifier)")
+
+    return warnings
+
+
+def validate_layer_values(content: str) -> list[str]:
+    """Check that Layer column values are valid (ASSERTED/LAWFUL/PRACTICED/EFFECT)."""
+    warnings = []
+
+    # Find Layer values in tables
+    # Look for table rows that might have a Layer column
+    # We look for patterns like: | ... | SOMETHING | ... | where SOMETHING might be a layer value
+    layer_pattern = re.compile(
+        r"\|\s*Layer\s*\|",
+        re.IGNORECASE
+    )
+
+    if not layer_pattern.search(content):
+        # No Layer column found, skip validation
+        return warnings
+
+    # Extract potential layer values from table rows
+    # Look for cells that contain values that look like they might be layer values
+    lines = content.split('\n')
+    in_table = False
+    layer_col_idx = None
+
+    for line in lines:
+        if not line.strip().startswith('|'):
+            in_table = False
+            layer_col_idx = None
+            continue
+
+        cells = [c.strip() for c in line.split('|')]
+        if not cells:
+            continue
+
+        # Check if this is a header row with Layer column
+        for idx, cell in enumerate(cells):
+            if cell.lower() == 'layer':
+                in_table = True
+                layer_col_idx = idx
+                break
+
+        # If we're in a table with a Layer column, check the value
+        if in_table and layer_col_idx is not None and layer_col_idx < len(cells):
+            cell_value = cells[layer_col_idx].strip()
+            # Skip header row and separator row
+            if cell_value.lower() == 'layer' or cell_value.startswith('-') or not cell_value:
+                continue
+            # Check if value is valid
+            if cell_value not in VALID_LAYER_VALUES and cell_value != 'N/A':
+                # Allow placeholder values in templates
+                if 'ASSERTED/LAWFUL/PRACTICED/EFFECT' not in cell_value:
+                    warnings.append(f"Invalid Layer value '{cell_value}' - must be ASSERTED/LAWFUL/PRACTICED/EFFECT")
+
+    return warnings
+
+
+def validate_file(path: Path, profile: str | None = None, rigor: bool = False) -> ValidationResult:
+    """Validate a single analysis file.
+
+    Args:
+        path: Path to the analysis file
+        profile: Override detected profile ('full' or 'quick')
+        rigor: If True, rigor-v1 warnings become errors
+
+    Returns:
+        ValidationResult with errors, warnings, and profile info
+    """
     errors = []
     warnings = []
 
@@ -243,6 +352,19 @@ def validate_file(path: Path, profile: str | None = None) -> ValidationResult:
     # Validate claim IDs
     warnings.extend(validate_claim_ids(content))
 
+    # Rigor-v1 validation (full profile only)
+    if actual_profile == "full":
+        rigor_warnings = []
+        rigor_warnings.extend(validate_rigor_sections(content))
+        rigor_warnings.extend(validate_rigor_columns(content))
+        rigor_warnings.extend(validate_layer_values(content))
+
+        if rigor:
+            # In rigor mode, rigor warnings become errors
+            errors.extend(rigor_warnings)
+        else:
+            warnings.extend(rigor_warnings)
+
     return ValidationResult(path, actual_profile, errors, warnings)
 
 
@@ -267,6 +389,11 @@ def main():
         help="Treat warnings as errors",
     )
     parser.add_argument(
+        "--rigor",
+        action="store_true",
+        help="Enable rigor-v1 mode: require Layer/Actor/Scope/Quantifier columns and Corrections & Updates section",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Output results as JSON",
@@ -288,7 +415,7 @@ def main():
             total_errors += 1
             continue
 
-        result = validate_file(file_path, args.profile)
+        result = validate_file(file_path, args.profile, rigor=args.rigor)
         results.append(result)
         total_errors += len(result.errors)
         total_warnings += len(result.warnings)

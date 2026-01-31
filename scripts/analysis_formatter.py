@@ -67,17 +67,35 @@ LEGENDS = """> **Claim types**: `[F]` fact, `[T]` theory, `[H]` hypothesis, `[P]
 
 KEY_CLAIMS_TABLE = """### Key Claims
 
-| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
-|---|-------|----------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+
+**Column guide**:
+- **Layer**: `ASSERTED` (positions/claims made), `LAWFUL` (controlling law), `PRACTICED` (practice), `EFFECT` (causal effects)
+- **Actor**: Who is acting (e.g., ICE/CBP/DHS/DOJ/COURT). Use `OTHER:<text>` or `N/A` only when not applicable.
+- **Scope**: Mini-schema string (e.g., `who=...; where=...; when=...; process=...; predicate=...; conditions=...`)
+- **Quantifier**: `none|some|often|most|always|OTHER:<text>|N/A`
 
 """
 
 CLAIM_SUMMARY_TABLE = """### Claim Summary
 
-| ID | Type | Domain | Evidence | Credence | Claim |
-|----|------|--------|----------|----------|-------|
-| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00 | [claim text] |
+| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |
+|----|------|--------|-------|-------|-------|------------|----------|----------|-------|
+| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | E1-E6 | 0.00 | [claim text] |
+
+"""
+
+CORRECTIONS_UPDATES_TABLE = """### Corrections & Updates
+
+| Item | URL | Published | Corrected/Updated | What Changed | Impacted Claim IDs | Action Taken |
+|------|-----|-----------|-------------------|--------------|--------------------|-------------|
+| 1 | [url] | [YYYY-MM-DD] | [YYYY-MM-DD or N/A] | [brief summary] | [CLAIM-IDs or N/A] | [action] |
+
+**Notes**:
+- Use this section to track: **corrections**, **updates**, and **capture failures** (paywalls/JS blockers/etc.).
+- Changes should be **append-only** in provenance: create new `evidence_links` / `reasoning_trails` rows that supersede prior ones (don't overwrite history).
 
 """
 
@@ -364,7 +382,7 @@ def _collapse_ws(text: str) -> str:
 
 
 def build_claim_summary_table(claims: list[dict]) -> str:
-    """Build a Claim Summary table.
+    """Build a Claim Summary table (rigor-v1 format with Layer/Actor/Scope/Quantifier).
 
     Falls back to placeholder if claims is empty.
     Preserves linked claim IDs if present in id_display field.
@@ -373,19 +391,24 @@ def build_claim_summary_table(claims: list[dict]) -> str:
         return CLAIM_SUMMARY_TABLE
 
     lines = [
-        "| ID | Type | Domain | Evidence | Credence | Claim |",
-        "|----|------|--------|----------|----------:|-------|",
+        "| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |",
+        "|----|------|--------|-------|-------|-------|------------|----------|----------:|-------|",
     ]
     for claim in claims:
         # Use id_display (linked format) if present, otherwise bare id
         claim_id = str(claim.get("id_display", claim.get("id", ""))).strip()
         claim_type = str(claim.get("type", "")).strip()
         domain = str(claim.get("domain", "")).strip()
+        # Rigor columns - default to N/A if not present
+        layer = str(claim.get("layer", "N/A")).strip()
+        actor = str(claim.get("actor", "N/A")).strip()
+        scope = str(claim.get("scope", "N/A")).strip()
+        quantifier = str(claim.get("quantifier", "N/A")).strip()
         evidence = str(claim.get("evidence_level", "")).strip()
         credence_val = claim.get("credence", None)
         credence = f"{credence_val:.2f}" if isinstance(credence_val, (int, float)) else ""
         text = _collapse_ws(str(claim.get("text", "")).strip()).replace("|", "\\|")
-        lines.append(f"| {claim_id} | {claim_type} | {domain} | {evidence} | {credence} | {text} |")
+        lines.append(f"| {claim_id} | {claim_type} | {domain} | {layer} | {actor} | {scope} | {quantifier} | {evidence} | {credence} | {text} |")
 
     return "### Claim Summary\n\n" + "\n".join(lines) + "\n\n"
 
@@ -525,7 +548,10 @@ def insert_legends(content: str) -> str:
 
 
 def insert_key_claims_table(content: str) -> str:
-    """Insert Key Claims table if missing (full profile only)."""
+    """Insert Key Claims table if missing (full profile only).
+
+    Uses rigor-v1 format with Layer/Actor/Scope/Quantifier columns.
+    """
     if re.search(r"\|\s*#\s*\|.*Claim.*\|.*Claim ID.*\|.*Type.*\|.*Domain.*\|", content, re.IGNORECASE):
         return content
 
@@ -551,10 +577,11 @@ def insert_key_claims_table(content: str) -> str:
                     match = re.search(r"### Key Claims\s*\n", content, re.IGNORECASE)
                     if match:
                         insert_pos = match.end()
+            # Rigor-v1 table format
             table_content = """
-| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
-|---|-------|----------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
 
 """
             return content[:insert_pos] + table_content + content[insert_pos:]
@@ -562,6 +589,52 @@ def insert_key_claims_table(content: str) -> str:
     # Need to create the section - find position
     pos = find_section_position(content, "### Key Claims", FULL_SECTION_ORDER)
     return content[:pos] + "\n" + KEY_CLAIMS_TABLE + content[pos:]
+
+
+def has_corrections_updates(content: str) -> bool:
+    """Check if the Corrections & Updates section exists."""
+    return has_section(content, "### Corrections & Updates")
+
+
+def insert_corrections_updates_table(content: str) -> str:
+    """Insert Corrections & Updates table if missing (full profile only)."""
+    if has_corrections_updates(content):
+        return content
+
+    # Insert after Disconfirming Evidence Search section (in Stage 2)
+    if has_section(content, "### Disconfirming Evidence Search"):
+        # Find the section and look for the next ### header
+        match = re.search(r"### Disconfirming Evidence Search", content, re.IGNORECASE)
+        if match:
+            # Find the next ### section after this one
+            remaining_content = content[match.end():]
+            next_section = re.search(r"\n###\s+", remaining_content)
+            if next_section:
+                insert_pos = match.end() + next_section.start()
+                # Insert before the next section
+                return content[:insert_pos] + "\n" + CORRECTIONS_UPDATES_TABLE + content[insert_pos:]
+
+    # Fallback: insert at end of Stage 2 section or before Stage 3
+    if has_section(content, "## Stage 3"):
+        match = re.search(r"## Stage 3", content, re.IGNORECASE)
+        if match:
+            # Insert before Stage 3
+            insert_pos = match.start()
+            while insert_pos > 0 and content[insert_pos - 1] == '\n':
+                insert_pos -= 1
+            return content[:insert_pos] + "\n\n" + CORRECTIONS_UPDATES_TABLE + "\n" + content[insert_pos:]
+
+    # Last resort: append before Claim Summary
+    if has_section(content, "### Claim Summary"):
+        match = re.search(r"### Claim Summary", content, re.IGNORECASE)
+        if match:
+            insert_pos = match.start()
+            while insert_pos > 0 and content[insert_pos - 1] == '\n':
+                insert_pos -= 1
+            return content[:insert_pos] + "\n\n" + CORRECTIONS_UPDATES_TABLE + "\n" + content[insert_pos:]
+
+    # No suitable location found, return unchanged
+    return content
 
 
 def insert_claim_summary_table(content: str, claims: list[dict] | None = None) -> str:
@@ -713,6 +786,13 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
         if not re.search(r"\|\s*#\s*\|.*Claim.*\|.*Claim ID.*\|", content, re.IGNORECASE):
             content = insert_key_claims_table(content)
             changes.append("Added Key Claims table")
+
+    # Step 3.5: Insert Corrections & Updates table (full profile only, rigor-v1)
+    if actual_profile == "full":
+        if not has_corrections_updates(content):
+            content = insert_corrections_updates_table(content)
+            if has_corrections_updates(content):
+                changes.append("Added Corrections & Updates section")
 
     # Step 4: Insert Claim Summary table
     if not re.search(r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", content, re.IGNORECASE):
