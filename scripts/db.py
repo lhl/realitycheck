@@ -22,6 +22,7 @@ import pyarrow as pa
 if __package__:
     from .analysis_log_writer import upsert_analysis_log_section
     from .usage_capture import (
+        UsageTotals,
         estimate_cost_usd,
         parse_usage_from_source,
         get_current_session_path,
@@ -37,6 +38,7 @@ if __package__:
 else:
     from analysis_log_writer import upsert_analysis_log_section
     from usage_capture import (
+        UsageTotals,
         estimate_cost_usd,
         parse_usage_from_source,
         get_current_session_path,
@@ -3738,14 +3740,16 @@ rc-validate
             since = getattr(args, "since", None)
             until = getattr(args, "until", None)
 
-            # Get all analysis logs missing tokens_check
+            # Get all analysis logs (filtering happens below)
             all_logs = list_analysis_logs(tool=tool_filter, limit=10000, db=db)
 
             # Filter to entries that need backfill
             candidates = []
             for log in all_logs:
-                # Skip if already has tokens_check (unless force)
-                if log.get("tokens_check") is not None and not force:
+                needs_backfill = force or any(
+                    log.get(field) is None for field in ("tokens_check", "tokens_in", "tokens_out", "total_tokens")
+                )
+                if not needs_backfill:
                     continue
 
                 # Must have timestamps for window matching
@@ -3771,18 +3775,18 @@ rc-validate
             print(f"Found {len(candidates)} entries to backfill (limit: {limit})", flush=True)
             candidates = candidates[:limit]
 
-            # Warn about Codex limitation
+            # Warn about Codex gotchas
             codex_count = sum(1 for c in candidates if _tool_to_provider(c.get("tool", "")) == "codex")
             if codex_count > 0:
                 print(
-                    f"\nNote: {codex_count} Codex entries will use cumulative counter snapshot (may overcount).",
+                    f"\nNote: {codex_count} Codex entries will use windowed counter deltas from local session logs.",
                     flush=True,
                 )
                 print(
-                    "Codex logs store running totals; window filtering returns final counter, not delta.",
+                    "If a session lacks token_count events near the start/end timestamps, deltas may be undercounted.",
                     flush=True,
                 )
-                print("Consider manual review for accuracy.\n", flush=True)
+                print("Consider spot-checking a few entries for accuracy.\n", flush=True)
 
             updated = 0
             skipped = 0
@@ -3794,6 +3798,8 @@ rc-validate
                 started_at = log.get("started_at")
                 completed_at = log.get("completed_at")
 
+                session_id = log.get("usage_session_id")
+
                 # Find session files that overlap with this time window
                 session_paths = _get_session_paths(provider)
                 if not session_paths:
@@ -3801,40 +3807,195 @@ rc-validate
                     skipped += 1
                     continue
 
-                # Try to compute windowed usage
-                best_tokens = None
-                for path in session_paths:
-                    try:
-                        totals = parse_usage_from_source(
-                            provider, path,
-                            window_start=started_at,
-                            window_end=completed_at,
-                        )
-                        if totals.total_tokens and totals.total_tokens > 0:
-                            best_tokens = totals.total_tokens
-                            break
-                    except Exception:
-                        continue
+                def _sum_windowed_usage(paths: list[Path]) -> Optional[UsageTotals]:
+                    total_in = 0
+                    total_out = 0
+                    total = 0
+                    saw_any = False
 
-                if best_tokens is None:
+                    for p in paths:
+                        try:
+                            totals = parse_usage_from_source(
+                                provider,
+                                p,
+                                window_start=started_at,
+                                window_end=completed_at,
+                            )
+                        except Exception:
+                            continue
+
+                        if totals.total_tokens is None:
+                            continue
+                        if totals.total_tokens <= 0:
+                            continue
+
+                        saw_any = True
+                        total_in += totals.tokens_in or 0
+                        total_out += totals.tokens_out or 0
+                        total += totals.total_tokens or 0
+
+                    if not saw_any:
+                        return None
+
+                    # Some providers may omit split in/out; derive if needed.
+                    if total_in == 0 and total_out == 0 and total > 0:
+                        total_in = total
+
+                    return UsageTotals(tokens_in=total_in, tokens_out=total_out, total_tokens=total, cost_usd=None)
+
+                best_totals: Optional[UsageTotals] = None
+                paths_used: list[Path] = []
+
+                if session_id:
+                    # Prefer matching UUID if present (especially important for Codex).
+                    matching = [
+                        p for p in session_paths
+                        if (_extract_uuid_from_filename(p.name, provider) or "").lower() == str(session_id).lower()
+                    ]
+                    if matching:
+                        best_totals = _sum_windowed_usage(matching)
+                        if best_totals is not None:
+                            paths_used = matching
+
+                if best_totals is None:
+                    # Fall back: try all sessions, selecting the best match by max tokens in window.
+                    best_tokens = 0
+                    best_path: Optional[Path] = None
+                    for p in session_paths:
+                        totals = _sum_windowed_usage([p])
+                        if totals is None or totals.total_tokens is None:
+                            continue
+                        if totals.total_tokens > best_tokens:
+                            best_tokens = totals.total_tokens
+                            best_totals = totals
+                            best_path = p
+                    if best_path is not None:
+                        paths_used = [best_path]
+
+                if best_totals is None:
                     print(f"  {log_id}: no matching usage found", flush=True)
                     skipped += 1
                     continue
 
                 # Use appropriate usage_mode based on provider
-                # Codex returns cumulative counter, not actual window delta
-                mode = "cumulative_snapshot" if provider == "codex" else "windowed_sum"
+                mode = "counter_delta" if provider == "codex" else "windowed_sum"
+
+                updates = {}
+                if force or log.get("tokens_in") is None:
+                    updates["tokens_in"] = best_totals.tokens_in
+                if force or log.get("tokens_out") is None:
+                    updates["tokens_out"] = best_totals.tokens_out
+                if force or log.get("total_tokens") is None:
+                    updates["total_tokens"] = best_totals.total_tokens
+                if force or log.get("tokens_check") is None:
+                    updates["tokens_check"] = best_totals.total_tokens
+                if force or log.get("usage_mode") is None:
+                    updates["usage_mode"] = mode
+                if force or log.get("usage_provider") is None:
+                    updates["usage_provider"] = provider
+
+                # For Codex, optionally refresh baseline/final snapshots to keep delta accounting consistent.
+                if provider == "codex" and paths_used:
+                    from datetime import datetime, timezone
+
+                    def _parse_iso8601(value: str) -> Optional[datetime]:
+                        text = str(value).strip()
+                        if not text:
+                            return None
+                        if text.endswith("Z"):
+                            text = text[:-1] + "+00:00"
+                        try:
+                            dt_parsed = datetime.fromisoformat(text)
+                        except Exception:
+                            return None
+                        if dt_parsed.tzinfo is None:
+                            dt_parsed = dt_parsed.replace(tzinfo=timezone.utc)
+                        return dt_parsed.astimezone(timezone.utc)
+
+                    start_dt = _parse_iso8601(started_at)
+                    end_dt = _parse_iso8601(completed_at)
+
+                    def _codex_baseline_final_totals(p: Path) -> tuple[int, int] | None:
+                        if start_dt is None or end_dt is None:
+                            return None
+
+                        baseline_total: Optional[int] = None
+                        baseline_ts: Optional[datetime] = None
+                        final_total: Optional[int] = None
+                        final_ts: Optional[datetime] = None
+
+                        try:
+                            with p.open("r", encoding="utf-8") as f:
+                                for line in f:
+                                    line = line.strip()
+                                    if not line:
+                                        continue
+                                    try:
+                                        obj = json.loads(line)
+                                    except Exception:
+                                        continue
+
+                                    ts_val = obj.get("timestamp") or obj.get("created_at") or obj.get("time")
+                                    ts = _parse_iso8601(ts_val) if ts_val else None
+                                    if ts is None:
+                                        continue
+
+                                    payload = obj.get("payload")
+                                    if not isinstance(payload, dict):
+                                        continue
+                                    info = payload.get("info")
+                                    if not isinstance(info, dict):
+                                        continue
+                                    usage = info.get("total_token_usage")
+                                    if not isinstance(usage, dict):
+                                        continue
+
+                                    total_val = usage.get("total_tokens")
+                                    try:
+                                        total_int = int(total_val)
+                                    except Exception:
+                                        continue
+
+                                    if ts < start_dt:
+                                        if baseline_ts is None or ts > baseline_ts:
+                                            baseline_ts = ts
+                                            baseline_total = total_int
+                                    elif ts <= end_dt:
+                                        if final_ts is None or ts > final_ts:
+                                            final_ts = ts
+                                            final_total = total_int
+                        except Exception:
+                            return None
+
+                        if final_total is None:
+                            return None
+
+                        return (baseline_total or 0, final_total)
+
+                    baseline_sum = 0
+                    final_sum = 0
+                    saw_any = False
+                    for p in paths_used:
+                        pair = _codex_baseline_final_totals(p)
+                        if pair is None:
+                            continue
+                        saw_any = True
+                        baseline_sum += pair[0]
+                        final_sum += pair[1]
+
+                    if saw_any:
+                        if force or log.get("tokens_baseline") is None:
+                            updates["tokens_baseline"] = baseline_sum
+                        if force or log.get("tokens_final") is None:
+                            updates["tokens_final"] = final_sum
 
                 if dry_run:
-                    print(f"  {log_id}: would set tokens_check={best_tokens:,} (mode={mode})", flush=True)
+                    detail = ", ".join(f"{k}={v:,}" if isinstance(v, int) else f"{k}={v}" for k, v in updates.items())
+                    print(f"  {log_id}: would set {detail}", flush=True)
                 else:
-                    update_analysis_log(
-                        log_id,
-                        tokens_check=best_tokens,
-                        usage_mode=mode,
-                        db=db,
-                    )
-                    print(f"  {log_id}: set tokens_check={best_tokens:,} (mode={mode})", flush=True)
+                    update_analysis_log(log_id, db=db, **updates)
+                    detail = ", ".join(f"{k}={v:,}" if isinstance(v, int) else f"{k}={v}" for k, v in updates.items())
+                    print(f"  {log_id}: set {detail}", flush=True)
                 updated += 1
 
             print(f"\nBackfill complete: {updated} updated, {skipped} skipped", flush=True)

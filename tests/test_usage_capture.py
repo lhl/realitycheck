@@ -108,7 +108,7 @@ class TestCodexUsageParsing:
                 [
                     '{"payload":{"info":null}}',
                     '{"payload":{"info":{"total_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":0}}}}',
-                    '{"payload":{"info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":200,"reasoning_output_tokens":30,"total_tokens":350}}}}',
+                    '{"payload":{"info":{"total_token_usage":{"input_tokens":120,"cached_input_tokens":20,"output_tokens":230,"reasoning_output_tokens":30,"total_tokens":350}}}}',
                     "",
                 ]
             )
@@ -118,6 +118,34 @@ class TestCodexUsageParsing:
         assert totals.tokens_in == 120
         assert totals.tokens_out == 230
         assert totals.total_tokens == 350
+
+    def test_parse_codex_jsonl_window_uses_counter_delta(self, tmp_path: Path):
+        log_path = tmp_path / "codex.jsonl"
+        log_path.write_text(
+            "\n".join(
+                [
+                    # Baseline before the window
+                    '{"timestamp":"2026-01-23T10:00:00Z","payload":{"info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":200,"reasoning_output_tokens":30,"total_tokens":300}}}}',
+                    # Inside the window
+                    '{"timestamp":"2026-01-23T10:05:00Z","payload":{"info":{"total_token_usage":{"input_tokens":120,"cached_input_tokens":40,"output_tokens":230,"reasoning_output_tokens":50,"total_tokens":350}}}}',
+                    # After the window (should be ignored)
+                    '{"timestamp":"2026-01-23T10:10:00Z","payload":{"info":{"total_token_usage":{"input_tokens":150,"cached_input_tokens":50,"output_tokens":250,"reasoning_output_tokens":60,"total_tokens":400}}}}',
+                    "",
+                ]
+            )
+        )
+
+        totals = parse_usage_from_source(
+            "codex",
+            log_path,
+            window_start="2026-01-23T10:03:00Z",
+            window_end="2026-01-23T10:08:00Z",
+        )
+
+        # Delta: 120-100 = 20 in, 230-200 = 30 out, 350-300 = 50 total
+        assert totals.tokens_in == 20
+        assert totals.tokens_out == 30
+        assert totals.total_tokens == 50
 
 
 class TestCostEstimation:

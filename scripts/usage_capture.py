@@ -215,6 +215,15 @@ def _parse_codex_jsonl(
     window_end: Optional[datetime],
 ) -> UsageTotals:
     latest: Optional[dict[str, Any]] = None
+    latest_ts: Optional[datetime] = None
+
+    baseline: Optional[dict[str, Any]] = None
+    baseline_ts: Optional[datetime] = None
+
+    final: Optional[dict[str, Any]] = None
+    final_ts: Optional[datetime] = None
+
+    windowed = window_start is not None or window_end is not None
 
     with path.open("r", encoding="utf-8") as f:
         for line in f:
@@ -227,7 +236,8 @@ def _parse_codex_jsonl(
                 continue
 
             ts = _parse_timestamp(obj.get("timestamp") or obj.get("created_at") or obj.get("time"))
-            if not _in_window(ts, window_start, window_end):
+            if windowed and ts is None:
+                # Windowed parsing requires timestamps; skip entries without them.
                 continue
 
             payload = obj.get("payload") if isinstance(obj, dict) else None
@@ -240,19 +250,57 @@ def _parse_codex_jsonl(
 
             total_usage = info.get("total_token_usage")
             if isinstance(total_usage, dict):
-                latest = total_usage
+                if not windowed:
+                    # Snapshot mode: accept the most recent counter in the file (even if timestamps are missing).
+                    latest = total_usage
+                    if ts is not None and (latest_ts is None or ts > latest_ts):
+                        latest_ts = ts
+                else:
+                    assert ts is not None  # windowed & ts None handled above
 
-    if not isinstance(latest, dict):
+                    if window_start is not None and ts < window_start:
+                        if baseline_ts is None or ts > baseline_ts:
+                            baseline = total_usage
+                            baseline_ts = ts
+                        continue
+
+                    if window_end is not None and ts > window_end:
+                        continue
+
+                    if window_start is None or ts >= window_start:
+                        if final_ts is None or ts > final_ts:
+                            final = total_usage
+                            final_ts = ts
+
+    if not windowed:
+        if not isinstance(latest, dict):
+            return UsageTotals(tokens_in=None, tokens_out=None, total_tokens=None, cost_usd=None)
+
+        # Codex token_count payloads mirror OpenAI API semantics:
+        # - `cached_input_tokens` is a subset of `input_tokens`
+        # - `reasoning_output_tokens` is a subset of `output_tokens`
+        tokens_in = _as_int(latest.get("input_tokens"))
+        tokens_out = _as_int(latest.get("output_tokens"))
+        total_tokens = _as_int(latest.get("total_tokens")) or (tokens_in + tokens_out)
+
+        return UsageTotals(tokens_in=tokens_in, tokens_out=tokens_out, total_tokens=total_tokens, cost_usd=None)
+
+    if not isinstance(final, dict):
         return UsageTotals(tokens_in=None, tokens_out=None, total_tokens=None, cost_usd=None)
 
-    input_tokens = _as_int(latest.get("input_tokens"))
-    cached_input_tokens = _as_int(latest.get("cached_input_tokens"))
-    output_tokens = _as_int(latest.get("output_tokens"))
-    reasoning_output_tokens = _as_int(latest.get("reasoning_output_tokens"))
+    base = baseline or {}
 
-    tokens_in = input_tokens + cached_input_tokens
-    tokens_out = output_tokens + reasoning_output_tokens
-    total_tokens = _as_int(latest.get("total_tokens")) or (tokens_in + tokens_out)
+    base_in = _as_int(base.get("input_tokens"))
+    base_out = _as_int(base.get("output_tokens"))
+    base_total = _as_int(base.get("total_tokens")) or (base_in + base_out)
+
+    final_in = _as_int(final.get("input_tokens"))
+    final_out = _as_int(final.get("output_tokens"))
+    final_total = _as_int(final.get("total_tokens")) or (final_in + final_out)
+
+    tokens_in = max(0, final_in - base_in)
+    tokens_out = max(0, final_out - base_out)
+    total_tokens = max(0, final_total - base_total) or (tokens_in + tokens_out)
 
     return UsageTotals(tokens_in=tokens_in, tokens_out=tokens_out, total_tokens=total_tokens, cost_usd=None)
 
