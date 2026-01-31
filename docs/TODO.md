@@ -47,8 +47,9 @@ Tracking future work items.
 ## Analysis Rigor Improvements (Primary Evidence, Layering, Corrections)
 
 **Plan**: [PLAN-analysis-rigor-improvement.md](PLAN-analysis-rigor-improvement.md)
+**Implementation**: [IMPLEMENTATION-analysis-rigor-improvement.md](IMPLEMENTATION-analysis-rigor-improvement.md)
 
-**Dependency**: Scheduled **after** Epistemic Provenance. Implementing provenance (`evidence_links`, `reasoning_trails`, validation gates, append-only corrections semantics) will directly satisfy part of this plan.
+**Dependency**: ✅ Epistemic Provenance is complete (2026-01-30) and satisfies part of this plan (`evidence_links`, `reasoning_trails`, validation gates, append-only corrections semantics).
 
 **Problem**: Analyses can still produce confident-looking evidence/credence tables that conflate:
 - asserted authority vs lawful authority vs practiced reality,
@@ -64,7 +65,7 @@ Tracking future work items.
 - Court citation hygiene (majority vs dissent; posture; controlling vs non-controlling)
 - Multi-pass refinement workflow that preserves provenance and reviewer disagreement cleanly
 
-**Status**: Queued - do after Epistemic Provenance.
+**Status**: Planning - implementation punchlist created (2026-01-31); pending decision lock.
 
 ---
 
