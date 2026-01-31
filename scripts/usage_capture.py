@@ -230,7 +230,14 @@ def _parse_codex_jsonl(
             if not _in_window(ts, window_start, window_end):
                 continue
 
-            info = obj.get("payload", {}).get("info", {}) if isinstance(obj, dict) else {}
+            payload = obj.get("payload") if isinstance(obj, dict) else None
+            if not isinstance(payload, dict):
+                continue
+
+            info = payload.get("info")
+            if not isinstance(info, dict):
+                continue
+
             total_usage = info.get("total_token_usage")
             if isinstance(total_usage, dict):
                 latest = total_usage
@@ -328,7 +335,9 @@ def _extract_uuid_from_filename(filename: str, tool: str) -> Optional[str]:
             return match.group(1).lower()
     elif tool == "codex":
         # Codex: rollout-<timestamp>-<uuid>.jsonl
-        uuid_pattern = r"rollout-\d+-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        # Historically: rollout-<epoch>-<uuid>.jsonl
+        # Current: rollout-YYYY-MM-DDTHH-MM-SS-<uuid>.jsonl
+        uuid_pattern = r"rollout-.*-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
         match = re.search(uuid_pattern, name, re.IGNORECASE)
         if match:
             return match.group(1).lower()
@@ -536,4 +545,3 @@ def list_sessions(
             break
 
     return results
-

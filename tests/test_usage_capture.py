@@ -106,6 +106,7 @@ class TestCodexUsageParsing:
         log_path.write_text(
             "\n".join(
                 [
+                    '{"payload":{"info":null}}',
                     '{"payload":{"info":{"total_token_usage":{"input_tokens":0,"cached_input_tokens":0,"output_tokens":0,"reasoning_output_tokens":0,"total_tokens":0}}}}',
                     '{"payload":{"info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":20,"output_tokens":200,"reasoning_output_tokens":30,"total_tokens":350}}}}',
                     "",
@@ -186,6 +187,19 @@ class TestSessionDetection:
         assert path == session_file
         assert uuid == "abc12345-1234-5678-9abc-def012345678"
 
+    def test_get_current_session_path_codex_iso_timestamp(self, tmp_path: Path):
+        """Find Codex session file with ISO-style timestamp prefix."""
+        from usage_capture import get_current_session_path
+
+        codex_sessions = tmp_path / ".codex" / "sessions" / "2026" / "01" / "25"
+        codex_sessions.mkdir(parents=True)
+        session_file = codex_sessions / "rollout-2026-01-25T10-00-00-abc12345-1234-5678-9abc-def012345678.jsonl"
+        session_file.write_text('{"payload":{"info":{}}}\n')
+
+        path, uuid = get_current_session_path("codex", project_path=tmp_path)
+        assert path == session_file
+        assert uuid == "abc12345-1234-5678-9abc-def012345678"
+
     def test_get_current_session_path_amp(self, tmp_path: Path):
         """Find Amp session file."""
         from usage_capture import get_current_session_path
@@ -226,6 +240,7 @@ class TestSessionTokenCount:
         session_file = tmp_path / "rollout.jsonl"
         session_file.write_text(
             "\n".join([
+                '{"payload":{"info":null}}',
                 '{"payload":{"info":{"total_token_usage":{"total_tokens":100}}}}',
                 '{"payload":{"info":{"total_token_usage":{"total_tokens":350}}}}',
                 "",
@@ -301,4 +316,3 @@ class TestListSessions:
         assert sessions[0]["tokens_so_far"] == 150
         # Should include context snippet
         assert "context_snippet" in sessions[0]
-
