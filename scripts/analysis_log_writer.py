@@ -209,16 +209,29 @@ def upsert_analysis_log_section(content: str, entry: dict) -> str:
         else:
             # Replace or insert the line for this pass.
             pass_pat = re.compile(rf"^\*\*Pass\s+{pass_int}\*\*:", re.IGNORECASE)
-            replaced = False
+            target_line = f"**Pass {pass_int}**: {_sanitize_cell(notes_text, max_len=160)}"
+
+            # Search the entire Revision Notes block (blank lines allowed) until the next heading.
+            matched_idxs: list[int] = []
             j = rev_idx + 1
-            while j < len(new_lines) and new_lines[j].strip() != "" and not new_lines[j].startswith("## "):
-                if pass_pat.match(new_lines[j].strip()):
-                    new_lines[j] = f"**Pass {pass_int}**: {_sanitize_cell(notes_text, max_len=160)}"
-                    replaced = True
+            while j < len(new_lines):
+                line = new_lines[j]
+                if line.startswith("## ") or line.startswith("### "):
                     break
+                if pass_pat.match(line.strip()):
+                    matched_idxs.append(j)
                 j += 1
-            if not replaced:
-                new_lines.insert(rev_idx + 2, f"**Pass {pass_int}**: {_sanitize_cell(notes_text, max_len=160)}")
+
+            if matched_idxs:
+                new_lines[matched_idxs[0]] = target_line
+                # Remove any duplicates for this pass.
+                for idx in reversed(matched_idxs[1:]):
+                    del new_lines[idx]
+            else:
+                # Insert before the first non-empty line (or the next heading) in the block.
+                insert_at = rev_idx + 1
+                while insert_at < len(new_lines) and new_lines[insert_at].strip() == "":
+                    insert_at += 1
+                new_lines.insert(insert_at, target_line)
 
     return "\n".join(new_lines).rstrip() + "\n"
-

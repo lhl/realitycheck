@@ -70,5 +70,6 @@ class TestAnalysisLogWriter:
 
         assert "YYYY-MM-DD HH:MM" not in updated
         assert "| 1 | 2026-01-23 10:00 | codex | gpt-4o | 8m0s | 3,700 | $0.0800 | Initial analysis |" in updated
+        assert "**Pass 1**: placeholder" not in updated
         assert "**Pass 1**: Initial analysis" in updated
-
+        assert updated.count("**Pass 1**:") == 1
