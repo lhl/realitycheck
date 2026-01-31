@@ -139,6 +139,10 @@ Generate:
 1. Analysis document following the 3-stage methodology
 2. Extracted claims formatted for database registration
 
+**Rigor contract (v1)**:
+- Claim tables should include `Layer`, `Actor`, `Scope`, and `Quantifier` fields (see `docs/WORKFLOWS.md` → “Analysis Rigor Contract (v1)”).
+- Include a `Corrections & Updates` section (including capture failures and recency checks) for auditability.
+
 After analysis, register manually:
 ```bash
 rc-db source add --id "..." --title "..." --type "..." --author "..." --year YYYY --url "..."

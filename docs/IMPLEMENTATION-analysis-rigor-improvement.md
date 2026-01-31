@@ -1,6 +1,6 @@
 # Implementation: Analysis Rigor Improvements (Primary Evidence, Layering, Corrections, Auditability)
 
-**Status**: Planning (docs + tests-first punchlist ready)  
+**Status**: Spec Locked (ready to implement)  
 **Plan**: [PLAN-analysis-rigor-improvement.md](PLAN-analysis-rigor-improvement.md)  
 **Depends On**:
 - [IMPLEMENTATION-epistemic-provenance.md](IMPLEMENTATION-epistemic-provenance.md) (complete)
@@ -53,8 +53,8 @@ docs/
  └── (optional) UPDATE CHANGELOG.md                     # When feature ships
 
 integrations/_templates/
- ├── UPDATE tables/key-claims.md.j2                     # Add Layer/Actor/Scope/Quantifier/Evidence Type (decision)
- ├── UPDATE tables/claim-summary.md.j2                  # Add Layer/Actor/Scope/Quantifier (decision)
+ ├── UPDATE tables/key-claims.md.j2                     # Add Layer/Actor/Scope/Quantifier (rigor-v1 contract)
+ ├── UPDATE tables/claim-summary.md.j2                  # Add Layer/Actor/Scope/Quantifier (rigor-v1 contract)
  ├── NEW   tables/corrections-updates.md.j2             # New required section/table
  ├── UPDATE skills/check.md.j2                          # Add explicit multi-pass steps + primary capture + corrections
  ├── UPDATE skills/analyze.md.j2                        # Document new rigor contract for manual analysis
@@ -78,107 +78,11 @@ tests/
  └── (optional) UPDATE test_e2e.py                      # If we add an end-to-end “rigor workflow” test
 ```
 
-## Open Decisions (Must Resolve Before Implementation)
+## Open Decisions
 
-These are blocking decisions. Resolve them before writing tests/implementation to avoid rework.
+None. D1–D10 are resolved in [PLAN-analysis-rigor-improvement.md](PLAN-analysis-rigor-improvement.md#decision-log) and summarized below.
 
-### D1: Where do `Layer/Actor/Scope/Quantifier/Evidence Type` live?
-
-Pick one (or explicitly mix):
-
-- **Option A (analysis-only)**: Required in analysis tables, but not stored in DB.
-  - Pros: least schema churn; fastest.
-  - Cons: DB cannot validate/query these fields; downstream tooling can’t rely on them.
-- **Option B (claims schema)**: Add optional columns to `claims` for `layer`, `actor`, `scope`, `quantifier` (and possibly `evidence_type`).
-  - Pros: first-class in DB; searchable; can enforce with `rc-validate`.
-  - Cons: schema migration + more CLI surface area.
-- **Option C (evidence/provenance schema)**: Add structured fields to `evidence_links` / `reasoning_trails` (e.g., `evidence_type`, `claim_match`, `court_voice`, `posture`).
-  - Pros: evidence-specific fields live with evidence; aligns with “separate evidence type from strength.”
-  - Cons: the claim table still needs guidance on how to fill pre-provenance; some fields are per-claim-row UX.
-
-**Recommendation (v1)**: **Option C + minimal analysis-only columns**.
-Store evidence-specific fields on evidence links/trails; keep `Layer/Actor/Scope/Quantifier` in the claim tables and (optionally) in claims schema only if we find we need DB-side enforcement/search.
-
-### D2: Minimal “Scope schema”
-
-Decide how scope is represented in tables and (if stored) in DB:
-
-- **Free-text**: single `Scope` cell (with a strict writing convention).
-- **Mini-schema string**: `where=...; when=...; who=...; conditions=...` (parser optional).
-- **Structured JSON/YAML** in a cell (harder for humans; easier for validators).
-
-**Recommendation (v1)**: **Mini-schema string** with a documented convention, and validators that check “non-empty for high-impact claims” rather than fully parsing it.
-
-### D3: Enumerations (required or guidance-only?)
-
-We need stable enumerations (even if validation is initially “warn-only”):
-
-- `Layer`: ASSERTED | LAWFUL | PRACTICED | EFFECT (plan default)
-- `Quantifier`: NONE | SOME | OFTEN | MOST | ALWAYS (or similar)
-- `Actor`: minimum DHS taxonomy (ICE, ICE-ERO, ICE-HSI, CBP, CBP-BP, CBP-OFO, DHS, DOJ, COURT, STATE/LOCAL, PRIVATE, OTHER)
-- `Evidence Type`: LAW | REG | COURT_ORDER | FILING | MEMO | POLICY | REPORTING | VIDEO | DATA | TESTIMONY | OTHER
-
-Decide:
-- do we enforce as strict enums in validators, or allow free text?
-- do we require values for *all* domains, or only “policy/legal” domains?
-
-### D4: “High-impact claim” thresholds for primary-first capture
-
-Confirm the initial gating rule from the plan, or adjust:
-
-- `credence ≥ 0.7`, OR
-- evidence level `E1/E2`, OR
-- `Layer == LAWFUL` (controlling law claims).
-
-Decide whether this is:
-- a **hard requirement** (validation error) or
-- **soft requirement** (warning with “capture failed” allowance).
-
-### D5: Copyright / licensing posture for “capture”
-
-Decide what we are allowed to store by default in the data repo:
-
-- OK: public domain government docs, court orders/filings, statutes/regulations, official memos.
-- Not OK by default: full-text copyrighted news articles (unless explicitly permitted).
-
-Define the rule and how the capture tooling enforces it (e.g., allow PDFs + `application/pdf` only by default).
-
-### D6: Review/disagreement representation
-
-Do we add a new `reasoning_trails.status = proposed` (and treat it specially in validation/export), or keep “proposed” reviews outside the DB?
-
-**Recommendation (v1)**: Add `proposed` (and optionally `retracted`) status to `reasoning_trails` to avoid “stale” warnings and to separate “suggestions” from adopted credences.
-
-### D7: Evidence Type ↔ Evidence Level guidance (esp. LAW/COURT)
-
-We need a clear rule for how “document existence” relates to E-levels:
-
-- If a **memo/court order/statute** is captured, does that automatically justify `E1/E2` for an **ASSERTED** claim (“agency asserted X”)? (Probably yes, *for the asserted layer only*.)
-- For **LAWFUL** claims, does “primary law text exists” justify a high E-level, or do we require interpretation + controlling posture (which is less “E1/E2” and more “E3/E4 + legal hygiene”)? Decide and document.
-- Decide whether `Evidence Type` is purely descriptive (recommended) or if we bake in a default mapping table to E-levels.
-
-### D8: EFFECT-layer claims (anti-causal-leap guardrails)
-
-Decide what we require for `Layer=EFFECT` so we don’t encourage “power → outcome” leaps:
-
-- Require an explicit causal mechanism statement (in prose) plus at least one evidence link of type `DATA`/`STUDY` (or similar).
-- Require scope bounding (population/time/jurisdiction) and explicit confounders/alternative explanations (can be checklist-based).
-- Decide whether EFFECT claims default to lower credence caps unless supported by strong causal evidence.
-
-### D9: Recency metadata (`accessed` vs `last_checked`)
-
-We currently store `sources.accessed`. Decide:
-
-- Do we add `sources.last_checked` (schema migration) to support “staleness” and corrections workflows?
-- Or do we keep `last_checked` in analysis markdown only (lighter weight, less queryable)?
-- If we add a capture tool, do captured primary artifacts get their own `last_checked` (in metadata sidecar) even if DB doesn’t?
-
-### D10: Backwards-compatibility + strictness defaults
-
-Decide the default behavior for existing analyses and the data repo:
-
-- Do we make the new claim tables **required immediately** (validator errors), or start as **warnings** with a `--strict/--rigor` flag?
-- Do we support both “v1” and “rigor v1” table shapes in `analysis_validator.py` (recommended for a transition period)?
+If new questions arise during coding, log them in the Worklog and update the Plan Decision Log.
 
 ## Punchlist
 
@@ -186,7 +90,7 @@ Decide the default behavior for existing analyses and the data repo:
 
 - [x] Decide D1–D10 and record final choices in this file ("Resolved Decisions" section)
 - [x] Update [PLAN-analysis-rigor-improvement.md](PLAN-analysis-rigor-improvement.md) with Decision Log section
-- [ ] Add a "Rigor Contract (v1)" section to [docs/WORKFLOWS.md](WORKFLOWS.md) describing:
+- [x] Add a "Rigor Contract (v1)" section to [docs/WORKFLOWS.md](WORKFLOWS.md) describing:
   - required table columns and their intended semantics
   - minimal scope writing convention
   - how to handle non-applicable values (e.g., `N/A`)
@@ -338,7 +242,7 @@ See [PLAN-analysis-rigor-improvement.md § Decision Log](PLAN-analysis-rigor-imp
 
 ### D5: Copyright/licensing posture for capture
 
-**Resolution**: Capture everything (fair use for research). Two storage tiers: `reference/primary/` (public, git-tracked) for government/legal docs; `reference/captured/` (.gitignored) for copyrighted material. Future: private archive for litigious items.
+**Resolution**: Capture everything (fair use for research). Two storage tiers: `reference/primary/` (public, git-tracked) for government/legal docs; `reference/captured/` (metadata tracked; captured content ignored) for copyrighted material. Future: private archive for litigious items.
 
 See [PLAN-analysis-rigor-improvement.md § Decision Log](PLAN-analysis-rigor-improvement.md#d5-copyrightlicensing-posture-for-capture) for full analysis.
 
@@ -374,7 +278,7 @@ See [PLAN-analysis-rigor-improvement.md § Decision Log](PLAN-analysis-rigor-imp
 
 ## Worklog
 
-### 2026-02-01: All decisions (D1–D10) resolved
+### 2026-01-31: All decisions (D1–D10) resolved
 
 Collaborative decision session with human reviewer, Claude Opus 4.5, and Codex input. Key outcomes:
 
@@ -382,7 +286,7 @@ Collaborative decision session with human reviewer, Claude Opus 4.5, and Codex i
 - **D2**: Mini-schema string for Scope (`who=...; where=...; when=...`)
 - **D3**: Strict enum for Layer; guidance + `OTHER:<text>` escape hatch for others
 - **D4**: Plan thresholds (credence≥0.7 OR E1/E2 OR LAWFUL) + WARN default + capture-failed path
-- **D5**: Capture everything (fair use); two storage tiers (`reference/primary/` public, `reference/captured/` gitignored)
+- **D5**: Capture everything (fair use); two storage tiers (`reference/primary/` public, `reference/captured/` metadata tracked; content ignored)
 - **D6**: Add `proposed` and `retracted` to `reasoning_trails.status`
 - **D7**: Evidence Type is descriptive only; layer-aware E-level guidance documented
 - **D8**: Soft guardrails for EFFECT claims; default to type `[H]`; template prompts for mechanism/confounders
@@ -391,7 +295,12 @@ Collaborative decision session with human reviewer, Claude Opus 4.5, and Codex i
 
 Full analysis documented in [PLAN-analysis-rigor-improvement.md § Decision Log](PLAN-analysis-rigor-improvement.md#decision-log).
 
-Next: Add "Rigor Contract (v1)" section to WORKFLOWS.md, then Phase 1 (tests first).
+Next: Phase 1 (tests first), then implementation.
+
+### 2026-01-31: Rigor contract implemented (docs + templates)
+
+- Added `docs/WORKFLOWS.md` “Analysis Rigor Contract (v1)” section (pinned table schemas + artifact linkage).
+- Updated analysis table templates and skill templates; regenerated assembled skills (`make assemble-skills`).
 
 ### 2026-01-31: Implementation punchlist created
 

@@ -1,7 +1,8 @@
 # Plan: Analysis Rigor Improvements (Primary Evidence, Layering, Corrections, Auditability)
 
-**Status**: Planning  
+**Status**: Spec Locked (ready to implement)  
 **Created**: 2026-01-25  
+**Updated**: 2026-01-31  
 
 ## Motivation
 
@@ -138,7 +139,6 @@ This section is written in an “ADR-like” style: what we are changing, why, a
 - `Actor` (ICE/CBP/DHS/DOJ/Court/etc),
 - `Scope` (minimal structured summary),
 - `Quantifier` (none/some/often/most/always),
-- `Evidence Type` (LAW/MEMO/COURT ORDER/REPORTING/VIDEO/DATA/TESTIMONY/etc),
 - `Evidence Level` (E1–E6),
 - `Credence` (0–1).
 
@@ -382,11 +382,7 @@ This plan introduces behavioral requirements that should be test-driven:
 
 ## Open Questions
 
-1. What is the minimal “scope schema” that is expressive but not too burdensome?
-2. Should “law/policy primary documents” get a distinct evidence type and/or special E-level mapping?
-3. How do we represent “EFFECT” claims without encouraging unsupported causal leaps?
-4. What is the best way to store and refresh “last checked” timestamps without excessive overhead?
-5. How do we safely handle copyrighted materials while keeping analyses auditable?
+All questions from the initial planning pass are resolved in the **Decision Log (D1–D10)** below.
 
 ## Appendix: Mapping Reviewer Feedback → Plan Items
 
@@ -402,7 +398,7 @@ This section documents the decision-making process for implementation choices. E
 
 ### D1: Where do Layer/Actor/Scope/Quantifier/Evidence Type live?
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -436,7 +432,7 @@ We need to decide where these fields are stored and enforced.
 - `Court Posture` and `Court Voice` are relevant only for court document evidence
 - These belong on `evidence_links` because one claim can have multiple evidence links with different types
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Hybrid: A + C. Enforce Layer/Actor/Scope/Quantifier in analysis tables (the reader-facing interface). Put evidence-specific fields (e.g., evidence_type, claim_match, court_posture, court_voice) on evidence_links/reasoning_trails so DB validation can reason about 'what kind of evidence is this?' without bloating claims. Defer claims schema changes unless we later need DB-side querying/enforcement for Layer/Actor/Scope."
 
 #### Decision
@@ -460,7 +456,7 @@ We need to decide where these fields are stored and enforced.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `evidence_type` | string | No | LAW \| REG \| COURT_ORDER \| FILING \| MEMO \| POLICY \| REPORTING \| VIDEO \| DATA \| TESTIMONY \| OTHER |
+| `evidence_type` | string | No | LAW \| REG \| COURT_ORDER \| FILING \| MEMO \| POLICY \| REPORTING \| VIDEO \| DATA \| STUDY \| TESTIMONY \| OTHER |
 | `claim_match` | string | No | Free-text description of how directly this evidence supports the claim |
 | `court_posture` | string | No | stay \| merits \| preliminary_injunction \| appeal \| OTHER (court docs only) |
 | `court_voice` | string | No | majority \| concurrence \| dissent \| per_curiam (court docs only) |
@@ -484,7 +480,7 @@ If we later need DB-level Layer/Actor/Scope/Quantifier:
 
 ### D2: Minimal "Scope schema"
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -503,7 +499,7 @@ Claims need structured scope conditions to prevent "scope erasure" (failure mode
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Mini-schema string in one Scope column. It's structured enough for consistency, but cheap to write and validate."
 
 **Key considerations**:
@@ -547,7 +543,7 @@ N/A
 
 ### D3: Enumerations + enforcement level
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -565,7 +561,7 @@ The new structured fields need stable enumerations to enable consistency and val
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Hybrid. Strict for Layer and Quantifier (small sets; high value). Strict-ish for Actor and Evidence Type with OTHER:<...> allowed. Require values for claims where the field matters; allow N/A only when truly not applicable."
 
 **Key considerations**:
@@ -585,7 +581,7 @@ The new structured fields need stable enumerations to enable consistency and val
 | `Layer` | **Strict** | ASSERTED, LAWFUL, PRACTICED, EFFECT | None (must use one of these) |
 | `Quantifier` | **Strict + escape** | none, some, often, most, always | `OTHER:<text>` allowed (e.g., `OTHER:nearly all`) |
 | `Actor` | **Guidance + escape** | ICE, ICE-ERO, ICE-HSI, CBP, CBP-BP, CBP-OFO, DHS, DOJ, COURT, STATE/LOCAL, PRIVATE | `OTHER:<text>` allowed; `N/A` for non-actor claims |
-| `Evidence Type` | **Guidance + escape** | LAW, REG, COURT_ORDER, FILING, MEMO, POLICY, REPORTING, VIDEO, DATA, TESTIMONY | `OTHER:<text>` allowed |
+| `Evidence Type` | **Guidance + escape** | LAW, REG, COURT_ORDER, FILING, MEMO, POLICY, REPORTING, VIDEO, DATA, STUDY, TESTIMONY | `OTHER:<text>` allowed |
 
 **Validation behavior**:
 - Layer: WARN on unknown value (default); ERROR with `--rigor` flag
@@ -603,7 +599,7 @@ The new structured fields need stable enumerations to enable consistency and val
 
 ### D4: High-impact thresholds + primary capture gate severity
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -632,7 +628,7 @@ The "primary-first" rule (Plan section 2) requires capturing primary documents f
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Plan thresholds + WARN-by-default, ERROR with --strict. Add an explicit 'capture failed + reason' path so the workflow is realistic (paywalls/JS blockers)."
 
 **Key considerations**:
@@ -655,15 +651,26 @@ The "primary-first" rule (Plan section 2) requires capturing primary documents f
 **Enforcement**:
 - Default: WARN if high-impact claim lacks captured primary evidence
 - With `--rigor` flag: ERROR (blocks completion)
-- Validator checks: claim has ≥1 evidence link with `evidence_type ∈ {LAW, REG, COURT_ORDER, FILING, MEMO}` AND captured artifact exists, OR explicit capture-failed documentation
+- Validator checks: claim has ≥1 supporting evidence link where either:
+  - `location` includes an `artifact=...` repo-relative path to a captured artifact (or captured metadata sidecar) **and the referenced file exists**, or
+  - `location` includes `capture_failed=<reason>` + `primary_url=...` (explicitly recording why capture was not possible).
+
+**Captured artifact linkage**:
+
+We standardize `evidence_links.location` as a **mini-schema string** (similar to Scope):
+
+```
+artifact=<repo-relative-path>; locator=<page/section/lines>; notes=<optional>
+```
+
+When capture is not possible:
+
+```
+capture_failed=<reason>; primary_url=<url>; fallback=<what was used instead>
+```
 
 **Capture-failed documentation**:
-
-When primary document exists but wasn't captured, analysis must include:
-```
-Capture failed: [reason]
-Fallback: [what evidence was used instead]
-```
+When a primary document exists but wasn't captured, record it as `capture_failed=...` in the evidence link `location` (and optionally mirror it in the analysis document’s Corrections & Updates section for human readers).
 
 **Valid capture-failed reasons**:
 | Reason | Description |
@@ -682,7 +689,7 @@ Fallback: [what evidence was used instead]
 
 ### D5: Copyright/licensing posture for capture
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -728,7 +735,7 @@ The primary-first rule requires capturing documents. We need to define what we'r
 | Tier | Location | Git status | Contents |
 |------|----------|------------|----------|
 | **Public** | `reference/primary/` | Tracked | Government docs, court filings, official memos, public domain |
-| **Local-only** | `reference/captured/` | .gitignored | News articles, academic papers, copyrighted material |
+| **Captured (metadata tracked)** | `reference/captured/` | Mixed | `*.meta.yaml` tracked; captured content (PDF/HTML/TXT) ignored |
 | **Private archive** (future) | External (archivebox) | Not in repo | Particularly litigious or controversial items |
 
 **Capture rules by source type**:
@@ -739,10 +746,10 @@ The primary-first rule requires capturing documents. We need to define what we'r
 | Court filings, orders, opinions | ✅ Yes | Public | Public record |
 | Agency memos, guidance, PTAs | ✅ Yes | Public | Government works |
 | Regulatory filings (SEC, FCC) | ✅ Yes | Public | Public record |
-| News articles | ✅ Yes | Local-only | Fair use; no redistribution |
-| Academic papers | ✅ Yes | Local-only | Fair use; no redistribution |
-| Blog posts, commentary | ✅ Yes | Local-only | Fair use; no redistribution |
-| Social media | ⚠️ Case-by-case | Local-only | May disappear; ToS varies |
+| News articles | ✅ Yes | Captured | Fair use; do not redistribute content |
+| Academic papers | ✅ Yes | Captured | Fair use; do not redistribute content |
+| Blog posts, commentary | ✅ Yes | Captured | Fair use; do not redistribute content |
+| Social media | ⚠️ Case-by-case | Captured | May disappear; ToS varies |
 
 **File structure**:
 ```
@@ -752,12 +759,13 @@ reference/
 │       ├── <sha256>.pdf
 │       ├── <sha256>.meta.yaml
 │       └── <sha256>.txt (optional extracted text)
-├── captured/          # Local-only (.gitignored)
+├── captured/          # Metadata tracked; content ignored
 │   └── <source-id>/
-│       ├── <sha256>.pdf (or .html)
 │       ├── <sha256>.meta.yaml
-│       └── <sha256>.txt
-└── .gitignore         # Includes: captured/
+│       ├── <sha256>.pdf (ignored)
+│       ├── <sha256>.html (ignored)
+│       └── <sha256>.txt (ignored)
+└── .gitignore         # Ignores captured content (not metadata)
 ```
 
 **Metadata sidecar** (`*.meta.yaml`):
@@ -765,9 +773,9 @@ reference/
 url: https://example.com/article
 content_type: application/pdf
 sha256: abc123...
-fetched_at: 2026-02-01T12:00:00Z
+fetched_at: 2026-01-31T12:00:00Z
 captured_by: rc-capture
-storage_tier: local-only  # or "public"
+storage_tier: captured  # or "public"
 fair_use_basis: research/verification
 notes: ""
 ```
@@ -787,7 +795,7 @@ notes: ""
 
 ### D6: Review/disagreement representation
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -809,7 +817,7 @@ Reviewers (human or LLM) often propose credence changes based on sources not yet
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Add reasoning_trails.status=proposed. Treat review suggestions as investigation inputs, not evidence. Ensure proposed trails do not satisfy high-credence backing and do not trigger staleness warnings."
 
 **Key considerations**:
@@ -872,7 +880,7 @@ Reviewers (human or LLM) often propose credence changes based on sources not yet
 
 ### D7: Evidence Type ↔ Evidence Level guidance
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -892,7 +900,7 @@ Evidence Type (LAW, MEMO, COURT_ORDER, etc.) describes *what kind* of document b
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Descriptive only + explicit guidance. Primary legal docs can justify high confidence for ASSERTED ('this memo says X'), but do not automatically justify LAWFUL ('X is lawful') or EFFECT ('X causes Y'). Require court hygiene fields (posture/voice/controlling) when Layer=LAWFUL."
 
 **Human reviewer's insight**:
@@ -945,7 +953,7 @@ Claim: "ICE can arrest without a warrant" (Layer=LAWFUL)
 
 ### D8: EFFECT-layer guardrails (avoid causal leaps)
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -970,7 +978,7 @@ We need guardrails without being so restrictive that legitimate causal claims ca
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Allow with guardrails. Require: mechanism statement + at least one causal-quality evidence link (data/study) + explicit alternative explanations + strict scope. Default EFFECT claims to [H] unless backed by strong causal evidence."
 
 **Key insight**: Using claim type `[H]` (Hypothesis) for EFFECT claims signals "this is a causal hypothesis" rather than "this is established fact." This leverages existing infrastructure.
@@ -1027,7 +1035,7 @@ We need guardrails without being so restrictive that legitimate causal claims ca
 
 ### D9: Recency metadata (`accessed` vs `last_checked`)
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -1049,7 +1057,7 @@ This enables staleness queries and corrections workflows.
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Add sources.last_checked. Keep accessed as 'first accessed'; use last_checked for refresh/corrections tracking. Also store per-artifact fetch time in the primary-doc metadata sidecar if/when capture tooling exists."
 
 **Key considerations**:
@@ -1078,7 +1086,7 @@ This enables staleness queries and corrections workflows.
 **CLI additions**:
 ```bash
 # Update last_checked
-rc-db source update <source-id> --last-checked 2026-02-01
+rc-db source update <source-id> --last-checked 2026-01-31
 
 # Find stale sources
 rc-db source list --stale-days 90
@@ -1100,7 +1108,7 @@ rc-db source list --never-checked
 
 ### D10: Backwards-compatibility + strictness defaults
 
-**Date**: 2026-02-01
+**Date**: 2026-01-31
 **Status**: Resolved
 **Participants**: Human reviewer, Claude Opus 4.5, Codex
 
@@ -1121,7 +1129,7 @@ Rolling out new requirements (Layer/Actor/Scope columns, new statuses, capture r
 
 #### Analysis
 
-**Codex's input** (2026-02-01):
+**Codex's input** (2026-01-31):
 > "Dual-support transition. New templates/skills generate the new shape. Validator supports old + new, with warnings until you choose to flip the default."
 
 **Human reviewer's input**:
@@ -1156,10 +1164,12 @@ Rolling out new requirements (Layer/Actor/Scope columns, new statuses, capture r
 # analysis_validator.py supports both shapes
 
 # v1 (legacy)
-KEY_CLAIMS_HEADERS_V1 = ["ID", "Claim", "Type", "Evidence", "Credence"]
+KEY_CLAIMS_HEADERS_V1 = ["#", "Claim", "Claim ID", "Type", "Domain", "Evid", "Credence", "Verified?", "Falsifiable By"]
+CLAIM_SUMMARY_HEADERS_V1 = ["ID", "Type", "Domain", "Evidence", "Credence", "Claim"]
 
 # rigor-v1 (new)
-KEY_CLAIMS_HEADERS_RIGOR = ["ID", "Claim", "Layer", "Actor", "Scope", "Quantifier", "Type", "Evidence", "Credence"]
+KEY_CLAIMS_HEADERS_RIGOR = ["#", "Claim", "Claim ID", "Layer", "Actor", "Scope", "Quantifier", "Type", "Domain", "Evid", "Credence", "Verified?", "Falsifiable By"]
+CLAIM_SUMMARY_HEADERS_RIGOR = ["ID", "Type", "Domain", "Layer", "Actor", "Scope", "Quantifier", "Evidence", "Credence", "Claim"]
 
 # Validator accepts either; warns if v1 detected
 ```
@@ -1176,7 +1186,7 @@ KEY_CLAIMS_HEADERS_RIGOR = ["ID", "Claim", "Layer", "Actor", "Scope", "Quantifie
 ```yaml
 url: https://example.com/doc.pdf
 sha256: abc123...
-fetched_at: 2026-02-01T12:00:00Z
+fetched_at: 2026-01-31T12:00:00Z
 captured_by: rc-capture
 realitycheck_version: 0.3.0  # NEW
 storage_tier: public
@@ -1203,4 +1213,3 @@ rc-validate --rigor --dry-run
 - CHANGELOG notes for each rigor-related change
 - Migration guide: "Upgrading analyses to rigor format"
 - Template diff showing v1 → rigor-v1 changes
-

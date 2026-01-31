@@ -135,7 +135,7 @@ For multi-source requests, produce:
 **Stage 1 (Descriptive)**:
 - Source Metadata table
 - Core Thesis (1-3 sentences)
-- Key Claims table (with Verified? and Falsifiable By columns)
+- Key Claims table (rigor-v1: Layer/Actor/Scope/Quantifier + Verified? + Falsifiable By)
 - Argument Structure diagram
 - Theoretical Lineage
 - Scope & Limitations
@@ -143,6 +143,7 @@ For multi-source requests, produce:
 **Stage 2 (Evaluative)**:
 - Key Factual Claims Verified (with Crux? column)
 - Disconfirming Evidence Search
+- Corrections & Updates (including capture failures)
 - Internal Tensions / Self-Contradictions
 - Persuasion Techniques
 - Unstated Assumptions
@@ -194,15 +195,19 @@ Use this structure for analysis documents:
 
 ### Key Claims
 
-| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
-|---|-------|----------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
-| 2 | | | | | | | | |
-| 3 | | | | | | | | |
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| 2 | | | | | | | | | | | | |
+| 3 | | | | | | | | | | | | |
 
 **Column guide**:
 - **Claim**: Concise statement of the claim
 - **Claim ID**: Format `DOMAIN-YYYY-NNN` (e.g., TECH-2026-001)
+- **Layer**: `ASSERTED` (positions/claims made), `LAWFUL` (controlling law), `PRACTICED` (practice), `EFFECT` (causal effects)
+- **Actor**: Who is acting (e.g., ICE/CBP/DHS/DOJ/COURT). Use `OTHER:<text>` or `N/A` only when not applicable.
+- **Scope**: Mini-schema string (e.g., `who=...; where=...; when=...; process=...; predicate=...; conditions=...`)
+- **Quantifier**: `none|some|often|most|always|OTHER:<text>|N/A`
 - **Type**: `[F]` fact, `[T]` theory, `[H]` hypothesis, `[P]` prediction, `[A]` assumption, `[C]` counterfactual, `[S]` speculation, `[X]` contradiction
 - **Domain**: Primary domain code (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)
 - **Evid**: Evidence level E1-E6
@@ -278,6 +283,17 @@ Use this structure for analysis documents:
 | [top claim 3] | [what contradicts it, or "none found"] | [other way to explain the data] | [what you searched] |
 
 **Purpose**: Combat confirmation bias by explicitly searching for evidence against the source's claims.
+
+### Corrections & Updates
+
+| Item | URL | Published | Corrected/Updated | What Changed | Impacted Claim IDs | Action Taken |
+|------|-----|-----------|-------------------|--------------|--------------------|-------------|
+| 1 | [url] | [YYYY-MM-DD] | [YYYY-MM-DD or N/A] | [brief summary of change/correction/capture issue] | [CLAIM-IDs or N/A] | [supersede evidence link; supersede reasoning trail; downgrade credence; capture_failed=...] |
+| 2 | | | | | | |
+
+**Notes**:
+- Use this section to track: **corrections**, **updates**, and **capture failures** (paywalls/JS blockers/etc.).
+- Changes should be **append-only** in provenance: create new `evidence_links` / `reasoning_trails` rows that supersede prior ones (don’t overwrite history).
 
 ### Internal Tensions / Self-Contradictions
 
@@ -363,9 +379,9 @@ Use this structure for analysis documents:
 
 ### Claim Summary
 
-| ID | Type | Domain | Evidence | Credence | Claim |
-|----|------|--------|----------|----------|-------|
-| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00 | [claim text] |
+| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |
+|----|------|--------|-------|-------|-------|------------|----------|----------|-------|
+| DOMAIN-YYYY-NNN | [F/T/H/P/A/C/S/X] | DOMAIN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | E1-E6 | 0.00 | [claim text] |
 
 **Notes**:
 - All claims extracted from the source should appear in this table

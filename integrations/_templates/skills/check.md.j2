@@ -71,7 +71,7 @@ For multi-source requests, produce:
 **Stage 1 (Descriptive)**:
 - Source Metadata table
 - Core Thesis (1-3 sentences)
-- Key Claims table (with Verified? and Falsifiable By columns)
+- Key Claims table (rigor-v1: Layer/Actor/Scope/Quantifier + Verified? + Falsifiable By)
 - Argument Structure diagram
 - Theoretical Lineage
 - Scope & Limitations
@@ -79,6 +79,7 @@ For multi-source requests, produce:
 **Stage 2 (Evaluative)**:
 - Key Factual Claims Verified (with Crux? column)
 - Disconfirming Evidence Search
+- Corrections & Updates (including capture failures)
 - Internal Tensions / Self-Contradictions
 - Persuasion Techniques
 - Unstated Assumptions
@@ -144,6 +145,8 @@ Use this structure for analysis documents:
 {% include "tables/factual-claims-verified.md.j2" %}
 
 {% include "tables/disconfirming-evidence.md.j2" %}
+
+{% include "tables/corrections-updates.md.j2" %}
 
 {% include "tables/internal-tensions.md.j2" %}
 

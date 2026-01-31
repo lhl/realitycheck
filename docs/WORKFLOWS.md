@@ -285,6 +285,123 @@ If validation fails with mechanical integrity issues (e.g., `SOURCE_CLAIM_NOT_LI
 uv run python scripts/db.py repair
 ```
 
+## Analysis Rigor Contract (v1)
+
+The goal of the rigor contract is to make it hard to produce “confidence theater” in the claim tables by enforcing **layering**, **actor attribution**, **scope discipline**, **primary-evidence capture**, and **append-only corrections**.
+
+This contract is implemented via:
+- analysis templates (what authors must fill)
+- validators/formatters (what gets warned/blocked)
+- provenance tables (`evidence_links`, `reasoning_trails`) for auditable credence
+
+### Claim Tables (rigor-v1)
+
+**Key Claims** (Stage 1) table columns (rigor-v1):
+
+```markdown
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+```
+
+**Claim Summary** (end of analysis) table columns (rigor-v1):
+
+```markdown
+| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |
+|----|------|--------|-------|-------|-------|------------|----------|----------|-------|
+```
+
+**Legacy compatibility**: validators should accept the current v1 tables, but WARN by default when the rigor-v1 columns are missing; `--rigor` (planned) upgrades key WARNs to ERRORs.
+
+### Field Definitions
+
+**Layer** (strict): `ASSERTED` | `LAWFUL` | `PRACTICED` | `EFFECT`
+
+- `ASSERTED`: an agency/official/court **asserted** X (what was claimed/argued/said)
+- `LAWFUL`: X is **authorized/required/prohibited** under controlling law (law on the books; include posture/voice when courts involved)
+- `PRACTICED`: X is **done in practice** (incidents/patterns/implementation)
+- `EFFECT`: X **causes** outcome Y (requires causal evidence + confounders)
+
+**Actor** (guidance + escape): use a canonical string where possible; `OTHER:<text>` when needed; `N/A` only when truly not applicable.
+
+Canonical suggestions (policy/legal topics):
+- `ICE`, `ICE-ERO`, `ICE-HSI`
+- `CBP`, `CBP-BP`, `CBP-OFO`
+- `DHS`, `DOJ`, `COURT`, `STATE/LOCAL`, `PRIVATE`
+
+**Scope** (mini-schema string): key/value pairs separated by semicolons. Use `N/A` only when genuinely not applicable.
+
+Canonical keys (use when applicable): `who`, `where`, `when`, `process`, `predicate`, `conditions`
+
+Examples:
+- `who=noncitizens w/ final order; where=interior (not border zone); process=removal proceedings`
+- `who=any person; where=within 100mi of border; predicate=reasonable suspicion`
+
+**Quantifier** (strict + escape): `none` | `some` | `often` | `most` | `always` | `OTHER:<text>` | `N/A`
+
+### Primary Evidence + Artifact Linkage (evidence_links)
+
+For high-impact claims, “primary-first” is enforced via provenance: evidence links must point to a captured artifact (or explicitly record capture failure).
+
+**High-impact triggers** (any one):
+- `credence ≥ 0.7`, or
+- `evidence_level ∈ {E1, E2}`, or
+- `Layer == LAWFUL`
+
+**Evidence Type** (stored on `evidence_links`, not in claim tables): `LAW`, `REG`, `COURT_ORDER`, `FILING`, `MEMO`, `POLICY`, `REPORTING`, `VIDEO`, `DATA`, `STUDY`, `TESTIMONY`, `OTHER:<text>`
+
+**Location linkage convention** (required for supporting evidence on high-impact claims):
+
+`evidence_links.location` is a mini-schema string:
+
+```text
+artifact=<repo-relative-path>; locator=<page/section/lines>; notes=<optional>
+```
+
+Examples:
+- `artifact=reference/primary/ice-memo-2026/<sha256>.pdf; locator=p.12 ¶3`
+- `artifact=reference/captured/nyt-2026-foo/<sha256>.meta.yaml; locator=§2; notes=full text stored locally (gitignored)`
+
+When capture is not possible:
+
+```text
+capture_failed=<reason>; primary_url=<url>; fallback=<what was used instead>
+```
+
+Canonical `capture_failed` reasons: `paywall`, `js-blocked`, `in-person-only`, `redistribution-prohibited`, `transient`, `access-restricted`, `format-unsupported`.
+
+**Capture tiers (data repo)**:
+- `reference/primary/`: public/redistributable artifacts (tracked in git)
+- `reference/captured/`: copyrighted capture **metadata** tracked (`*.meta.yaml`); captured content files are ignored
+
+Suggested `.gitignore` rules (data repo):
+
+```gitignore
+# Ignore captured copyrighted content (but keep metadata)
+reference/captured/**/*.pdf
+reference/captured/**/*.html
+reference/captured/**/*.txt
+```
+
+### Corrections & Updates (append-only)
+
+Analyses must include a `### Corrections & Updates` section/table, and corrections must be encoded append-only:
+- evidence: new `evidence_links` rows that `supersede` old links (don’t overwrite)
+- credence: new `reasoning_trails` rows that `supersede` old trails (don’t overwrite)
+
+Use this table schema in analysis markdown:
+
+```markdown
+| Item | URL | Published | Corrected/Updated | What Changed | Impacted Claim IDs | Action Taken |
+|------|-----|-----------|-------------------|--------------|--------------------|-------------|
+```
+
+### Review / Disagreement (reasoning_trails)
+
+Reviewer suggestions are inputs to investigation, not evidence. Represent them as:
+- `sources(type=CONVO)` for the transcript (optional but recommended)
+- `reasoning_trails.status=proposed` for suggested credence changes
+- convert to `active` only after ingesting/linking the cited evidence; otherwise `retracted`
+
 ## Analysis Audit Log Workflow
 
 After completing an analysis (and registering the source/claims), record an audit log entry:

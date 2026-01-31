@@ -59,13 +59,13 @@ Tracking future work items.
 - secondary reporting vs accessible primary documents.
 
 **Solution**:
-- Enforce `Layer/Actor/Scope/Quantifier/Evidence Type` in claim tables (template-level)
+- Enforce `Layer/Actor/Scope/Quantifier` in claim tables (template-level)
 - Primary-document-first capture for high-impact claims (memos, court orders, filings, PDFs)
 - Corrections/recency tracking as a first-class workflow step (with claim impact)
 - Court citation hygiene (majority vs dissent; posture; controlling vs non-controlling)
 - Multi-pass refinement workflow that preserves provenance and reviewer disagreement cleanly
 
-**Status**: Planning - implementation punchlist created (2026-01-31); pending decision lock.
+**Status**: Spec locked (2026-01-31) - ready for Phase 1 (tests first) + implementation.
 
 ---
 
