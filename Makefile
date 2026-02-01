@@ -1,6 +1,7 @@
 # Reality Check Makefile
 
 .PHONY: help test test-all init clean
+.PHONY: release-metadata release-metadata-check
 .PHONY: assemble-skills check-skills
 .PHONY: install-skills-all install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
 .PHONY: uninstall-skills-all uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode
@@ -29,6 +30,8 @@ help:
 	@echo "  Development:"
 	@echo "    assemble-skills          Generate skills from templates"
 	@echo "    check-skills             Check if generated skills are up-to-date"
+	@echo "    release-metadata         Sync README + CITATION.cff for a release"
+	@echo "    release-metadata-check   Check if release metadata is up-to-date"
 	@echo "    test                     Run tests (skip embedding tests)"
 	@echo "    test-all                 Run all tests including embeddings"
 	@echo "    init                     Initialize database (requires REALITYCHECK_DATA)"
@@ -187,6 +190,12 @@ uninstall-plugin-claude:
 # =============================================================================
 # Development
 # =============================================================================
+
+release-metadata:
+	uv run python scripts/release_metadata.py --write
+
+release-metadata-check:
+	uv run python scripts/release_metadata.py --check
 
 test:
 	REALITYCHECK_EMBED_SKIP=1 uv run pytest -v

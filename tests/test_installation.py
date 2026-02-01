@@ -68,6 +68,12 @@ class TestPackageImports:
         from scripts import analysis_log_writer
         assert hasattr(analysis_log_writer, "upsert_analysis_log_section")
 
+    def test_import_scripts_release_metadata(self):
+        """scripts.release_metadata should be importable."""
+        from scripts import release_metadata
+        assert hasattr(release_metadata, "main")
+        assert hasattr(release_metadata, "update_readme_content")
+
 
 class TestCrossModuleImports:
     """Test that cross-module imports work correctly when installed."""
@@ -186,6 +192,16 @@ class TestEntryPointsCLI:
         )
         assert result.returncode == 0
         assert "Migrate" in result.stdout
+
+    def test_release_metadata_help(self):
+        """scripts.release_metadata --help should run without error."""
+        result = subprocess.run(
+            [sys.executable, "-m", "scripts.release_metadata", "--help"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert "Sync README/CITATION metadata" in result.stdout
 
 
 class TestPackageStructure:
