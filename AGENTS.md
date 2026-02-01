@@ -18,6 +18,7 @@ This repo may be edited by multiple agents concurrently. Treat the working tree 
   This includes (but is not limited to):
   - `git restore ...`
   - `git checkout -- ...`
+  - `git checkout .`
   - `git reset --hard ...`
   - `git clean -fd ...`
   - `rm -rf ...` / overwriting redirects like `> file`
