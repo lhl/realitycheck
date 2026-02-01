@@ -462,6 +462,12 @@ def validate_db(db_path: Optional[Path] = None, strict: bool = False) -> list[Fi
         evidence_link_ids = set(evidence_links.keys())
 
         for trail_id, trail in reasoning_trails.items():
+            # Status is valid
+            trail_status = trail.get("status")
+            if trail_status not in VALID_REASONING_STATUSES:
+                findings.append(Finding("ERROR", "REASONING_STATUS_INVALID",
+                    f"{trail_id}: Invalid status '{trail_status}' (must be one of {VALID_REASONING_STATUSES})"))
+
             # Claim exists
             trail_claim_id = trail.get("claim_id")
             if trail_claim_id not in claim_ids:

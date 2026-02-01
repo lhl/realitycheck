@@ -314,12 +314,13 @@ This contract is implemented via:
 
 ### Field Definitions
 
-**Layer** (strict): `ASSERTED` | `LAWFUL` | `PRACTICED` | `EFFECT`
+**Layer** (strict enum; `N/A` only when genuinely inapplicable): `ASSERTED` | `LAWFUL` | `PRACTICED` | `EFFECT` | `N/A`
 
 - `ASSERTED`: an agency/official/court **asserted** X (what was claimed/argued/said)
 - `LAWFUL`: X is **authorized/required/prohibited** under controlling law (law on the books; include posture/voice when courts involved)
 - `PRACTICED`: X is **done in practice** (incidents/patterns/implementation)
 - `EFFECT`: X **causes** outcome Y (requires causal evidence + confounders)
+- `N/A`: Layer dimension doesn't apply (use sparingly—e.g., meta-claims about methodology, definitions, or predictions where Layer is meaningless)
 
 **Actor** (guidance + escape): use a canonical string where possible; `OTHER:<text>` when needed; `N/A` only when truly not applicable.
 

@@ -377,7 +377,7 @@ The `rc-validate` command checks:
 
 11. **Reasoning Trails Integrity**:
     - `claim_id` must reference existing claim
-    - `status` must be one of: active/superseded
+    - `status` must be one of: active/superseded/proposed/retracted (rigor-v1)
     - If `supersedes_id` is set, it must reference existing reasoning trail
     - `credence_at_time` must be in [0.0, 1.0]
     - `evidence_level_at_time` must be valid (E1-E6)

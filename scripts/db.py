@@ -1719,6 +1719,11 @@ def supersede_evidence_link(
         "location": new_fields.get("location", old_link.get("location")),
         "quote": new_fields.get("quote", old_link.get("quote")),
         "reasoning": new_fields.get("reasoning", old_link.get("reasoning")),
+        # Rigor-v1 fields - inherit from old unless overridden
+        "evidence_type": new_fields.get("evidence_type", old_link.get("evidence_type")),
+        "claim_match": new_fields.get("claim_match", old_link.get("claim_match")),
+        "court_posture": new_fields.get("court_posture", old_link.get("court_posture")),
+        "court_voice": new_fields.get("court_voice", old_link.get("court_voice")),
         "analysis_log_id": new_fields.get("analysis_log_id"),
         "created_by": new_fields.get("created_by", old_link.get("created_by", "unknown")),
     }
@@ -2549,12 +2554,12 @@ Examples:
     evidence_add.add_argument("--location", help="Specific location in source (rigor-v1: artifact=...; locator=...)")
     evidence_add.add_argument("--quote", help="Relevant excerpt from source")
     evidence_add.add_argument("--reasoning", help="Why this evidence matters for the claim")
-    # Rigor-v1 fields
-    evidence_add.add_argument("--evidence-type", choices=list(VALID_EVIDENCE_TYPES) + ["OTHER"],
-                              help="Type of evidence (LAW/REG/COURT_ORDER/FILING/MEMO/POLICY/REPORTING/VIDEO/DATA/STUDY/TESTIMONY/OTHER)")
+    # Rigor-v1 fields (allow OTHER:<text> escape hatch per WORKFLOWS.md contract)
+    evidence_add.add_argument("--evidence-type",
+                              help="Type of evidence: LAW|REG|COURT_ORDER|FILING|MEMO|POLICY|REPORTING|VIDEO|DATA|STUDY|TESTIMONY|OTHER:<text>")
     evidence_add.add_argument("--claim-match", help="How directly this evidence supports the claim phrasing")
-    evidence_add.add_argument("--court-posture", choices=list(VALID_COURT_POSTURES),
-                              help="Court document posture (stay/merits/preliminary_injunction/appeal/emergency/OTHER)")
+    evidence_add.add_argument("--court-posture",
+                              help="Court document posture: stay|merits|preliminary_injunction|appeal|emergency|OTHER:<text>")
     evidence_add.add_argument("--court-voice", choices=list(VALID_COURT_VOICES),
                               help="Court opinion voice (majority/concurrence/dissent/per_curiam)")
     evidence_add.add_argument("--analysis-log-id", help="Link to analysis log entry")
