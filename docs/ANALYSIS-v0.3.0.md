@@ -24,6 +24,18 @@ The main open frontier is less “more features” and more: **make the structur
 
 ---
 
+## In one sentence
+
+Reality Check is an **epistemic ledger**: a workflow + database that turns messy content into **atomic, typed claims** linked to **sources, evidence, and reasoning**, and then helps you **maintain** those beliefs over time (updates, corrections, drift, and re-checking).
+
+## Differentiators (why this isn’t “just fact checking”)
+
+- **Analysis over time**: append-only supersession, corrections, staleness tracking, and review workflows.
+- **Representation vs judgment separation**: claim registry + links vs credence assignments + provenance.
+- **Epistemic provenance built-in**: evidence links + reasoning trails are first-class, not an afterthought.
+- **Dialectical by design**: the workflow makes room for counterarguments, disconfirmation, and “what would change my mind.”
+- **Thin-waist architecture**: stable CLI + schema with multiple agent adapters (skills/plugins) as wrappers.
+
 ## If you only read a few Reality Check docs
 
 - `docs/WORKFLOWS.md` (the operational contract)
@@ -227,6 +239,51 @@ If v0.3.0 is about “stop conflating categories,” then causal inference is th
 
 This doesn’t require building a causal modeling system; it mostly requires **capturing the minimum causal scaffolding** for EFFECT claims so reviews can be concrete.
 
+### 8) Belief revision and truth maintenance (scale without “confident closure”)
+
+As your claim graph grows, the main risk is not “a wrong claim exists.” It’s: the system becomes **logically coherent but reality-disconnected**, because updating is expensive and contradictions get papered over.
+
+Useful anchors:
+
+- **AGM belief revision**: prefer *minimal change* when revising beliefs under contradiction.
+- **Truth maintenance systems (JTMS/ATMS)**: track “support sets” so re-evaluation is localized (“if Source X breaks, what breaks?”).
+
+Reality Check already has key primitives (contradictions table + append-only superseding evidence/reasoning). A pragmatic next move is to make review heuristics explicit (e.g., revise least-entrenched beliefs first: weakest evidence, fewest independent sources, stalest support).
+
+The key scaling invariant to aim for:
+
+> **Auditable inconsistency is allowed; untracked inconsistency is not.**
+
+Practically, when new evidence contradicts an entrenched claim, prefer a small set of “boring” outcomes:
+
+- **Time-split** the claim (“As of 2023…” vs “As of 2026…”)
+- **Scope-split** the claim (“in the US…” vs “globally…”)
+- **Keep an explicit open contradiction** with discriminators (what would resolve it)
+
+### 9) Temporal robustness and drift (treat knowledge as a maintenance problem)
+
+Most real-world claims are true **at time T**, not forever. Drift management should be a first-class workflow, not an optional chore:
+
+- Make **NEI / not-checkable** an allowed resting state.
+- Make “can’t retrieve/check” a hard stop: downgrade to **NEI / STALE** rather than guessing.
+- Make time visible in claim text (“As of YYYY-MM-DD …”) and avoid relative-time phrasing in stored claims (“currently”, “recently”, “latest”).
+- Prefer **snapshotted artifacts** for provenance (what you saw then) plus periodic `sources.last_checked` for “what’s true now.”
+- Treat time as at least three concepts:
+  - **Valid time**: when the claim is true in the world
+  - **Transaction time**: when the claim was recorded/updated in the system
+  - **Freshness window**: when it stops being safe to treat as “current”
+- Make stale beliefs cheap to quarantine:
+  - mark as `STALE` (or NEI) when overdue,
+  - and (optionally) downweight in synthesis via `effective_credence = credence × freshness_factor` rather than rewriting history.
+
+### 10) Workflow evaluation and LLM guardrails (measure groundedness)
+
+If Reality Check is a workflow framework, borrow from RAG/agent evaluation:
+
+- Maintain a small “golden set” of sources and track regressions in extraction completeness, evidence link correctness (quote/locator), and groundedness/faithfulness.
+- Use role separation (extractor → retriever → checker → synthesizer → auditor), even if it’s the same base model.
+- Prefer structured reasoning trails over storing verbose chain-of-thought.
+
 ---
 
 ## Related projects to reference
@@ -256,7 +313,8 @@ Argument mapping / discourse tooling:
 Fact-checking / claim review ecosystems:
 
 - **ClaimReview** (schema used to publish fact-check metadata)
-- **Full Fact** (fact-checking org with strong automation orientation)
+- **Google Fact Check Tools / Explorer** (ecosystem built around ClaimReview aggregation)
+- **Full Fact / Full Fact AI** (fact-checking org with strong automation orientation)
 - **ClaimBuster** (claim spotting / detection)
 - **ClaimsKG** (aggregation of fact-check data into a knowledge graph)
 
@@ -277,15 +335,62 @@ Forecasting:
 
 ---
 
+Agent evaluation / workflow QA:
+
+- **RAGAs** (RAG evaluation metrics: faithfulness/groundedness/context relevance)
+- **TruLens** (agent workflow evaluation/tracing + feedback functions)
+
+---
+
+## Domain considerations (how rigor fails differently)
+
+Reality Check is intentionally general, but a few domains have recurring failure modes worth encoding as “default skepticism”:
+
+- **Opinion / hot takes**: separate *grounds* (claims) from *warrants* (inference) and surface implicit assumptions (Toulmin is a good lens).
+- **News / current events**: enforce time scoping (“as of …”), expect correction churn, and be willing to end at NEI early.
+- **AI/ML papers**: watch for overclaims, benchmark gaming, cherry-picked examples, and unreproducible results; treat “effect” claims as high scrutiny.
+
+---
+
 ## Lightweight “easy wins” (high leverage, low complexity)
 
 These are intentionally biased toward changes that improve rigor and synthesis **without** turning Reality Check into a full knowledge-graph platform.
 
-### A) Add a small number of optional “rigor-v1 mirrors” to the DB (query power)
+### A) Add a claim “verdict / checkability” state (stop forcing false precision)
+
+Credence and evidence levels are great, but they don’t cleanly express an extremely common end state: **we can’t actually check this** (or we can’t check it *yet*).
+
+Add a discrete, review-friendly state orthogonal to credence, e.g.:
+
+- `SUPPORTED`
+- `REFUTED`
+- `MIXED` / `DEPENDS`
+- `NOT_ENOUGH_INFO` (NEI)
+- `NOT_CHECKABLE` (in principle or in practice)
+- `TIME_BOUNDED` / `STALE` (true-as-of, but unknown now)
+
+This single field prevents “hallucinated certainty” in syntheses and makes review workflows more honest.
+
+### B) Canonicalize claims into a minimal “claim frame” (dedupe + contradiction + synthesis)
+
+Layer/Actor/Scope/Quantifier help a lot, but you still get “same claim, different phrasing” noise.
+
+Low-effort win: store a minimal canonical form (even if imperfect) such as:
+
+- `subject` / entity (who/what)
+- `predicate` (what relation)
+- `object` / value (what outcome/value)
+- `as_of` / time range (when)
+- `population` / scope (who it applies to)
+- `units` (if numeric)
+
+This unlocks better dedupe/merge flows, sharper contradiction detection (“same predicate, incompatible object, same time”), and more structured synthesis (“group by subject/predicate”).
+
+### C) Add a small number of optional “rigor-v1 mirrors” to the DB (query power)
 
 **Problem**: Layer/Actor/Scope/Quantifier live in analysis tables, but the DB can’t easily query them.
 
-**Low-effort win**: add nullable fields on `claims`:
+**Low-effort win**: add nullable fields on `claims` (as “index fields,” not the authoring interface):
 
 - `layer` (ASSERTED/LAWFUL/PRACTICED/EFFECT/N/A)
 - `actor` (string; allow `OTHER:` convention)
@@ -298,42 +403,62 @@ This unlocks:
 - “Find EFFECT claims whose evidence is mostly REPORTING.”
 - Better synthesis filters without LLM assistance.
 
-If you want to keep the schema lean: store these only when known (nullable), treat them as “index fields,” and keep the analysis tables as the primary authoring UI.
+### D) Add 3–5 evidence-quality tags (risk-of-bias / GRADE-lite)
 
-### B) Add 3–5 standard “downgrade reasons” for evidence / credence (risk-of-bias lite)
+Keep E1–E6. Add a few “why this evidence is weaker/stronger than it looks” tags, e.g.:
 
-Instead of importing a full evidence appraisal system, track a small controlled vocabulary such as:
-
-- `confounding`
-- `selection_bias`
-- `measurement_error`
-- `incentive_misalignment`
+- `risk_of_bias`
 - `indirectness` (evidence doesn’t match claim as stated)
+- `inconsistency` (conflicting lines of evidence)
+- `imprecision` (wide uncertainty / small n)
+- `confounding` / `selection_bias` / `measurement_error` (pick a minimal set)
 
-This could live either:
+These can live on `evidence_links` (preferred) and/or be summarized in `reasoning_trails`.
 
-- on `evidence_links` (as tags), or
-- in `reasoning_trails` (as part of the rationale structure)
-
-### C) Improve search/synthesis with “review-first” affordances (no new ML required)
+### E) Improve search/synthesis with “review-first” affordances (no new ML required)
 
 The current semantic search is a good base. Easy upgrades tend to be:
 
 - **Filtering**: add `--type`, `--evidence-level`, `--min-credence`, `--max-credence` to search (or a separate `rc-db claim search` with facets).
+- **Facets that matter**: filter by verdict, “has evidence links?”, “has reasoning trail?”, “stale?”.
 - **Diversification**: add “MMR-style” diversification for top-N results (avoid near-duplicate results crowding out alternatives).
 - **Related-claim views**: `rc-db claim neighbors <id>` (embedding neighbors + explicit relation neighbors).
 - **Synthesis skeleton exports**: generate a “claim card” markdown per claim (text + scope + evidence links + latest reasoning trail).
 
 These make the DB meaningfully more usable *without* adding complex inference.
 
-### D) Make “change over time” cheap to maintain
+### F) Make drift management boring (review cadence + temporal lint + reconciliation queue)
 
-With `sources.last_checked` now available, consider a lightweight loop:
+With `sources.last_checked` now available, you can turn drift into a managed backlog:
 
-- `rc-db source check <id> --date YYYY-MM-DD` (just records last_checked + optional notes)
-- optional later enhancement: compute content hashes for local artifacts and store them in evidence link `location` mini-schema or a new optional field
+- Add lightweight review cadence fields (even as optional): `last_reviewed_at`, `review_due_at`, `staleness_risk`.
+- Prefer *using* existing source credibility fields (`sources.reliability`, `sources.bias_notes`, `sources.last_checked`) in reconciliation policy over adding a new credibility subsystem.
+- Add a lightweight claim lifecycle state (e.g., drafted/registered/reviewed/contested/deprecated) so “unreviewed” doesn’t masquerade as “low credence.”
+- Add temporal discipline:
+  - “Now contract” for agents (inject `NOW_UTC` and forbid guessing recent facts)
+  - a lint rule to rewrite/flag “currently/latest/this year” into “As of YYYY-MM-DD …”
+- Add a `reconcile scan`-style command that derives tasks from:
+  - overdue `sources.last_checked`
+  - unresolved contradictions
+  - predictions past target date
+  - high-impact claims that are stale/fragile
+  - (use explicit task names like `SOURCE_REFRESH`, `CLAIM_STALE`, `CONTRADICTION_OPEN`, `PREDICTION_DUE`, `HIGH_IMPACT_DEPENDENCY` so dashboards/backlogs stay legible)
+- Treat reconciliation as an explicit analysis pass type (recorded in `analysis_logs`) so updates are attributable and auditable.
+- Make disconfirming search routine: require a logged “attempted refutation search” before allowing high credence on high-impact claims.
+- Consider upgrading WARNs to stricter gates (e.g., `--rigor`) for high-impact claims missing locatable supporting evidence (artifact + locator + quote).
 
 Goal: cheap “staleness hygiene” rather than ambitious crawling.
+
+### G) Regression-test the workflow (metrics, not vibes)
+
+If the flagship value is the *workflow*, measure it:
+
+- Maintain a small “golden set” of sources and track regressions in:
+  - extraction completeness (are key claims reliably extracted?)
+  - evidence link correctness (quotes/locators present; claim match plausible)
+  - groundedness/faithfulness (claims supported by retrieved context)
+- Consider borrowing from RAG evaluation tooling (e.g., RAGAs/TruLens-style feedback functions) as a harness rather than a product feature.
+- Optional: confidence-driven iterative retrieval (retrieve K evidence docs; expand/refine search if still NEI).
 
 ---
 
@@ -344,17 +469,29 @@ Goal: cheap “staleness hygiene” rather than ambitious crawling.
 - **Append-only supersession semantics** for evidence and reasoning (auditability)
 - **Dual-mode validation** (WARN default + strict flags) for incremental adoption
 - **Templates as interface** (the analysis markdown is the human API; keep it stable)
+- **Single source of truth per artifact**: DB for structured state; analysis markdown for narrative; exports are derived
+- **Generated integrations**: keep CLI + schema as the “thin waist,” generate skills/plugins from templates to avoid drift
 
 ### Watch / streamline (these can quietly explode)
 
 - **Duplicate representations** of relationships:
   - claims have `supports`/`depends_on` lists; chains also contain ordered claims.
   - If both stay, treat one as canonical and define a consistency strategy.
+  - Avoid adding a new “relationships table” until you need per-edge metadata (timestamps/strength/provenance) or performance-driven graph queries.
+- **Integration drift**:
+  - multiple agent wrappers are valuable, but hand-maintaining them is expensive; prefer generation from a canonical manifest/template set.
+- **Overbuilding “reasoning engines” too early**:
+  - formal argumentation semantics and multi-agent debate are intellectually attractive but expensive; prioritize disconfirming retrieval, temporal scoping, and artifact/quote verification first.
 - **Schema drift across versions**:
   - LanceDB schema is fixed; migrations must remain boring and deterministic.
   - Any new fields should be optional, and defaults should preserve old repos.
+- **Schema bloat via “nice-to-have” metadata**:
+  - add fields only when they enable validation, retrieval, synthesis, or maintenance.
+  - example: confidence intervals are only worth it if they drive behavior (abstention thresholds, synthesis weighting); otherwise prefer a coarse uncertainty band on high-impact claims.
 - **Overloading “credence”**:
   - Credence can become a catch-all for “I like this idea.” The new rigor contract helps; keep pushing toward “credence must be provenance-backed.”
+- **Version surface mismatch**:
+  - keep `pyproject.toml`, release tags, README “Status,” and changelog aligned to reduce user confusion.
 
 ---
 
@@ -388,6 +525,12 @@ Evidence assessment:
 
 - GRADE handbook (overview). https://gdt.gradepro.org/app/handbook/handbook.html
 
+Belief revision / drift management:
+
+- Belief revision (AGM overview). https://en.wikipedia.org/wiki/Belief_revision
+- Truth maintenance systems (overview). https://en.wikipedia.org/wiki/Truth_maintenance_system
+- Concept drift (overview). https://en.wikipedia.org/wiki/Concept_drift
+
 Forecasting:
 
 - Brier, “Verification of Forecasts Expressed in Terms of Probability” (1950). DOI: 10.1175/1520-0493(1950)078%3C0001:VOFEIT%3E2.0.CO;2
@@ -399,3 +542,8 @@ Structured analytic techniques:
 
 - Heuer, *The Psychology of Intelligence Analysis* (CIA, 1999). https://www.cia.gov/resources/csi/books-monographs/psychology-of-intelligence-analysis/
 - Premortem (overview). https://en.wikipedia.org/wiki/Premortem
+
+Workflow QA (agent / RAG evaluation):
+
+- RAGAs (project). https://github.com/explodinggradients/ragas
+- TruLens (project). https://github.com/truera/trulens
