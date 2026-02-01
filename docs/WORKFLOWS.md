@@ -310,7 +310,7 @@ This contract is implemented via:
 |----|------|--------|-------|-------|-------|------------|----------|----------|-------|
 ```
 
-**Legacy compatibility**: validators should accept the current v1 tables, but WARN by default when the rigor-v1 columns are missing; `--rigor` (planned) upgrades key WARNs to ERRORs.
+**Legacy compatibility**: validators accept both v1 and rigor-v1 table formats. WARN by default when rigor-v1 columns are missing; `--rigor` flag upgrades WARNs to ERRORs.
 
 ### Field Definitions
 

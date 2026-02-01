@@ -1558,6 +1558,11 @@ def add_evidence_link(
         "location": link_data.get("location"),
         "quote": link_data.get("quote"),
         "reasoning": link_data.get("reasoning"),
+        # Rigor-v1 fields
+        "evidence_type": link_data.get("evidence_type"),
+        "claim_match": link_data.get("claim_match"),
+        "court_posture": link_data.get("court_posture"),
+        "court_voice": link_data.get("court_voice"),
         "analysis_log_id": link_data.get("analysis_log_id"),
         "created_at": link_data.get("created_at", now),
         "created_by": link_data.get("created_by", "unknown"),
@@ -2327,6 +2332,7 @@ Examples:
     source_update.add_argument("--year", type=int, help="Publication year")
     source_update.add_argument("--url", help="URL")
     source_update.add_argument("--doi", help="DOI")
+    source_update.add_argument("--last-checked", help="ISO date when source was last verified for changes (rigor-v1)")
     source_update.add_argument("--reliability", type=float, help="Reliability score (0.0-1.0)")
     source_update.add_argument("--bias-notes", help="Bias notes")
     source_update.add_argument("--status", help="Status (cataloged/analyzed)")
@@ -2540,9 +2546,17 @@ Examples:
     evidence_add.add_argument("--direction", required=True, choices=["supports", "contradicts", "strengthens", "weakens"],
                               help="How this evidence relates to the claim")
     evidence_add.add_argument("--strength", type=float, help="Impact strength (0.0-1.0)")
-    evidence_add.add_argument("--location", help="Specific location in source (e.g., 'Table 3, p.15')")
+    evidence_add.add_argument("--location", help="Specific location in source (rigor-v1: artifact=...; locator=...)")
     evidence_add.add_argument("--quote", help="Relevant excerpt from source")
     evidence_add.add_argument("--reasoning", help="Why this evidence matters for the claim")
+    # Rigor-v1 fields
+    evidence_add.add_argument("--evidence-type", choices=list(VALID_EVIDENCE_TYPES) + ["OTHER"],
+                              help="Type of evidence (LAW/REG/COURT_ORDER/FILING/MEMO/POLICY/REPORTING/VIDEO/DATA/STUDY/TESTIMONY/OTHER)")
+    evidence_add.add_argument("--claim-match", help="How directly this evidence supports the claim phrasing")
+    evidence_add.add_argument("--court-posture", choices=list(VALID_COURT_POSTURES),
+                              help="Court document posture (stay/merits/preliminary_injunction/appeal/emergency/OTHER)")
+    evidence_add.add_argument("--court-voice", choices=list(VALID_COURT_VOICES),
+                              help="Court opinion voice (majority/concurrence/dissent/per_curiam)")
     evidence_add.add_argument("--analysis-log-id", help="Link to analysis log entry")
     evidence_add.add_argument("--created-by", default="cli", help="Tool/user creating this link")
 
@@ -2590,7 +2604,8 @@ Examples:
     reasoning_add.add_argument("--counterarguments-json", help="JSON array of counterarguments considered")
     reasoning_add.add_argument("--analysis-pass", type=int, help="Analysis pass number")
     reasoning_add.add_argument("--analysis-log-id", help="Link to analysis log entry")
-    reasoning_add.add_argument("--status", default="active", choices=["active", "superseded"], help="Trail status")
+    reasoning_add.add_argument("--status", default="active", choices=list(VALID_REASONING_STATUSES),
+                               help="Trail status (active/superseded/proposed/retracted)")
     reasoning_add.add_argument("--created-by", default="cli", help="Tool/user creating this trail")
 
     # reasoning get
@@ -3284,6 +3299,8 @@ rc-validate
                 updates["domains"] = _parse_optional_csv(args.domains)
             if getattr(args, "claims_extracted", None) is not None:
                 updates["claims_extracted"] = _parse_optional_csv(args.claims_extracted)
+            if getattr(args, "last_checked", None) is not None:
+                updates["last_checked"] = args.last_checked
 
             if not updates:
                 print("No updates provided.", file=sys.stderr)
@@ -4039,6 +4056,11 @@ rc-validate
                 "location": args.location,
                 "quote": args.quote,
                 "reasoning": args.reasoning,
+                # Rigor-v1 fields
+                "evidence_type": getattr(args, "evidence_type", None),
+                "claim_match": getattr(args, "claim_match", None),
+                "court_posture": getattr(args, "court_posture", None),
+                "court_voice": getattr(args, "court_voice", None),
                 "analysis_log_id": getattr(args, "analysis_log_id", None),
                 "created_by": args.created_by,
             }

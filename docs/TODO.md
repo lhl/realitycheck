@@ -65,7 +65,7 @@ Tracking future work items.
 - Court citation hygiene (majority vs dissent; posture; controlling vs non-controlling)
 - Multi-pass refinement workflow that preserves provenance and reviewer disagreement cleanly
 
-**Status**: Spec locked (2026-01-31) - ready for Phase 1 (tests first) + implementation.
+**Status**: ✅ Implemented (2026-02-01) - rigor-v1 tables, `--rigor` flag, DB schema extensions complete.
 
 ---
 

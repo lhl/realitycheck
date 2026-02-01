@@ -49,7 +49,8 @@ Bibliography and provenance tracking.
 | `year` | int32 | Yes | Publication year |
 | `url` | string | No | URL |
 | `doi` | string | No | DOI identifier |
-| `accessed` | string | No | Date accessed |
+| `accessed` | string | No | Date first accessed |
+| `last_checked` | string | No | Date source was last verified for changes (rigor-v1) |
 | `reliability` | float32 | No | 0.0-1.0 source reliability rating |
 | `bias_notes` | string | No | Notes on potential biases |
 | `claims_extracted` | list[string] | No | Backlinks to extracted claims |
@@ -131,9 +132,13 @@ Links between claims and supporting/contradicting sources for epistemic provenan
 | `status` | string | Yes | active/superseded/retracted |
 | `supersedes_id` | string | No | ID of previous link this replaces |
 | `strength` | float32 | No | Coarse impact estimate (0.0-1.0) |
-| `location` | string | No | Specific location in source (e.g., "Table 3, p.15") |
+| `location` | string | No | Specific location in source (rigor-v1: `artifact=...; locator=...`) |
 | `quote` | string | No | Relevant excerpt from source |
 | `reasoning` | string | No | Why this evidence matters |
+| `evidence_type` | string | No | Type of evidence: LAW/REG/COURT_ORDER/FILING/MEMO/POLICY/REPORTING/VIDEO/DATA/STUDY/TESTIMONY/OTHER (rigor-v1) |
+| `claim_match` | string | No | How directly this evidence supports the claim phrasing (rigor-v1) |
+| `court_posture` | string | No | Court document posture: stay/merits/preliminary_injunction/appeal/emergency/OTHER (rigor-v1) |
+| `court_voice` | string | No | Court opinion voice: majority/concurrence/dissent/per_curiam (rigor-v1) |
 | `analysis_log_id` | string | No | Link to audit log pass |
 | `created_at` | string | Yes | ISO timestamp |
 | `created_by` | string | Yes | Tool/agent that created this link |
@@ -146,7 +151,7 @@ Reasoning chains for claim credence assignments.
 |-------|------|----------|-------------|
 | `id` | string | Yes | Unique ID: `REASON-[YYYY]-[NNN]` |
 | `claim_id` | string | Yes | Reference to claims table |
-| `status` | string | Yes | active/superseded |
+| `status` | string | Yes | active/superseded/proposed/retracted (rigor-v1 adds proposed/retracted) |
 | `supersedes_id` | string | No | ID of previous trail this replaces |
 | `credence_at_time` | float32 | Yes | Credence when trail was created |
 | `evidence_level_at_time` | string | Yes | Evidence level when trail was created |

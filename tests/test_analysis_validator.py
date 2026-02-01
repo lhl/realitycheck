@@ -477,11 +477,8 @@ claims:
 
         result = validate_file(test_file, profile="full")
         # Should have a warning about missing Corrections & Updates section
-        all_issues = result.errors + result.warnings
-        corrections_issues = [i for i in all_issues if "Corrections" in i]
-        # Note: This test will pass once the validator is updated
-        # For now, we're documenting the expected behavior
-        assert len(corrections_issues) >= 0  # Will be >= 1 after implementation
+        corrections_warnings = [w for w in result.warnings if "Corrections" in w]
+        assert len(corrections_warnings) >= 1, "Expected warning about missing Corrections & Updates section"
 
 
 class TestLayerEnumValidation:
@@ -553,11 +550,74 @@ claims:
         test_file.write_text(content)
 
         result = validate_file(test_file, profile="quick")
-        # After implementation, this should produce a warning about invalid layer
-        # For now, we're setting up the test
-        layer_warnings = [w for w in result.warnings if "Layer" in w or "INVALID_LAYER" in w]
-        # Will be >= 1 after implementation
-        assert len(layer_warnings) >= 0
+        # Quick profile doesn't run rigor checks, so test with full profile
+        # Re-test with full profile to verify layer validation
+        result_full = validate_file(test_file, profile="full")
+        layer_warnings = [w for w in result_full.warnings if "Layer" in w or "INVALID_LAYER" in w]
+        assert len(layer_warnings) >= 1, "Expected warning about invalid Layer value"
+
+
+class TestRigorFlag:
+    """Tests for --rigor flag behavior."""
+
+    def test_rigor_flag_converts_warnings_to_errors(self, tmp_path):
+        """With rigor=True, rigor warnings become errors."""
+        # Content missing rigor-v1 columns and Corrections section
+        content = """# Source Analysis: Test
+
+> **Claim types**: `[F]` fact
+> **Evidence**: **E1** test
+
+## Metadata
+**Analysis Depth**: full
+
+## Stage 1: Descriptive Analysis
+### Core Thesis
+Test.
+### Key Claims
+| # | Claim | Claim ID | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|------|--------|------|----------|-----------|----------------|
+| 1 | Test | TECH-2026-001 | [F] | TECH | E2 | 0.75 | ? | N/A |
+### Argument Structure
+### Theoretical Lineage
+## Stage 2: Evaluative Analysis
+### Key Factual Claims Verified
+### Disconfirming Evidence Search
+### Internal Tensions
+### Persuasion Techniques
+### Unstated Assumptions
+## Stage 3: Dialectical Analysis
+### Steelmanned Argument
+### Strongest Counterarguments
+### Supporting Theories
+### Contradicting Theories
+### Claim Summary
+| ID | Type | Domain | Evidence | Credence | Claim |
+|----|------|--------|----------|----------|-------|
+| TECH-2026-001 | [F] | TECH | E2 | 0.75 | Test |
+### Claims to Register
+
+```yaml
+claims:
+  - id: "TECH-2026-001"
+```
+
+**Credence in Analysis**: 0.7
+"""
+        test_file = tmp_path / "test.md"
+        test_file.write_text(content)
+
+        # Without rigor flag: warnings
+        result_warn = validate_file(test_file, profile="full", rigor=False)
+        assert len(result_warn.warnings) > 0, "Should have rigor warnings"
+        rigor_warnings = [w for w in result_warn.warnings if "rigor" in w.lower() or "Corrections" in w or "Layer" in w or "columns" in w.lower()]
+        assert len(rigor_warnings) > 0, "Should have rigor-specific warnings"
+
+        # With rigor flag: those warnings become errors
+        result_error = validate_file(test_file, profile="full", rigor=True)
+        # Rigor warnings should now be in errors
+        rigor_errors = [e for e in result_error.errors if "rigor" in e.lower() or "Corrections" in e or "Layer" in e or "columns" in e.lower()]
+        assert len(rigor_errors) > 0, "Rigor flag should convert warnings to errors"
 
 
 class TestFullProfile:
