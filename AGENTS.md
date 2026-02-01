@@ -3,6 +3,33 @@
 Please refer to `README.md`, `docs/PLAN-separation.md`, `docs/IMPLEMENTATION.md`, and `docs/DEPLOY.md` for project-specific details.
 This `AGENTS.md`/`CLAUDE.md` is specifically for ground rules, process, and behavior notes.
 
+## Shared Repo / Multi-Agent Safety (MUST FOLLOW)
+
+This repo may be edited by multiple agents concurrently. Treat the working tree as shared state.
+
+### Before any change (required)
+- Run `git status --porcelain`.
+- If the working tree is not clean and you did not create those changes in this session, STOP and ask the user how to proceed.
+
+### Never discard others’ work (hard rule)
+- NEVER run any command that can delete/overwrite existing work unless the user explicitly instructs it.
+  This includes (but is not limited to):
+  - `git restore ...`
+  - `git checkout -- ...`
+  - `git reset --hard ...`
+  - `git clean -fd ...`
+  - `rm -rf ...` / overwriting redirects like `> file`
+  - bulk rewrites that destroy local edits (e.g., aggressive formatters) unless requested
+
+### Scope discipline
+- Only edit files needed for the user’s current request.
+- Do not “clean up”, refactor, or revert unrelated diffs in touched files.
+- If you need to avoid committing unrelated diffs, use `git add <paths>` or `git add -p`; never “fix” by reverting other hunks.
+
+### If conflicts are unavoidable
+- Coordinate: propose a plan that preserves both sets of edits (e.g., separate commits/branches/patches),
+  and wait for explicit user instruction before any destructive resolution.
+
 ## Project Overview
 
 Reality Check is a framework for rigorous, systematic analysis of claims, sources, predictions, and argument chains. It provides:
