@@ -89,9 +89,10 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 10. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
 11. **Validate** - Run integrity checks
 12. **README** - Update data project analysis index
-13. **Commit** - Stage and commit changes to data repo
-14. **Push** - Push to remote
-15. **Report** - Generate summary
+13. **File Inbox** - Move/archive inbox items to permanent locations
+14. **Commit** - Stage and commit changes to data repo
+15. **Push** - Push to remote
+16. **Report** - Generate summary
 
 ---
 
@@ -844,6 +845,57 @@ This updates the "Current Status" and "Claim Domains" tables automatically.
 
 ---
 
+## File Inbox Items (if applicable)
+
+If the source originated from `inbox/`, **file it to its permanent location** after analysis is complete. Do not leave processed items in `inbox/`.
+
+### Filing Destinations
+
+| Source Type | Destination | Notes |
+|-------------|-------------|-------|
+| URL (fetched via WebFetch) | No file action needed | URL is recorded in source metadata |
+| URL placeholder file (`*.url`, `*.txt`) | **Delete** | `rm inbox/<file>` |
+| PDF/document (primary source) | `reference/primary/<source-id>.<ext>` | Rename to match source-id |
+| PDF/document (supporting) | `reference/captured/<filename>` | Keep original filename |
+| Screenshot/image | `reference/captured/<source-id>-<desc>.<ext>` | Descriptive suffix |
+| Data file (CSV, JSON, etc.) | `reference/captured/<filename>` | Keep original filename |
+| Video/audio transcript | `reference/captured/<source-id>-transcript.<ext>` | |
+
+### Filing Commands
+
+```bash
+# For primary documents (rename to source-id)
+mv inbox/original-document.pdf reference/primary/<source-id>.pdf
+
+# For supporting materials (keep original name)
+mv inbox/supporting-data.csv reference/captured/
+
+# For URL placeholders (just delete)
+rm inbox/some-article.url
+
+# For screenshots
+mv inbox/screenshot.png reference/captured/<source-id>-homepage.png
+```
+
+### Update Evidence Links (if applicable)
+
+If you created `evidence_links` pointing to the inbox location, update them:
+
+```bash
+# The location field should use the new path
+# artifact=reference/primary/<source-id>.pdf; locator=p.15
+```
+
+### Verify Inbox is Clean
+
+After filing, `inbox/` should contain only **unprocessed** items:
+
+```bash
+ls inbox/  # Should not contain items you just analyzed
+```
+
+---
+
 ## Commit and Push (REQUIRED)
 
 **You MUST commit and push after every successful analysis.** This is not optional.
@@ -852,8 +904,11 @@ This updates the "Current Status" and "Claim Domains" tables automatically.
 # From the data project root
 cd "$(dirname "$REALITYCHECK_DATA")"
 
-# Stage all changes
+# Stage all changes (including filed reference materials)
 git add data/ analysis/ tracking/ README.md claims/ reference/
+
+# Stage inbox deletions (if any files were removed)
+git add -u inbox/
 
 # Commit with descriptive message
 git commit -m "data: add [source-id] - [brief description]"

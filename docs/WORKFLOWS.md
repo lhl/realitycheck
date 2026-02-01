@@ -50,7 +50,9 @@ This creates:
 - `data/realitycheck.lance/` - Database
 - `analysis/sources/` - Analysis documents
 - `tracking/` - Prediction tracking
-- `inbox/` - Sources to process
+- `inbox/` - Sources to process (staging area)
+- `reference/primary/` - Primary source documents (filed after analysis)
+- `reference/captured/` - Supporting materials and evidence captures
 
 ### Set Environment Variable
 
@@ -65,6 +67,94 @@ export REALITYCHECK_DATA="$(pwd)/data/realitycheck.lance"
 **Note:** If `REALITYCHECK_DATA` is not set, the CLIs will try to auto-detect a data project by walking up from your current directory for `.realitycheck.yaml` or `data/realitycheck.lance/`. If nothing is detected, set `REALITYCHECK_DATA` (or pass `--db-path` where supported), or create a project via `rc-db init-project`.
 
 You can also use `db.py doctor` to print detected project/DB paths and copy-paste setup commands.
+
+## Inbox Workflow
+
+The `inbox/` folder is a **staging area** for sources waiting to be analyzed. Items should not remain in inbox after processing.
+
+### What Goes in Inbox
+
+| Item Type | Example | Notes |
+|-----------|---------|-------|
+| URL placeholder | `some-article.url` or `some-article.txt` | Contains URL to fetch |
+| PDF/document | `report.pdf`, `filing.pdf` | Primary or supporting source |
+| Screenshot | `screenshot-2026-01-15.png` | Evidence capture |
+| Data file | `data.csv`, `results.json` | Supporting data |
+| Transcript | `interview-transcript.md` | Audio/video transcript |
+
+### Processing Flow
+
+```
+inbox/item.pdf → analyze → file to reference/ → delete from inbox/
+```
+
+1. **Add to inbox**: Drop files or create URL placeholders
+2. **Analyze**: Run `/check` on the item
+3. **File**: Move to permanent location (see below)
+4. **Clean**: Remove from inbox (delete or `git rm`)
+
+### Filing Destinations
+
+After analysis, move inbox items to their permanent home:
+
+| Source Type | Destination | Naming Convention |
+|-------------|-------------|-------------------|
+| Primary document (PDF, filing, memo) | `reference/primary/` | `<source-id>.<ext>` |
+| Supporting material | `reference/captured/` | Keep original filename |
+| Screenshot/image | `reference/captured/` | `<source-id>-<desc>.<ext>` |
+| URL placeholder | **Delete** | N/A |
+
+### Reference Folder Structure
+
+```
+reference/
+├── primary/           # Primary source documents (renamed to source-id)
+│   ├── smith-2026-immigration-memo.pdf
+│   └── dhs-2026-policy-guidance.pdf
+├── captured/          # Supporting materials (original filenames OK)
+│   ├── ice-statistics-2025.csv
+│   ├── court-docket-screenshot.png
+│   └── interview-transcript.md
+└── .gitignore         # Optional: ignore large binaries
+```
+
+**Primary vs Captured:**
+- `primary/`: The main source being analyzed (1:1 with source-id)
+- `captured/`: Supporting evidence, data files, screenshots (may support multiple sources)
+
+### Example Workflow
+
+```bash
+# 1. Add URL to inbox
+echo "https://example.com/article" > inbox/example-article.url
+
+# 2. Analyze (creates analysis/sources/example-2026-article.md)
+# /check inbox/example-article.url
+
+# 3. File: URL placeholder just gets deleted
+rm inbox/example-article.url
+
+# 4. Commit
+git add -u inbox/
+git add analysis/ data/
+git commit -m "data: add example-2026-article"
+```
+
+```bash
+# 1. Add PDF to inbox
+cp ~/Downloads/important-memo.pdf inbox/
+
+# 2. Analyze (creates analysis/sources/agency-2026-memo.md)
+# /check inbox/important-memo.pdf
+
+# 3. File: Move to reference/primary with source-id name
+mv inbox/important-memo.pdf reference/primary/agency-2026-memo.pdf
+
+# 4. Commit
+git add reference/primary/
+git add analysis/ data/
+git commit -m "data: add agency-2026-memo"
+```
 
 ## Claim Workflows
 

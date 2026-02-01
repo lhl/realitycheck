@@ -2787,6 +2787,8 @@ Examples:
             "tracking/updates",
             "inbox/to-catalog",
             "inbox/to-analyze",
+            "reference/primary",      # Primary source documents (renamed to source-id)
+            "reference/captured",     # Supporting materials (original filenames)
         ]
 
         for dir_name in directories:
