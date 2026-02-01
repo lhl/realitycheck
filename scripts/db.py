@@ -2785,10 +2785,9 @@ Examples:
             "analysis/evidence/by-claim",
             "analysis/evidence/by-source",
             "tracking/updates",
-            "inbox/to-catalog",
-            "inbox/to-analyze",
-            "reference/primary",      # Primary source documents (renamed to source-id)
-            "reference/captured",     # Supporting materials (original filenames)
+            "inbox",                   # Staging area for sources to process
+            "reference/primary",       # Primary source documents (renamed to source-id)
+            "reference/captured",      # Supporting materials (original filenames)
         ]
 
         for dir_name in directories:
@@ -2834,6 +2833,14 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Captured copyrighted content (keep metadata, ignore content files)
+# See: https://github.com/lhl/realitycheck/blob/main/docs/WORKFLOWS.md#capture-tiers
+reference/captured/**/*.pdf
+reference/captured/**/*.html
+reference/captured/**/*.txt
+reference/captured/**/*.doc
+reference/captured/**/*.docx
 '''
             with open(gitignore_path, "w") as f:
                 f.write(gitignore_content)
