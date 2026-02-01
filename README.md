@@ -10,6 +10,8 @@ Reality Check helps you build and maintain a **unified knowledge base** with:
 
 - **Claim Registry**: Track claims with evidence levels, credence scores, and relationships
 - **Source Analysis**: Structured 3-stage methodology (descriptive → evaluative → dialectical)
+- **Evidence Links**: Connect claims to sources with location, quotes, and strength ratings
+- **Reasoning Trails**: Document credence assignments with full epistemic provenance
 - **Prediction Tracking**: Monitor forecasts with falsification criteria and status updates
 - **Argument Chains**: Map logical dependencies and identify weak links
 - **Semantic Search**: Find related claims across your entire knowledge base
@@ -18,7 +20,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.2.0** - Epistemic Provenance: evidence links, reasoning trails, and audit validation; 401 tests.
+**v0.2.1** - Analysis Rigor & Inbox Workflow: Layer/Actor/Scope/Quantifier columns, `--rigor` flag, filing workflow; 401 tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
@@ -219,6 +221,24 @@ rc-db prediction list [--status S]
 rc-db search "query" [--domain D] [--limit N]
 rc-db related <claim-id>                # Find related claims
 
+# Evidence links (epistemic provenance)
+rc-db evidence add --claim-id "..." --source-id "..." --direction supporting --strength strong
+rc-db evidence get <id>
+rc-db evidence list [--claim-id C] [--source-id S]
+rc-db evidence supersede <id> --reason "..." [--new-location "..."]
+
+# Reasoning trails (credence audit)
+rc-db reasoning add --claim-id "..." --credence 0.8 --evidence-level E2 --reasoning-text "..."
+rc-db reasoning get <id>
+rc-db reasoning list [--claim-id C]
+rc-db reasoning history <claim-id>      # Full credence history
+
+# Analysis audit logs
+rc-db analysis start --source-id "..."  # Begin tracking
+rc-db analysis mark <stage>             # Mark stage completion
+rc-db analysis complete                 # Finalize log
+rc-db analysis list                     # List audit logs
+
 # Import/Export
 rc-db import <file.yaml> --type claims|sources|all
 rc-validate                             # Check database integrity
@@ -418,16 +438,16 @@ realitycheck/                 # Framework repo (this)
 │   ├── migrate.py            # Legacy YAML migration
 │   ├── embed.py              # Embedding utilities (re-generate, status)
 │   └── html_extract.py       # HTML → {title, published, text} extraction
-├── plugin/                   # Claude Code plugin
-│   ├── skills/               # Slash command skill definitions
-│   └── scripts/              # Shell wrappers
-├── integrations/             # Other tool integrations
-│   └── codex/                # Codex skills + installers
+├── integrations/             # Tool integrations
+│   ├── claude/               # Claude Code plugin + skills
+│   ├── codex/                # OpenAI Codex skills
+│   ├── amp/                  # Amp skills
+│   └── opencode/             # OpenCode skills
 ├── methodology/              # Analysis templates
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md
 │   └── templates/
-├── tests/                    # pytest suite (137 tests)
+├── tests/                    # pytest suite (401 tests)
 └── docs/                     # Documentation
 
 my-research/                  # Your data repo (separate)
@@ -435,7 +455,9 @@ my-research/                  # Your data repo (separate)
 ├── data/realitycheck.lance/  # LanceDB database
 ├── analysis/sources/         # Analysis documents
 ├── tracking/                 # Prediction tracking
-└── inbox/                    # Sources to process
+├── inbox/                    # Sources to process (staging)
+├── reference/primary/        # Filed primary documents
+└── reference/captured/       # Supporting materials
 ```
 
 ## Why a Unified Knowledge Base?
@@ -491,6 +513,7 @@ See [CLAUDE.md](CLAUDE.md) for development workflow and contribution guidelines.
 - [docs/PLUGIN.md](docs/PLUGIN.md) - Claude Code plugin guide
 - [docs/SCHEMA.md](docs/SCHEMA.md) - Database schema reference
 - [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - Common usage workflows
+- [docs/CHANGELOG.md](docs/CHANGELOG.md) - Release history and notes
 - [methodology/](methodology/) - Analysis methodology and templates
 
 ## License

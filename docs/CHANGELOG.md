@@ -8,6 +8,76 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.2.1 - 2026-02-01
+
+**Analysis Rigor & Inbox Workflow** - Enforces structured claim metadata and streamlines source processing.
+
+This release introduces "rigor-v1" analysis tables with Layer/Actor/Scope/Quantifier columns, a new `--rigor` validation flag, and a complete inbox-to-reference filing workflow.
+
+### Added
+
+#### Analysis Rigor (v1)
+
+- **Key Claims table** now includes Layer/Actor/Scope/Quantifier columns with column guide
+- **Claim Summary table** updated with matching rigor columns
+- **Corrections & Updates section** added to full-profile analyses for tracking source changes
+- **`--rigor` flag** for `rc-validate` and `analysis_validator.py`:
+  - WARN by default when rigor-v1 columns are missing
+  - ERROR with `--rigor` flag for strict enforcement
+- **Layer enum validation**: ASSERTED/LAWFUL/PRACTICED/EFFECT (N/A when genuinely inapplicable)
+
+#### Evidence Links (rigor-v1 fields)
+
+- `evidence_type`: LAW/REG/COURT_ORDER/FILING/MEMO/POLICY/REPORTING/VIDEO/DATA/STUDY/TESTIMONY/OTHER:\<text\>
+- `claim_match`: How directly evidence supports the claim phrasing
+- `court_posture`: stay/merits/preliminary_injunction/appeal/emergency/OTHER:\<text\>
+- `court_voice`: majority/concurrence/dissent/per_curiam
+- CLI: `rc-db evidence add --evidence-type LAW --court-posture merits --court-voice majority`
+
+#### Reasoning Trails
+
+- New statuses: `proposed` and `retracted` (in addition to active/superseded)
+- CLI: `rc-db reasoning add --status proposed` for review workflows
+- Validation enforces valid status values
+
+#### Sources
+
+- `last_checked` field for tracking when sources were last verified for changes
+- CLI: `rc-db source update <id> --last-checked 2026-02-01`
+
+#### Inbox Workflow
+
+- **Filing guidance** in `/check` skill (Step 13: File Inbox)
+- **Reference folder structure**:
+  - `reference/primary/` - Primary documents renamed to source-id
+  - `reference/captured/` - Supporting materials with original filenames
+- **Generated .gitignore** includes rules for captured copyrighted content
+- **WORKFLOWS.md** documents complete inbox processing flow
+
+#### Project Structure
+
+- `rc-db init-project` now creates `reference/primary/` and `reference/captured/`
+- Simplified `inbox/` (single folder instead of subfolders)
+
+### Changed
+
+- `supersede_evidence_link()` now inherits rigor-v1 fields from old link
+- Analysis formatter inserts Corrections & Updates section for full profile
+- Skill templates updated with 16-step workflow (added File Inbox step)
+
+### Fixed
+
+- Layer validation allows N/A when genuinely inapplicable (documented)
+- SCHEMA.md validation rules section updated for new statuses
+- `validate.py` now enforces `REASONING_STATUS_INVALID` check
+
+### Documentation
+
+- `docs/WORKFLOWS.md`: New "Inbox Workflow" section with filing destinations
+- `docs/WORKFLOWS.md`: Updated "Analysis Rigor Contract (v1)" with N/A guidance
+- `docs/SCHEMA.md`: Documented all new fields and status options
+- `docs/TODO.md`: Analysis Rigor Improvements marked as ✅ Implemented
+
 ## 0.2.0 - 2026-01-31
 
 **Epistemic Provenance** - A major feature release adding structured audit trails for claim credence assignments.

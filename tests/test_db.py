@@ -1773,7 +1773,9 @@ class TestInitProjectCLI:
         assert (project_path / "analysis" / "sources").exists()
         assert (project_path / "analysis" / "syntheses").exists()
         assert (project_path / "tracking" / "updates").exists()
-        assert (project_path / "inbox" / "to-catalog").exists()
+        assert (project_path / "inbox").exists()
+        assert (project_path / "reference" / "primary").exists()
+        assert (project_path / "reference" / "captured").exists()
 
         # Check files created
         assert (project_path / ".realitycheck.yaml").exists()
