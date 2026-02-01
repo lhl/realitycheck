@@ -8,7 +8,7 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
-## 0.2.1 - 2026-02-01
+## 0.3.0 - 2026-02-01
 
 **Analysis Rigor & Inbox Workflow** - Enforces structured claim metadata and streamlines source processing.
 

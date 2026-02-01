@@ -20,7 +20,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.2.1** - Analysis Rigor & Inbox Workflow: Layer/Actor/Scope/Quantifier columns, `--rigor` flag, filing workflow; 401 tests.
+**v0.3.0** - Analysis Rigor & Inbox Workflow: Layer/Actor/Scope/Quantifier columns, `--rigor` flag, filing workflow; 401 tests.
 
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
