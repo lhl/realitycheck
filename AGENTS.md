@@ -9,7 +9,9 @@ This repo may be edited by multiple agents concurrently. Treat the working tree 
 
 ### Before any change (required)
 - Run `git status --porcelain`.
-- If the working tree is not clean and you did not create those changes in this session, STOP and ask the user how to proceed.
+- If the working tree has unrelated changes, proceed normally but do not touch them; stage only your own files (`git add <paths>` / `git add -p`).
+- If you need to edit a file that already has changes you did not create (potential conflict), flag it and ask the user how to proceed.
+- If there are merge conflicts, STOP and ask the user how to proceed.
 
 ### Never discard others’ work (hard rule)
 - NEVER run any command that can delete/overwrite existing work unless the user explicitly instructs it.
