@@ -343,6 +343,18 @@ def validate_db(db_path: Optional[Path] = None, strict: bool = False) -> list[Fi
                 findings.append(Finding("ERROR", "ANALYSIS_TOOL_INVALID",
                     f"{log_id}: Invalid tool '{tool}'"))
 
+            # Version tracking (warn-only; helps keep audit trail interpretable)
+            framework_version = log.get("framework_version")
+            if not framework_version or not str(framework_version).strip():
+                findings.append(
+                    Finding("WARN", "ANALYSIS_FRAMEWORK_VERSION_MISSING", f"{log_id}: Missing framework_version")
+                )
+            methodology_version = log.get("methodology_version")
+            if not methodology_version or not str(methodology_version).strip():
+                findings.append(
+                    Finding("WARN", "ANALYSIS_METHODOLOGY_VERSION_MISSING", f"{log_id}: Missing methodology_version")
+                )
+
             # If completed, source_id must exist in sources
             if status == "completed":
                 source_id = log.get("source_id")

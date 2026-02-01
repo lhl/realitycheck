@@ -2136,6 +2136,71 @@ class TestAnalysisLogsCLI:
         assert_cli_success(result)
         assert "ANALYSIS-" in result.stdout or "test-source" in result.stdout
 
+    def test_cli_analysis_backfill_versions_fixed(self, temp_db_path: Path):
+        """rc-db analysis backfill-versions fills missing version fields."""
+        import json
+        import lancedb
+        import os
+
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        # Insert a log row with missing framework_version/methodology_version.
+        db = lancedb.connect(str(temp_db_path))
+        table = db.open_table("analysis_logs")
+        table.add(
+            [
+                {
+                    "id": "ANALYSIS-2026-001",
+                    "source_id": "test-source-001",
+                    "pass": 1,
+                    "status": "completed",
+                    "tool": "codex",
+                    "command": "check",
+                    "created_at": "2026-02-01T00:00:00Z",
+                }
+            ]
+        )
+
+        backfill = subprocess.run(
+            [
+                "uv",
+                "run",
+                "python",
+                "scripts/db.py",
+                "analysis",
+                "backfill-versions",
+                "--strategy",
+                "fixed",
+                "--framework-version",
+                "0.3.0",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(backfill)
+
+        get_result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "analysis", "get", "ANALYSIS-2026-001", "--format", "json"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(get_result)
+        row = json.loads(get_result.stdout)
+        assert row["framework_version"] == "0.3.0"
+        assert row["methodology_version"] == "check-core@v0.3.0"
+
 
 # =============================================================================
 # Token Usage Lifecycle Tests (Phase 1 of token-usage implementation)

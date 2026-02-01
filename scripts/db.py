@@ -57,6 +57,48 @@ DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
 EMBEDDING_MODEL = os.getenv("REALITYCHECK_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or "all-MiniLM-L6-v2"
 EMBEDDING_DIM = int(os.getenv("REALITYCHECK_EMBED_DIM") or os.getenv("EMBEDDING_DIM") or "384")  # default: all-MiniLM-L6-v2 dimension
 
+# =============================================================================
+# Framework / Methodology Versioning
+# =============================================================================
+
+def get_framework_version() -> Optional[str]:
+    """Return the current Reality Check framework version (best-effort)."""
+    try:
+        from importlib import metadata
+
+        return metadata.version("realitycheck")
+    except Exception:
+        pass
+
+    # Fallback: parse pyproject.toml when running from a source checkout.
+    try:
+        import tomllib
+
+        repo_root = Path(__file__).resolve().parents[1]
+        pyproject_path = repo_root / "pyproject.toml"
+        if pyproject_path.is_file():
+            data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+            version = (data.get("project") or {}).get("version")
+            if isinstance(version, str) and version.strip():
+                return version.strip()
+    except Exception:
+        pass
+
+    return None
+
+
+def compute_methodology_version(command: Optional[str], framework_version: Optional[str]) -> Optional[str]:
+    """Compute a stable methodology identifier for audit logging.
+
+    Convention (see docs/PLAN-audit-log.md): "<cmd>-core@v<framework_version>".
+    """
+    if not framework_version:
+        return None
+    cmd = (command or "analysis").strip()
+    if not cmd:
+        cmd = "analysis"
+    return f"{cmd}-core@v{framework_version}"
+
 # Lazy-loaded embedding model
 _embedder = None
 _embedder_key: Optional[tuple[Any, ...]] = None
@@ -1292,6 +1334,15 @@ def add_analysis_log(
         from datetime import datetime
         log["created_at"] = datetime.utcnow().isoformat() + "Z"
 
+    # Backfill framework/methodology versions if missing (best-effort).
+    if not log.get("framework_version"):
+        log["framework_version"] = get_framework_version()
+    if not log.get("methodology_version"):
+        log["methodology_version"] = compute_methodology_version(
+            log.get("command"),
+            log.get("framework_version"),
+        )
+
     # Ensure list fields are lists (pyarrow requires actual lists, not None)
     for list_field in ["claims_extracted", "claims_updated", "inputs_source_ids", "inputs_analysis_ids"]:
         if log.get(list_field) is None:
@@ -1473,6 +1524,84 @@ def update_analysis_log(
     table = db.open_table("analysis_logs")
     table.delete(f"id = '{log_id}'")
     table.add([updated])
+
+
+def _parse_iso8601_utc(value: Any) -> Optional["datetime"]:
+    """Parse an ISO-8601 timestamp into a timezone-aware UTC datetime."""
+    from datetime import datetime, timezone
+
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _find_git_repo_root(start_dir: Path) -> Optional[Path]:
+    current = start_dir.expanduser().resolve()
+    while True:
+        if (current / ".git").exists():
+            return current
+        if current.parent == current:
+            return None
+        current = current.parent
+
+
+def _load_git_tag_timeline(repo_root: Path) -> list[tuple["datetime", str]]:
+    """Return [(tag_time_utc, version_without_v), ...] sorted by time."""
+    import subprocess
+    from datetime import datetime, timezone
+
+    cmd = [
+        "git",
+        "for-each-ref",
+        "--sort=creatordate",
+        "--format=%(refname:short) %(creatordate:iso8601)",
+        "refs/tags/v*",
+    ]
+    result = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or "git for-each-ref failed")
+
+    timeline: list[tuple[datetime, str]] = []
+    for raw in result.stdout.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        parts = line.split(" ", 1)
+        if len(parts) != 2:
+            continue
+        tag, date_str = parts[0].strip(), parts[1].strip()
+        if not tag.startswith("v"):
+            continue
+        try:
+            tag_dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S %z").astimezone(timezone.utc)
+        except ValueError:
+            continue
+        timeline.append((tag_dt, tag[1:]))
+
+    timeline.sort(key=lambda t: t[0])
+    return timeline
+
+
+def _framework_version_for_time(timestamp_utc: "datetime", timeline: list[tuple["datetime", str]]) -> Optional[str]:
+    """Pick the latest version whose tag time is <= timestamp_utc."""
+    best: Optional[str] = None
+    for tag_time, version in timeline:
+        if tag_time <= timestamp_utc:
+            best = version
+        else:
+            break
+    return best
 
 
 # =============================================================================
@@ -2536,6 +2665,36 @@ Examples:
     analysis_backfill.add_argument("--dry-run", action="store_true", help="Show what would be updated without making changes")
     analysis_backfill.add_argument("--limit", type=int, default=100, help="Max entries to process")
     analysis_backfill.add_argument("--force", action="store_true", help="Overwrite existing token values")
+
+    # analysis backfill-versions
+    analysis_backfill_versions = analysis_subparsers.add_parser(
+        "backfill-versions",
+        help="Backfill framework_version/methodology_version for historical entries",
+    )
+    analysis_backfill_versions.add_argument(
+        "--strategy",
+        choices=["git-tags", "fixed"],
+        default="git-tags",
+        help="How to determine framework_version (default: git-tags)",
+    )
+    analysis_backfill_versions.add_argument(
+        "--framework-version",
+        help="Framework version to apply (fixed strategy; defaults to current installed version)",
+    )
+    analysis_backfill_versions.add_argument(
+        "--methodology-version",
+        help="Methodology version to apply (fixed strategy; default: computed)",
+    )
+    analysis_backfill_versions.add_argument(
+        "--git-repo",
+        help="Path to a realitycheck git repo (git-tags strategy; default: auto-detect from scripts/db.py)",
+    )
+    analysis_backfill_versions.add_argument("--tool", help="Filter by tool (claude-code/codex/amp)")
+    analysis_backfill_versions.add_argument("--since", help="Only entries after this date (YYYY-MM-DD)")
+    analysis_backfill_versions.add_argument("--until", help="Only entries before this date (YYYY-MM-DD)")
+    analysis_backfill_versions.add_argument("--dry-run", action="store_true", help="Show what would be updated without making changes")
+    analysis_backfill_versions.add_argument("--limit", type=int, default=1000, help="Max entries to process")
+    analysis_backfill_versions.add_argument("--force", action="store_true", help="Overwrite existing version values")
 
     # -------------------------------------------------------------------------
     # Evidence links commands
@@ -3779,6 +3938,124 @@ rc-validate
             else:
                 print("Usage: rc-db analysis sessions list --tool <claude-code|codex|amp>", file=sys.stderr)
                 sys.exit(1)
+
+        elif args.analysis_command == "backfill-versions":
+            # Backfill framework_version/methodology_version for historical entries
+            from datetime import date as date_cls, datetime, time, timezone
+
+            dry_run = getattr(args, "dry_run", False)
+            force = getattr(args, "force", False)
+            limit = getattr(args, "limit", 1000)
+            tool_filter = getattr(args, "tool", None)
+            since = getattr(args, "since", None)
+            until = getattr(args, "until", None)
+
+            since_dt = None
+            until_dt = None
+            try:
+                if since:
+                    since_dt = datetime.combine(date_cls.fromisoformat(since), time.min, tzinfo=timezone.utc)
+                if until:
+                    until_dt = datetime.combine(date_cls.fromisoformat(until), time.max, tzinfo=timezone.utc)
+            except ValueError:
+                print("Error: --since/--until must be formatted as YYYY-MM-DD", file=sys.stderr)
+                sys.exit(2)
+
+            all_logs = list_analysis_logs(tool=tool_filter, limit=100000, db=db)
+
+            candidates: list[tuple[datetime, dict]] = []
+            for log in all_logs:
+                needs_backfill = force or (not log.get("framework_version") or not log.get("methodology_version"))
+                if not needs_backfill:
+                    continue
+
+                ts = _parse_iso8601_utc(log.get("completed_at") or log.get("started_at") or log.get("created_at"))
+                if not ts:
+                    continue
+
+                if since_dt and ts < since_dt:
+                    continue
+                if until_dt and ts > until_dt:
+                    continue
+
+                candidates.append((ts, log))
+
+            if not candidates:
+                print("No entries found that need backfill.", flush=True)
+                sys.exit(0)
+
+            candidates.sort(key=lambda t: t[0])
+            candidates = candidates[:limit]
+
+            strategy = getattr(args, "strategy", "git-tags")
+
+            timeline: list[tuple[datetime, str]] = []
+            fixed_fw = None
+            fixed_meth = getattr(args, "methodology_version", None)
+
+            if strategy == "fixed":
+                fixed_fw = getattr(args, "framework_version", None) or get_framework_version()
+                if not fixed_fw:
+                    print(
+                        "Error: Could not determine framework version. Provide --framework-version.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+            else:
+                git_repo = getattr(args, "git_repo", None)
+                repo_root = _find_git_repo_root(Path(git_repo)) if git_repo else _find_git_repo_root(Path(__file__).resolve())
+                if not repo_root:
+                    print(
+                        "Error: Could not find a git repo for tag lookup. Run from a git checkout or pass --git-repo.",
+                        file=sys.stderr,
+                    )
+                    sys.exit(2)
+                try:
+                    timeline = _load_git_tag_timeline(repo_root)
+                except Exception as e:
+                    print(f"Error: Failed to load git tag timeline from {repo_root}: {e}", file=sys.stderr)
+                    sys.exit(2)
+                if not timeline:
+                    print(f"Error: No v* tags found in {repo_root}", file=sys.stderr)
+                    sys.exit(2)
+
+            updated = 0
+            skipped = 0
+
+            for ts, log in candidates:
+                log_id = log["id"]
+
+                if strategy == "fixed":
+                    fw = fixed_fw
+                else:
+                    fw = _framework_version_for_time(ts, timeline)
+                    if not fw:
+                        print(f"  {log_id}: no matching tag <= {ts.isoformat()} (skipping)", flush=True)
+                        skipped += 1
+                        continue
+
+                meth = fixed_meth or compute_methodology_version(log.get("command"), fw)
+
+                updates: dict[str, Any] = {}
+                if force or not log.get("framework_version"):
+                    updates["framework_version"] = fw
+                if force or not log.get("methodology_version"):
+                    updates["methodology_version"] = meth
+
+                if not updates:
+                    skipped += 1
+                    continue
+
+                if dry_run:
+                    print(f"  {log_id}: would set {updates}", flush=True)
+                    updated += 1
+                    continue
+
+                update_analysis_log(log_id, db=db, **updates)
+                updated += 1
+                print(f"  {log_id}: updated", flush=True)
+
+            print(f"Backfill complete. Updated: {updated}, skipped: {skipped}", flush=True)
 
         elif args.analysis_command == "backfill-usage":
             # Backfill token usage for historical entries
