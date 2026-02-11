@@ -15,7 +15,7 @@ The `db.py` script (or `rc-db` if installed via pip) provides all database opera
 | `db.py doctor` | Detect project root/DB and print setup guidance |
 | `db.py repair` | Repair database invariants (safe/idempotent) |
 | `db.py search "query"` | Semantic search across claims |
-| `db.py claim add/get/list/update` | Claim CRUD operations |
+| `db.py claim add/get/list/update/delete/ticket` | Claim CRUD operations + ID ticketing |
 | `db.py source add/get/list/update` | Source CRUD operations |
 | `db.py chain add/get/list` | Chain CRUD operations |
 | `db.py prediction add/list` | Prediction operations |
@@ -158,6 +158,26 @@ git commit -m "data: add agency-2026-memo"
 
 ## Claim Workflows
 
+### Reserve Claim IDs (Ticketing)
+
+```bash
+# Reserve one ID for a new TECH claim
+uv run python scripts/db.py claim ticket --domain TECH
+
+# Reserve a batch (useful when drafting claim tables first)
+uv run python scripts/db.py claim ticket --domain TECH --count 5
+
+# Release a specific reservation
+uv run python scripts/db.py claim ticket release --id TECH-2026-123
+
+# Clean abandoned reservations older than 7 days
+uv run python scripts/db.py claim ticket release --abandoned --older-than-days 7
+```
+
+Notes:
+- `claim ticket` reserves IDs so they are not reissued by later ticket requests.
+- `claim add` without `--id` also uses the same reservation allocator.
+
 ### Add a Claim
 
 ```bash
@@ -182,6 +202,7 @@ uv run python scripts/db.py claim add \
 Notes:
 - If `--source-ids` references an existing source, the claim ID is automatically added to that source's `claims_extracted`.
 - If a claim has type `[P]` and no prediction record exists yet, a stub prediction is auto-created with status `[P?]`.
+- If you reserved an ID with `claim ticket`, pass it with `--id` when registering the claim.
 
 ### Get a Claim
 

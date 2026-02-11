@@ -550,6 +550,11 @@ rc-db source update "SOURCE_ID" \
   --domains "TECH,LABOR" \
   --claims-extracted "DOMAIN-YYYY-NNN,DOMAIN-YYYY-NNN"
 
+# (Optional but recommended for manual drafting): reserve IDs first
+rc-db claim ticket --domain "DOMAIN" --count 3
+# Cleanup stale reservations when needed
+rc-db claim ticket release --abandoned --older-than-days 7
+
 # Register claim
 rc-db claim add \
   --id "CLAIM_ID" \

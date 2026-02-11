@@ -11,8 +11,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
@@ -56,6 +57,9 @@ else:
 DB_PATH = Path(os.getenv("REALITYCHECK_DATA", "data/realitycheck.lance"))
 EMBEDDING_MODEL = os.getenv("REALITYCHECK_EMBED_MODEL") or os.getenv("EMBEDDING_MODEL") or "all-MiniLM-L6-v2"
 EMBEDDING_DIM = int(os.getenv("REALITYCHECK_EMBED_DIM") or os.getenv("EMBEDDING_DIM") or "384")  # default: all-MiniLM-L6-v2 dimension
+CLAIM_TICKETS_FILE = ".claim_id_tickets.json"
+CLAIM_TICKETS_LOCK_FILE = ".claim_id_tickets.lock"
+CLAIM_ID_SCAN_LIMIT = 100000
 
 # =============================================================================
 # Framework / Methodology Versioning
@@ -735,6 +739,12 @@ def add_claim(claim: dict, db: Optional[lancedb.DBConnection] = None, generate_e
     table.add([claim])
 
     claim_id = claim["id"]
+    # Claim IDs reserved via `claim ticket` are released on successful insert.
+    try:
+        _release_claim_ticket(claim_id)
+    except Exception:
+        pass
+
     for source_id in claim.get("source_ids") or []:
         _upsert_source_claim_backlink(source_id, claim_id, db)
 
@@ -2179,27 +2189,340 @@ def get_stats(db: Optional[lancedb.DBConnection] = None) -> dict:
 # CLI Helpers
 # =============================================================================
 
-def _generate_claim_id(domain: str, db: Optional["lancedb.DBConnection"] = None) -> str:
-    """Generate the next claim ID for a domain."""
-    from datetime import date
+def _claim_ticket_paths() -> tuple[Path, Path]:
+    """Return (store_path, lock_path) for claim ID ticket reservations."""
+    base_dir = DB_PATH.parent
+    return base_dir / CLAIM_TICKETS_FILE, base_dir / CLAIM_TICKETS_LOCK_FILE
+
+
+@contextmanager
+def _claim_ticket_lock(lock_path: Path):
+    """Acquire an exclusive filesystem lock for claim ticket mutations."""
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+", encoding="utf-8") as lock_file:
+        fcntl_mod = None
+        try:
+            import fcntl as _fcntl_mod  # type: ignore
+            fcntl_mod = _fcntl_mod
+            fcntl_mod.flock(lock_file.fileno(), fcntl_mod.LOCK_EX)
+        except Exception:
+            # Best effort: continue unlocked on unsupported platforms/environments.
+            fcntl_mod = None
+
+        try:
+            yield
+        finally:
+            if fcntl_mod is not None:
+                try:
+                    fcntl_mod.flock(lock_file.fileno(), fcntl_mod.LOCK_UN)
+                except Exception:
+                    pass
+
+
+def _load_claim_ticket_store(store_path: Path) -> dict:
+    """Load claim ticket store from disk."""
+    if not store_path.exists():
+        return {"version": 1, "reservations": []}
+
+    try:
+        raw = json.loads(store_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        raise ValueError(f"Failed to parse claim ticket store '{store_path}': {e}") from e
+
+    if not isinstance(raw, dict):
+        raise ValueError(f"Invalid claim ticket store format in '{store_path}': expected object")
+
+    reservations = raw.get("reservations")
+    if reservations is None:
+        reservations = []
+    if not isinstance(reservations, list):
+        raise ValueError(f"Invalid claim ticket store format in '{store_path}': reservations must be a list")
+
+    cleaned: list[dict] = []
+    for entry in reservations:
+        if not isinstance(entry, dict):
+            continue
+        claim_id = str(entry.get("id", "")).strip()
+        if not claim_id:
+            continue
+        normalized = dict(entry)
+        normalized["id"] = claim_id
+        cleaned.append(normalized)
+
+    return {"version": 1, "reservations": cleaned}
+
+
+def _save_claim_ticket_store(store_path: Path, store: dict) -> None:
+    """Persist claim ticket store to disk atomically."""
+    store_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = store_path.with_suffix(store_path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(store, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    tmp_path.replace(store_path)
+
+
+def _claim_sequence_for(domain: str, year: int, claim_id: str) -> Optional[int]:
+    """Extract sequence number from DOMAIN-YYYY-NNN style claim IDs."""
+    if not isinstance(claim_id, str):
+        return None
+
+    prefix = f"{domain}-{year}-"
+    if not claim_id.startswith(prefix):
+        return None
+
+    suffix = claim_id[len(prefix):]
+    if not suffix.isdigit():
+        return None
+    return int(suffix)
+
+
+def _reserve_claim_ids(
+    domain: str,
+    count: int = 1,
+    reserved_by: str = "cli",
+    db: Optional["lancedb.DBConnection"] = None,
+) -> list[str]:
+    """Reserve monotonic claim IDs for a domain/year."""
+    if count < 1:
+        raise ValueError("count must be >= 1")
+
     if db is None:
         db = get_db()
 
+    domain = str(domain or "").strip().upper()
+    if not domain:
+        raise ValueError("domain is required")
+
     year = date.today().year
-    existing = list_claims(domain=domain, limit=10000, db=db)
+    store_path, lock_path = _claim_ticket_paths()
+
+    with _claim_ticket_lock(lock_path):
+        store = _load_claim_ticket_store(store_path)
+        reservations = list(store.get("reservations", []))
+
+        existing = list_claims(domain=domain, limit=CLAIM_ID_SCAN_LIMIT, db=db)
+        existing_ids = {
+            str(claim.get("id", "")).strip()
+            for claim in existing
+            if str(claim.get("id", "")).strip()
+        }
+
+        # Drop stale reservations that already exist as claim rows.
+        reservations = [
+            entry for entry in reservations
+            if str(entry.get("id", "")).strip() not in existing_ids
+        ]
+
+        max_counter = 0
+        for claim_id in existing_ids:
+            seq = _claim_sequence_for(domain, year, claim_id)
+            if seq is not None:
+                max_counter = max(max_counter, seq)
+
+        for entry in reservations:
+            reserved_id = str(entry.get("id", "")).strip()
+            seq = _claim_sequence_for(domain, year, reserved_id)
+            if seq is not None:
+                max_counter = max(max_counter, seq)
+
+        allocated: list[str] = []
+        reserving_actor = str(reserved_by or "cli").strip() or "cli"
+        today = str(date.today())
+
+        for _ in range(count):
+            next_counter = max_counter + 1
+            if next_counter > 999:
+                raise ValueError(f"Claim ID sequence exhausted for {domain}-{year} (max NNN is 999)")
+            claim_id = f"{domain}-{year}-{next_counter:03d}"
+            allocated.append(claim_id)
+            reservations.append({
+                "id": claim_id,
+                "domain": domain,
+                "year": year,
+                "reserved_at": today,
+                "reserved_by": reserving_actor,
+            })
+            max_counter = next_counter
+
+        store["reservations"] = reservations
+        _save_claim_ticket_store(store_path, store)
+        return allocated
+
+
+def _release_claim_ticket(claim_id: str) -> None:
+    """Release a claim ticket reservation once a claim has been created."""
+    store_path, lock_path = _claim_ticket_paths()
+    if not store_path.exists():
+        return
+
+    with _claim_ticket_lock(lock_path):
+        store = _load_claim_ticket_store(store_path)
+        reservations = list(store.get("reservations", []))
+        remaining = [
+            entry for entry in reservations
+            if str(entry.get("id", "")).strip() != claim_id
+        ]
+        if len(remaining) == len(reservations):
+            return
+        store["reservations"] = remaining
+        _save_claim_ticket_store(store_path, store)
+
+
+def _parse_reservation_date(value: Any) -> Optional[date]:
+    """Parse reservation date string in YYYY-MM-DD format."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text)
+    except Exception:
+        return None
+
+
+def _release_claim_tickets(
+    *,
+    claim_ids: Optional[list[str]] = None,
+    release_all: bool = False,
+    release_abandoned: bool = False,
+    older_than_days: int = 7,
+    domain: Optional[str] = None,
+    dry_run: bool = False,
+    db: Optional["lancedb.DBConnection"] = None,
+) -> dict[str, Any]:
+    """Release claim ID reservations by selector."""
+    if db is None:
+        db = get_db()
+
+    if older_than_days < 0:
+        raise ValueError("older-than-days must be >= 0")
+
+    requested_ids = [str(cid).strip() for cid in (claim_ids or []) if str(cid).strip()]
+    if not requested_ids and not release_all and not release_abandoned:
+        raise ValueError("release requires at least one selector: --id, --all, or --abandoned")
+
+    domain_norm = str(domain or "").strip().upper() or None
+    today = date.today()
+    cutoff = today - timedelta(days=older_than_days)
+
+    store_path, lock_path = _claim_ticket_paths()
+    if not store_path.exists():
+        return {
+            "released_ids": [],
+            "released_count": 0,
+            "remaining_count": 0,
+            "not_found_ids": requested_ids,
+            "pruned_stale_count": 0,
+            "dry_run": dry_run,
+            "domain": domain_norm,
+            "selector": {
+                "ids": requested_ids,
+                "all": release_all,
+                "abandoned": release_abandoned,
+                "older_than_days": older_than_days,
+            },
+        }
+
+    with _claim_ticket_lock(lock_path):
+        store = _load_claim_ticket_store(store_path)
+        reservations = list(store.get("reservations", []))
+
+        existing_claims = list_claims(domain=domain_norm, limit=CLAIM_ID_SCAN_LIMIT, db=db)
+        existing_ids = {
+            str(claim.get("id", "")).strip()
+            for claim in existing_claims
+            if str(claim.get("id", "")).strip()
+        }
+
+        pruned_stale_count = 0
+        active: list[dict] = []
+        for entry in reservations:
+            entry_id = str(entry.get("id", "")).strip()
+            if not entry_id:
+                continue
+            if entry_id in existing_ids:
+                pruned_stale_count += 1
+                continue
+            if domain_norm and not entry_id.startswith(f"{domain_norm}-"):
+                active.append(entry)
+                continue
+            active.append(entry)
+
+        scoped = [
+            entry for entry in active
+            if (not domain_norm) or str(entry.get("id", "")).strip().startswith(f"{domain_norm}-")
+        ]
+
+        release_ids: set[str] = set()
+        if release_all:
+            release_ids.update(str(entry.get("id", "")).strip() for entry in scoped)
+
+        if release_abandoned:
+            for entry in scoped:
+                entry_id = str(entry.get("id", "")).strip()
+                reserved_at = _parse_reservation_date(entry.get("reserved_at"))
+                if reserved_at is None or reserved_at < cutoff:
+                    release_ids.add(entry_id)
+
+        for cid in requested_ids:
+            if not domain_norm or cid.startswith(f"{domain_norm}-"):
+                release_ids.add(cid)
+
+        remaining: list[dict] = []
+        released_ids: list[str] = []
+        for entry in active:
+            entry_id = str(entry.get("id", "")).strip()
+            if entry_id in release_ids:
+                released_ids.append(entry_id)
+            else:
+                remaining.append(entry)
+
+        active_ids = {str(entry.get("id", "")).strip() for entry in scoped}
+        not_found_ids = [cid for cid in requested_ids if cid not in active_ids]
+
+        if not dry_run:
+            store["reservations"] = remaining
+            _save_claim_ticket_store(store_path, store)
+
+        return {
+            "released_ids": sorted({cid for cid in released_ids if cid}),
+            "released_count": len({cid for cid in released_ids if cid}),
+            "remaining_count": len(remaining),
+            "not_found_ids": not_found_ids,
+            "pruned_stale_count": pruned_stale_count,
+            "dry_run": dry_run,
+            "domain": domain_norm,
+            "selector": {
+                "ids": requested_ids,
+                "all": release_all,
+                "abandoned": release_abandoned,
+                "older_than_days": older_than_days,
+            },
+        }
+
+
+def _generate_claim_id(domain: str, db: Optional["lancedb.DBConnection"] = None) -> str:
+    """Generate the next claim ID for a domain."""
+    if db is None:
+        db = get_db()
+
+    domain = str(domain or "").strip().upper()
+    if not domain:
+        raise ValueError("domain is required")
+
+    year = date.today().year
+    existing = list_claims(domain=domain, limit=CLAIM_ID_SCAN_LIMIT, db=db)
 
     # Find highest counter for this domain/year
     max_counter = 0
-    prefix = f"{domain}-{year}-"
     for claim in existing:
-        if claim["id"].startswith(prefix):
-            try:
-                counter = int(claim["id"].split("-")[-1])
-                max_counter = max(max_counter, counter)
-            except ValueError:
-                pass
+        counter = _claim_sequence_for(domain, year, str(claim.get("id", "")))
+        if counter is not None:
+            max_counter = max(max_counter, counter)
 
-    return f"{domain}-{year}-{max_counter + 1:03d}"
+    next_counter = max_counter + 1
+    if next_counter > 999:
+        raise ValueError(f"Claim ID sequence exhausted for {domain}-{year} (max NNN is 999)")
+
+    return f"{domain}-{year}-{next_counter:03d}"
 
 
 def _format_record_text(record: dict, record_type: str = "claim") -> str:
@@ -2407,6 +2730,30 @@ Examples:
     claim_add.add_argument("--depends-on", help="Comma-separated claim IDs this depends on")
     claim_add.add_argument("--notes", help="Additional notes")
     claim_add.add_argument("--no-embedding", action="store_true", help="Skip embedding generation")
+
+    # claim ticket
+    claim_ticket = claim_subparsers.add_parser("ticket", help="Reserve one or more claim IDs")
+    claim_ticket.add_argument(
+        "ticket_action",
+        nargs="?",
+        choices=["reserve", "release"],
+        default="reserve",
+        help="Ticket action (default: reserve)",
+    )
+    claim_ticket.add_argument("--domain", help="Domain (TECH/LABOR/ECON/etc.)")
+    claim_ticket.add_argument("--count", type=int, default=1, help="Number of claim IDs to reserve")
+    claim_ticket.add_argument("--reserved-by", default="cli", help="Reservation owner label")
+    claim_ticket.add_argument(
+        "--id",
+        dest="release_ids",
+        action="append",
+        help="Claim ID reservation to release (repeatable)",
+    )
+    claim_ticket.add_argument("--all", dest="release_all", action="store_true", help="Release all reservations in scope")
+    claim_ticket.add_argument("--abandoned", action="store_true", help="Release abandoned reservations in scope")
+    claim_ticket.add_argument("--older-than-days", type=int, default=7, help="Abandoned threshold in days")
+    claim_ticket.add_argument("--dry-run", action="store_true", help="Show what would be released without writing")
+    claim_ticket.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
 
     # claim get
     claim_get = claim_subparsers.add_parser("get", help="Get a claim by ID")
@@ -3328,12 +3675,27 @@ rc-validate
         db = get_db()
 
         if args.claim_command == "add":
-            claim_id = args.id or _generate_claim_id(args.domain, db)
+            auto_reserved = False
+            try:
+                if args.id:
+                    claim_id = args.id
+                else:
+                    claim_id = _reserve_claim_ids(
+                        args.domain,
+                        count=1,
+                        reserved_by="claim-add",
+                        db=db,
+                    )[0]
+                    auto_reserved = True
+            except ValueError as e:
+                print(f"Error: {e}", file=sys.stderr)
+                sys.exit(1)
+
             claim = {
                 "id": claim_id,
                 "text": args.text,
                 "type": args.type,
-                "domain": args.domain,
+                "domain": args.domain.upper(),
                 "evidence_level": args.evidence_level,
                 "credence": args.credence,
                 "source_ids": args.source_ids.split(",") if args.source_ids else [],
@@ -3351,8 +3713,76 @@ rc-validate
                 result_id = add_claim(claim, db, generate_embedding=should_generate_embedding(args))
                 print(f"Created claim: {result_id}", flush=True)
             except ValueError as e:
+                if auto_reserved:
+                    try:
+                        _release_claim_ticket(claim_id)
+                    except Exception:
+                        pass
                 print(f"Error: {e}", file=sys.stderr)
                 sys.exit(1)
+
+        elif args.claim_command == "ticket":
+            if args.ticket_action == "reserve":
+                if not args.domain:
+                    print("Error: --domain is required for claim ticket reserve", file=sys.stderr)
+                    sys.exit(1)
+                try:
+                    claim_ids = _reserve_claim_ids(
+                        args.domain,
+                        count=args.count,
+                        reserved_by=args.reserved_by,
+                        db=db,
+                    )
+                except ValueError as e:
+                    print(f"Error: {e}", file=sys.stderr)
+                    sys.exit(1)
+
+                payload = {
+                    "domain": str(args.domain).upper(),
+                    "year": date.today().year,
+                    "count": len(claim_ids),
+                    "claim_ids": claim_ids,
+                    "reserved_by": args.reserved_by,
+                }
+                if args.format == "json":
+                    print(json.dumps(payload, indent=2), flush=True)
+                else:
+                    if len(claim_ids) == 1:
+                        print(f"Reserved claim ID: {claim_ids[0]}", flush=True)
+                    else:
+                        print(f"Reserved {len(claim_ids)} claim IDs:", flush=True)
+                        for claim_id in claim_ids:
+                            print(f"  - {claim_id}", flush=True)
+            else:
+                try:
+                    result = _release_claim_tickets(
+                        claim_ids=args.release_ids,
+                        release_all=args.release_all,
+                        release_abandoned=args.abandoned,
+                        older_than_days=args.older_than_days,
+                        domain=args.domain,
+                        dry_run=args.dry_run,
+                        db=db,
+                    )
+                except ValueError as e:
+                    print(f"Error: {e}", file=sys.stderr)
+                    sys.exit(1)
+
+                if args.format == "json":
+                    print(json.dumps(result, indent=2), flush=True)
+                else:
+                    mode = "would release" if result.get("dry_run") else "released"
+                    print(
+                        f"{mode} {result['released_count']} reservation(s); "
+                        f"{result['remaining_count']} remaining",
+                        flush=True,
+                    )
+                    for claim_id in result.get("released_ids", []):
+                        print(f"  - {claim_id}", flush=True)
+                    if result.get("not_found_ids"):
+                        print("Not found:", flush=True)
+                        for claim_id in result["not_found_ids"]:
+                            print(f"  - {claim_id}", flush=True)
 
         elif args.claim_command == "get":
             result = get_claim(args.claim_id, db)

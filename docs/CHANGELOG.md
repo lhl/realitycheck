@@ -8,6 +8,30 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - (Add changes here; move them into a versioned section when releasing.)
 
+## 0.3.1 - 2026-02-11
+
+**Claim ID Ticketing & Reservation Cleanup** - Reduces agent cognitive load and collision risk during concurrent claim registration.
+
+### Added
+
+- `rc-db claim ticket --domain DOMAIN [--count N]` to reserve monotonic claim IDs without immediate insertion
+- `rc-db claim ticket release` subcommand for reservation cleanup:
+  - `--id CLAIM-ID` (repeatable) for explicit release
+  - `--abandoned --older-than-days N` for stale reservation cleanup
+  - `--all`, `--domain`, and `--dry-run` selectors
+- Reservation file lock + persistent reservation store to prevent reissuing ticketed IDs across sessions
+
+### Changed
+
+- `rc-db claim add` auto-ID path now uses the same reservation allocator as `claim ticket`
+- Reservation records are auto-cleared when matching claims are created
+- Check skills/templates updated to document ticket-first claim ID workflow and stale reservation cleanup command
+
+### Tested
+
+- Added CLI tests for ticket reserve/release behavior (sequential reservations, explicit release, abandoned release, invalid count)
+- Full non-embedding test suite passes (`395 passed, 17 skipped`)
+
 ## 0.3.0 - 2026-02-01
 
 **Analysis Rigor & Inbox Workflow** - Enforces structured claim metadata and streamlines source processing.

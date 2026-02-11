@@ -11,6 +11,7 @@ Tests cover:
 import pytest
 from pathlib import Path
 import subprocess
+from datetime import date, timedelta
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -604,6 +605,252 @@ class TestClaimCLI:
 
         assert_cli_success(result)
         assert "CUSTOM-2026-001" in result.stdout
+
+    def test_claim_ticket_reserves_monotonic_ids(self, temp_db_path: Path):
+        """claim ticket reserves sequential IDs and does not reissue reserved IDs."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        first_batch = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+                "--count", "2",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(first_batch)
+        first_data = json.loads(first_batch.stdout)
+        first_ids = first_data["claim_ids"]
+        assert len(first_ids) == 2
+
+        first_seq = int(first_ids[0].split("-")[-1])
+        second_seq = int(first_ids[1].split("-")[-1])
+        assert second_seq == first_seq + 1
+
+        next_ticket = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+                "--count", "1",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(next_ticket)
+        next_data = json.loads(next_ticket.stdout)
+        next_id = next_data["claim_ids"][0]
+        next_seq = int(next_id.split("-")[-1])
+
+        assert next_seq == second_seq + 1
+
+    def test_claim_ticket_id_can_be_used_for_claim_add(self, temp_db_path: Path):
+        """A reserved ticket ID can be used directly in claim add."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        ticket = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(ticket)
+        claim_id = json.loads(ticket.stdout)["claim_ids"][0]
+
+        add_result = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "add",
+                "--id", claim_id,
+                "--text", "Ticketed claim",
+                "--type", "[F]",
+                "--domain", "TECH",
+                "--evidence-level", "E3",
+                "--no-embedding",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(add_result)
+        assert claim_id in add_result.stdout
+
+    def test_claim_ticket_rejects_non_positive_count(self, temp_db_path: Path):
+        """claim ticket fails when count is < 1."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        result = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+                "--count", "0",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        assert_cli_success(result, expected_code=1)
+        assert "count must be >= 1" in result.stderr.lower()
+
+    def test_claim_ticket_release_by_id(self, temp_db_path: Path):
+        """claim ticket release --id removes reservation."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        ticket = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(ticket)
+        claim_id = json.loads(ticket.stdout)["claim_ids"][0]
+
+        release = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket", "release",
+                "--id", claim_id,
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(release)
+        release_data = json.loads(release.stdout)
+        assert release_data["released_count"] == 1
+        assert claim_id in release_data["released_ids"]
+
+        reticket = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(reticket)
+        reticket_id = json.loads(reticket.stdout)["claim_ids"][0]
+        assert reticket_id == claim_id
+
+    def test_claim_ticket_release_abandoned_by_age(self, temp_db_path: Path):
+        """claim ticket release --abandoned removes old reservations."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            cwd=Path(__file__).parent.parent,
+        )
+
+        ticket = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(ticket)
+        claim_id = json.loads(ticket.stdout)["claim_ids"][0]
+
+        ticket_store = temp_db_path.parent / ".claim_id_tickets.json"
+        store_data = json.loads(ticket_store.read_text())
+        old_date = (date.today() - timedelta(days=30)).isoformat()
+        store_data["reservations"][0]["reserved_at"] = old_date
+        ticket_store.write_text(json.dumps(store_data, indent=2) + "\n")
+
+        release = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket", "release",
+                "--abandoned",
+                "--older-than-days", "7",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(release)
+        release_data = json.loads(release.stdout)
+        assert release_data["released_count"] == 1
+        assert claim_id in release_data["released_ids"]
+
+        reticket = subprocess.run(
+            [
+                "uv", "run", "python", "scripts/db.py",
+                "claim", "ticket",
+                "--domain", "TECH",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(reticket)
+        reticket_id = json.loads(reticket.stdout)["claim_ids"][0]
+        assert reticket_id == claim_id
 
     def test_claim_get_outputs_json(self, temp_db_path: Path):
         """claim get returns JSON output."""

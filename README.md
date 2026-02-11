@@ -20,7 +20,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.3.0** - Analysis Rigor & Inbox Workflow: Layer/Actor/Scope/Quantifier columns, `--rigor` flag, filing workflow; 406 tests.
+**v0.3.1** - Analysis Rigor & Inbox Workflow: Layer/Actor/Scope/Quantifier columns, `--rigor` flag, filing workflow; 412 tests.
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
 ## Prerequisites
@@ -196,6 +196,8 @@ rc-db reset                             # Reset database (destructive!)
 
 # Claim operations
 rc-db claim add --text "..." --type "[F]" --domain "TECH" --evidence-level "E3"
+rc-db claim ticket --domain "TECH" [--count N]  # Reserve monotonic IDs for drafting/import
+rc-db claim ticket release --abandoned --older-than-days 7  # Clean abandoned reservations
 rc-db claim add --id "TECH-2026-001" --text "..." ...  # With explicit ID
 rc-db claim get <id>                    # Get single claim (JSON)
 rc-db claim list [--domain D] [--type T] [--format json|text]
@@ -446,7 +448,7 @@ realitycheck/                 # Framework repo (this)
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md
 │   └── templates/
-├── tests/                    # pytest suite (406 tests)
+├── tests/                    # pytest suite (412 tests)
 └── docs/                     # Documentation
 
 my-research/                  # Your data repo (separate)
@@ -531,9 +533,9 @@ Also see `CITATION.cff` for machine-readable citation metadata.
   author  = {Lin, Leonard},
   title   = {Reality Check},
   year    = {2026},
-  version = {0.3.0},
+  version = {0.3.1},
   url     = {https://github.com/lhl/realitycheck},
-  note    = {Accessed: 2026-02-01}
+  note    = {Accessed: 2026-02-11}
 }
 ```
 <!-- END REALITYCHECK_BIBTEX -->

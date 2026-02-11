@@ -37,6 +37,7 @@ Reduce operational friction for analysis agents by adding:
 - [x] Implement `rc-db repair` CLI skeleton + help text
 - [x] Implement backlinks recomputation (`sources.claims_extracted` from `claims.source_ids`)
 - [x] Implement `[P]` prediction stub enforcement (status `[P?]`)
+- [x] Add `rc-db claim ticket` to reserve monotonic claim IDs for manual drafting/import workflows
 - [ ] Implement duplicate ID report mode (at least detect + report)
 - [ ] Optional: dedupe-identical mode (report-first; conservative)
 
@@ -72,3 +73,10 @@ Reduce operational friction for analysis agents by adding:
 - Added `rc-db doctor` (project/DB auto-detection) and auto-detection in `rc-db`, `rc-export`, `rc-validate`
 - Added `rc-db repair` to recompute backlinks and ensure `[P]` prediction stubs
 - Made `rc-validate` output include actionable remediation commands
+
+### 2026-02-11: Added claim ID ticketing
+
+- Added `rc-db claim ticket --domain DOMAIN [--count N]` to reserve monotonic, non-reissued claim IDs
+- Added `rc-db claim ticket release --id ...|--abandoned` for explicit/stale reservation cleanup
+- Wired `claim add` auto-ID path to the same allocator/reservation store
+- Added CLI tests for reservation sequencing and invalid count handling
