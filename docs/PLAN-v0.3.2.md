@@ -58,7 +58,7 @@ The workflow allows an analysis to reach `[REVIEWED]` status even when crux fact
 - Full automated fact-checking pipeline (out of scope; this is about giving agents the tools and instructions to verify within the existing workflow).
 - Changes to the DB schema or LanceDB tables (this is a methodology/template/config change).
 - Rearchitecting the multi-pass workflow (covered by `PLAN-analysis-rigor-improvement.md`).
-- Adding web discovery/search to all skills (scope this to `check` and optionally `analyze`).
+- Adding web discovery/search to all skills in v0.3.2 (scope this release to `$check`; defer `$analyze` parity to v0.3.3).
 
 ## Affected Files
 
@@ -75,9 +75,13 @@ realitycheck/
  │              └── UPDATE factual-claims-verified.md.j2  # Add Claim ID + Search Notes + status codes
  ├── methodology/
  │    └── workflows/
- │         └── UPDATE check-core.md                  # Add verification procedure + Stage2 table columns/statuses
+ │         └── REGENERATED check-core.md             # Generated from templates via make assemble-skills (do not edit directly)
  ├── scripts/
+ │    ├── UPDATE analysis_formatter.py               # Align inserted Stage2 table with updated verification contract
  │    └── UPDATE analysis_validator.py               # Add reviewed/crux gate + high-credence-unverified warnings
+ ├── tests/
+ │    ├── UPDATE test_analysis_formatter.py          # Updated Stage2 table contract and status codes
+ │    └── UPDATE test_analysis_validator.py          # Validator warnings/gates for factual verification rigor
  └── docs/
       ├── NEW PLAN-v0.3.2.md                         # This document
       └── UPDATE TODO.md                             # Add this item to roadmap
@@ -103,7 +107,7 @@ Add `"WebSearch"` to the `check` skill's Claude `allowed_tools` list:
         # ... rest unchanged
 ```
 
-Also consider adding `WebSearch` to `analyze` (manual workflow) if we want the same verification behavior outside `$check`.
+**Decision (v0.3.2 scope)**: Add `WebSearch` to Claude `check` only. Defer `analyze` parity to v0.3.3 to keep this release tightly scoped to `$check`.
 
 **Skill text (all integrations)**: Update the `$check` skill template to refer to "web search/web discovery" generically, with integration examples rather than hard-coding a single tool name. For example:
 - Claude Code: `WebSearch`
@@ -116,7 +120,9 @@ This keeps the template portable across Codex/Amp/OpenCode while still being con
 
 ### Change 2: Add verification loop to Stage 2 methodology
 
-**Files**: `methodology/workflows/check-core.md`, `integrations/_templates/skills/check.md.j2`, `integrations/_templates/tables/factual-claims-verified.md.j2`
+**Source-of-truth files**: `integrations/_templates/skills/check.md.j2`, `integrations/_templates/tables/factual-claims-verified.md.j2`
+
+**Regenerated output**: `methodology/workflows/check-core.md` via `make assemble-skills` (do not hand-edit).
 
 Add an explicit verification procedure to Stage 2 between claim extraction and the "Key Factual Claims Verified" table. The procedure should:
 
@@ -127,10 +133,12 @@ Add an explicit verification procedure to Stage 2 between claim extraction and t
    - `rc-db search "<neutral keywords>"` (and/or search by named entities + date + venue).
    - If a suitable source already exists in the DB, cite it and (if needed) register it as supporting evidence.
 3. **Web discovery strategy (timeboxed)**:
-   - For each crux target, spend a bounded effort (e.g., 5–10 minutes; >=2 distinct queries).
+   - For each crux target, run **>=2 distinct queries** (required, measurable) with a bounded effort target (e.g., 5–10 minutes).
    - Prefer primary sources (official docs, transcripts, video) then reputable secondary reporting.
    - Use neutral query terms (avoid the source's rhetoric framing).
 4. **Record results in Stage 2**:
+   - Use this final column order:
+     - `Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status`
    - Update the "Key Factual Claims Verified" table to include:
      - **Claim ID** (reference extracted claim IDs; required for crux rows)
      - **Search Notes** (queries tried + date/timebox notes)
@@ -159,7 +167,8 @@ For each `[F]`-typed claim, especially crux claims:
 1. **Search**: Use your environment's web search tool with neutral terms to find primary or secondary sources.
    - Try the specific factual assertion (e.g., "Amodei Davos H200 exports China")
    - Try the broader context (e.g., "Davos 2026 AI chip exports")
-   - Timebox: 5–10 minutes per crux claim; >=2 distinct queries
+   - Required: >=2 distinct queries per crux claim
+   - Target effort: 5–10 minutes per crux claim
 2. **Evaluate**: Check discovered sources against the claim.
    - Does the source confirm the claim? Record URL + relevant excerpt.
    - Does the source contradict or modify the claim? Record and adjust.
@@ -168,6 +177,14 @@ For each `[F]`-typed claim, especially crux claims:
 3. **Update**: Adjust evidence level and credence based on what was found.
 4. **Gate**: Do not mark analysis as [REVIEWED] if crux [F] claims remain `?` (not attempted).
 ```
+
+### Change 2b: Align formatter output contract with the Stage 2 verification table
+
+**Files**: `scripts/analysis_formatter.py`, `tests/test_analysis_formatter.py`
+
+The framework formatter currently inserts a legacy "Key Factual Claims Verified" table schema that does not match the methodology/template contract.
+
+Update the formatter to insert the updated Stage 2 table contract (Claim ID + Search Notes + `ok/x/nf/blocked/?` statuses, in the exact column order above), so new analyses produced/normalized by the formatter do not immediately violate the verification gate expectations.
 
 ### Change 3: Add verification-rigor checks to validator
 
@@ -180,6 +197,8 @@ Add validation warnings for "reviewed/confident without verification" patterns:
 | `[REVIEWED]` + Stage2 `Crux? = Y` + `Status = ?` | WARN (ERROR with `--rigor`) | "Analysis marked [REVIEWED] but crux factual claim {id} is not attempted (Status=?)" |
 | `[REVIEWED]` + Stage2 `Crux? = Y` + (`Status = nf` or `blocked`) + missing Search Notes | WARN (ERROR with `--rigor`) | "Crux factual claim {id} is unresolved but lacks Search Notes documenting the attempt" |
 | Stage2 `Crux? = Y` + missing Claim ID | WARN | "Crux factual verification row is missing Claim ID (required for auditable gating)" |
+| `[REVIEWED]` + Stage2 has **no** `Crux? = Y` rows | WARN (ERROR with `--rigor`) | "Analysis marked [REVIEWED] but Stage 2 does not identify any crux factual claim (Crux?=Y required)" |
+| `[REVIEWED]` + Stage2 `Crux? = Y` + `Status in {ok, x}` + missing External Source | WARN (ERROR with `--rigor`) | "Crux factual claim {id} marked verified/refuted but lacks an External Source citation" |
 | Claim table: `[F]` + (`Status != ok` and `Status != x`) + `credence >= 0.7` | WARN | "High-credence factual claim {id} is not verified/refuted — add citation/verification or lower credence" |
 
 This aligns with the existing validator pattern: WARN by default, ERROR with `--rigor`.
@@ -215,11 +234,18 @@ Add a validation check that prevents `[REVIEWED]` status when crux factual claim
    - Test that `Crux? = Y` + `Status = ok` with `[REVIEWED]` passes cleanly.
    - Test that `Crux? = Y` + `Status = nf` with `[REVIEWED]` passes if Search Notes is present.
    - Test that `Crux? = Y` + `Status = nf` with `[REVIEWED]` triggers a WARN if Search Notes is missing.
+   - Test that `Crux? = Y` + `Status = blocked` with `[REVIEWED]` passes if Search Notes is present.
+   - Test that `Crux? = Y` + `Status = blocked` with `[REVIEWED]` triggers a WARN if Search Notes is missing.
    - Test that `Crux? = N` + `Status = ?` with `[REVIEWED]` does NOT trigger (non-crux unverified is acceptable).
    - Test that missing Claim ID on a crux row triggers a WARN.
+   - Test that `[REVIEWED]` with **no** `Crux? = Y` row triggers a WARN (Stage2 requires >=1 crux).
+   - Test that `[REVIEWED]` + crux `Status=ok` with missing External Source triggers a WARN.
 
 3. **`--rigor` escalation**:
    - Test that the above WARNs become ERRORs when `--rigor` flag is set.
+
+4. **Realistic markdown fixtures**:
+   - Use full markdown tables (header + separator + multi-row body), not simplified row stubs, for all Stage 2 parsing tests.
 
 ### Manual verification
 

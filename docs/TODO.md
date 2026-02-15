@@ -69,6 +69,23 @@ Tracking future work items.
 
 ---
 
+## Verification Loop for Factual Claims (v0.3.2)
+
+**Plan**: [PLAN-v0.3.2.md](PLAN-v0.3.2.md)
+**Implementation**: [IMPLEMENTATION-v0.3.2.md](IMPLEMENTATION-v0.3.2.md)
+
+**Problem**: `$check` can enumerate/flag factual claims but does not consistently verify crux facts; analyses can reach `[REVIEWED]` with crux factual claims still unattempted.
+
+**Solution**:
+- Enable web discovery (Claude: `WebSearch`) for `$check`
+- Add an explicit Stage 2 verification procedure (DB-first, then web search, timeboxed)
+- Update the Stage 2 "Key Factual Claims Verified" table contract (Claim ID + Search Notes + `nf/blocked/?`)
+- Add validator warnings/gates for reviewed/unverified and high-credence-unverified factual claims
+
+**Status**: Planning.
+
+---
+
 ## Analysis Audit Log
 
 **Plan**: [PLAN-audit-log.md](PLAN-audit-log.md)

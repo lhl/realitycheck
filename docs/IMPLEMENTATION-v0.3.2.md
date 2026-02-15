@@ -38,6 +38,7 @@ Primary outcomes for v0.3.2:
 - `$check` instructions explicitly require verification attempts for crux factual claims.
 - Claude `check` allows `WebSearch`; other integrations use tool-agnostic wording.
 - Stage 2 "Key Factual Claims Verified" table contract includes Claim ID and Search Notes.
+- `analysis_formatter.py` inserts the updated Stage 2 verification table contract (Claim ID + Search Notes + `ok/x/nf/blocked/?`).
 - `analysis_validator.py` warns/errors (under `--rigor`) for:
   - `[REVIEWED]` with crux `Status = ?`
   - `[REVIEWED]` with crux `Status in {nf, blocked}` and missing Search Notes
@@ -62,9 +63,10 @@ integrations/_templates/
  └── UPDATE tables/factual-claims-verified.md.j2   # Claim ID + Search Notes + status guide
 
 methodology/workflows/
- └── UPDATE check-core.md                          # Stage 2 verification procedure + updated table contract
+ └── REGENERATED check-core.md                     # Generated from templates via `make assemble-skills` (do not edit directly)
 
 scripts/
+ ├── UPDATE analysis_formatter.py                  # Insert updated Stage 2 verification table contract
  └── UPDATE analysis_validator.py                  # Crux reviewed gate + high-credence unresolved warning
 
 tests/
@@ -80,11 +82,11 @@ integrations/opencode/skills/
 
 ## Open Decisions
 
-No blocker-level open decisions remain, but track these toggles during implementation:
+No open decisions remain for coder handoff. Resolved scope choices for v0.3.2:
 
-- Whether to add `WebSearch` to Claude `analyze` in v0.3.2 or defer.
-- Whether missing Search Notes for unresolved non-crux rows should warn now or later.
-- Exact high-credence threshold (`>= 0.7` currently planned).
+- `WebSearch` change applies to Claude `check` only; `$analyze` parity is deferred to v0.3.3.
+- Missing Search Notes warnings apply to unresolved **crux** rows only in v0.3.2.
+- High-credence unresolved factual warning threshold is fixed at `credence >= 0.7`.
 
 ## Punchlist
 
@@ -92,41 +94,52 @@ No blocker-level open decisions remain, but track these toggles during implement
 
 - [ ] Confirm v0.3.2 contract in `PLAN-v0.3.2.md` is final for this run.
 - [ ] Confirm Stage 2 status codes: `ok`, `x`, `nf`, `blocked`, `?`.
+- [ ] Confirm final Stage 2 column order: `Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status`.
 - [ ] Confirm `[REVIEWED]` gate policy for crux unresolved claims.
-- [ ] Confirm whether Claude `analyze` also gets `WebSearch` now.
+- [ ] Resolve Stage 2 table schema drift across methodology/templates vs `analysis_formatter.py` (pick one contract; update the other).
+- [ ] Record Phase 0 decisions in this file's Worklog and set status to `In Progress`.
 
 ### Phase 1: Tests First
 
 #### 1.1 Validator tests (`tests/test_analysis_validator.py`)
 
 - [ ] Add test: `[REVIEWED]` + crux `Status=?` triggers WARN (ERROR with `--rigor`).
+- [ ] Add test: `[REVIEWED]` + Stage2 has **no** crux row (`Crux? = Y`) triggers WARN (ERROR with `--rigor`).
 - [ ] Add test: `[REVIEWED]` + crux `Status=nf` + missing Search Notes triggers WARN.
 - [ ] Add test: `[REVIEWED]` + crux `Status=nf` + Search Notes present passes.
+- [ ] Add test: `[REVIEWED]` + crux `Status=blocked` + missing Search Notes triggers WARN.
+- [ ] Add test: `[REVIEWED]` + crux `Status=blocked` + Search Notes present passes.
+- [ ] Add test: `[REVIEWED]` + crux `Status=ok` + missing External Source triggers WARN (ERROR with `--rigor`).
 - [ ] Add test: crux row missing Claim ID triggers WARN.
 - [ ] Add test: high-credence `[F]` unresolved triggers WARN.
 - [ ] Add test: low-credence unresolved factual claim does not trigger the high-credence warning.
+- [ ] Use realistic markdown table fixtures (header + separator + body), not simplified stubs, for Stage 2 parsing tests.
 
 #### 1.2 Formatter/table-contract tests (`tests/test_analysis_formatter.py`)
 
+- [ ] Run after 1.1 fixtures are finalized (depends on locked column contract).
 - [ ] Add/adjust tests for updated factual verification table headers.
 - [ ] Confirm formatter behavior remains stable with Claim ID and Search Notes columns.
+- [ ] Update `scripts/analysis_formatter.py` section template for "Key Factual Claims Verified" to match the updated contract.
 
 ### Phase 2: Template and Workflow Updates
 
 #### 2.1 Stage 2 table contract
 
 - [ ] Update `integrations/_templates/tables/factual-claims-verified.md.j2`:
+  - set column order to `Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status`
   - include `Claim ID` column
   - include `Search Notes` column
   - document status semantics (`ok/x/nf/blocked/?`)
 
 #### 2.2 Core workflow text
 
-- [ ] Update `methodology/workflows/check-core.md` Stage 2:
+- [ ] Update source templates that generate Stage 2 content (`integrations/_templates/skills/check.md.j2`, `integrations/_templates/tables/factual-claims-verified.md.j2`):
   - add DB-first step
   - add web discovery guidance (tool-agnostic)
   - add timebox guidance
   - align table column guide with template updates
+- [ ] Regenerate `methodology/workflows/check-core.md` via `make assemble-skills` (do not hand-edit generated file).
 
 #### 2.3 Skill instructions
 
@@ -139,11 +152,12 @@ No blocker-level open decisions remain, but track these toggles during implement
 
 - [ ] Update `integrations/_config/skills.yaml`:
   - add `WebSearch` to Claude `check` allowed tools
-  - decide and apply `analyze` change (if in-scope)
+  - leave Claude `analyze` unchanged in v0.3.2 (deferred to v0.3.3)
 
 ### Phase 4: Validator Implementation
 
 - [ ] Update `scripts/analysis_validator.py` to parse updated Stage 2 table contract.
+- [ ] Keep backward compatibility: accept the legacy Stage 2 table shape, but WARN (ERROR with `--rigor`) when required columns for gating are missing.
 - [ ] Add reviewed gate for crux `Status=?`.
 - [ ] Add reviewed gate for crux unresolved (`nf/blocked`) without Search Notes.
 - [ ] Add high-credence unresolved factual warning.
@@ -168,7 +182,7 @@ No blocker-level open decisions remain, but track these toggles during implement
 ### Phase 7: Documentation and Wrap-Up
 
 - [ ] Update `docs/TODO.md` with v0.3.2 status and link to this implementation file.
-- [ ] Add final release notes sync if v0.3.2 ships in this cycle.
+- [ ] If shipping v0.3.2, follow `docs/DEPLOY.md` (update `docs/CHANGELOG.md`, bump `pyproject.toml`, run `make release-metadata`).
 - [ ] Final pass: ensure claim-integrity evidence is recorded (tests + runtime behavior + docs parity).
 
 ## Worklog
@@ -184,4 +198,3 @@ No blocker-level open decisions remain, but track these toggles during implement
   - tool-agnostic web discovery requirement
   - Stage 2 Claim ID/Search Notes contract
   - `[REVIEWED]` crux gate and high-credence unresolved warning behavior
-
