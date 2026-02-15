@@ -106,24 +106,26 @@ Rules:
 - `docs/IMPLEMENTATION.md` - Progress tracking (punchlist + worklog)
 - `docs/DEPLOY.md` - Release checklist (PyPI + GitHub)
 - `docs/CHANGELOG.md` - Release notes
+- When reporting stats/counts (tests, claims, churn, LOC, coverage), scope them to a specific commit/tag and record the exact command(s) used
 - When making changes: update docs, run tests, then commit
 
 ## Workflow Expectations
 
 ### Before Picking Up Work
 - Check git status/log for recent changes
-- Review open items in `docs/IMPLEMENTATION.md`
+- Review open items in the active implementation doc (`docs/IMPLEMENTATION.md` or the relevant `docs/IMPLEMENTATION-*.md`)
 - Confirm your plan aligns with documented approach
+- For non-trivial work, add a brief pre-analysis note in the active implementation doc before coding (scope, risks, validation plan)
 - **Review existing tests** to understand expected behavior
 
 ### During Execution
 - **Write tests first** for the feature/fix you're implementing
-- Leave breadcrumbs in IMPLEMENTATION.md (commands run, decisions made)
+- Leave breadcrumbs in the active implementation doc (commands run, decisions made)
 - Run tests incrementally as you go
 - Keep commits atomic and focused
 
 ### After Changes
-- Update IMPLEMENTATION.md (check items, add notes)
+- Update the active implementation doc (check items, add notes)
 - Run targeted tests, then broader suites as needed (see Validation Matrix below)
 - **All tests must pass** before committing
 - Commit with descriptive message
@@ -191,7 +193,7 @@ tests/
 - **Commit frequently** with descriptive messages
 - **No bylines** or co-author footers in commits
 - **Use conventional commits**: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
-- **Add files explicitly** - never use `git add .` or `git add -A`
+- **Add files explicitly** - never use `git add .`, `git add -A`, or `git commit -a`
 - **ALWAYS** verify staged files before commit using `git diff --staged --name-only`
 - **ALWAYS** review the staged diff before commit using `git diff --staged`
 - If unrelated changes exist in the worktree, leave them untouched
