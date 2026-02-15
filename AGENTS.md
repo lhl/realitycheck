@@ -57,6 +57,20 @@ realitycheck/
 └── examples/         # Minimal example data
 ```
 
+## Roles (Planners / Coders / Reviewers)
+
+We use separate lanes for development work:
+
+- **Planner**: produces/updates specs and punchlists in `docs/` (typically between sprints).
+- **Coder**: owns all implementation patches (code + tests) and repo changes.
+- **Reviewer**: analysis-only; must not author implementation patches (no code changes).
+- **Human lead**: arbitrates scope, risk, and disagreements; decides what is a blocker vs a deferral.
+
+Rules:
+- Reviewers provide findings + rationale + suggested fixes, but do not change the repo.
+- Coders translate reviewer findings into tracked punchlist/checklist entries before implementing fixes.
+- Reviewer follow-up is confirmation-only (resolved / unresolved with rationale), not code changes.
+
 ## Development Philosophy: Spec → Plan → Test → Implement
 
 **This project is strictly spec/plan/test-driven.** The goal is a high-quality, maintainable framework that's easy to update and extend. Every feature follows this cycle:
@@ -110,9 +124,28 @@ realitycheck/
 
 ### After Changes
 - Update IMPLEMENTATION.md (check items, add notes)
-- Run `uv run pytest` and `uv run python scripts/validate.py`
+- Run targeted tests, then broader suites as needed (see Validation Matrix below)
 - **All tests must pass** before committing
 - Commit with descriptive message
+
+### After Changes Validation Matrix
+
+```bash
+# 1) Targeted (fast): run the narrowest tests that match your change
+uv run pytest tests/test_db.py -q
+uv run pytest tests/test_validate.py::TestSpecificCheck -q
+
+# 2) Focused suites (run when relevant to your change)
+uv run pytest tests/test_db.py tests/test_validate.py -q
+uv run python scripts/validate.py  # if data exists
+
+# 3) Full suite (milestone closure or before claiming completion of non-trivial work)
+uv run pytest -v
+
+# 4) Optional (coverage + embedding tests)
+uv run pytest --cov=scripts --cov-report=term-missing
+REALITYCHECK_EMBED_SKIP=1 uv run pytest -v  # skip embedding tests if torch issues
+```
 
 ### Running Tests
 
@@ -149,6 +182,7 @@ tests/
 
 - [ ] Tests pass: `uv run pytest`
 - [ ] Validation passes: `uv run python scripts/validate.py` (if data exists)
+- [ ] Staged diff reviewed: `git diff --staged --name-only` then `git diff --staged`
 - [ ] No untracked files in commit
 - [ ] Commit message is descriptive
 
@@ -158,6 +192,9 @@ tests/
 - **No bylines** or co-author footers in commits
 - **Use conventional commits**: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - **Add files explicitly** - never use `git add .` or `git add -A`
+- **ALWAYS** verify staged files before commit using `git diff --staged --name-only`
+- **ALWAYS** review the staged diff before commit using `git diff --staged`
+- If unrelated changes exist in the worktree, leave them untouched
 - **Atomic commits** - group related changes, separate unrelated ones
 - **Run validation** before pushing
 
@@ -213,6 +250,39 @@ def sample_claim():
         # ...
     }
 ```
+
+## Claim Integrity and Definition of Done
+
+### Claim Integrity (Done/Shipped/Complete)
+
+Any claim of "done", "shipped", "complete", or "closed" must include evidence for all three:
+
+- **Test evidence**: exact validation command(s) + outcomes (include e2e when relevant).
+- **Runtime/wiring evidence**: where the behavior is enforced in the live path (not just a helper function).
+- **Docs parity evidence**: punchlist/worklog updated, and relevant docs updated when behavior/guarantees change.
+
+Truth-in-claims:
+- Use truth-scoped wording; do not overclaim universal behavior when behavior is conditional (e.g., optional backends, feature flags, tool-specific paths).
+- Prefer "when X is enabled" / "in mode Y" / "fails closed when Z is unavailable" over "always/guarantees/prevents".
+
+### Definition of Done (Features)
+
+- [ ] Code implemented (minimal patch)
+- [ ] Tests green (targeted + relevant suites; full suite at milestone closure)
+- [ ] Claim-integrity evidence recorded (tests + runtime + docs parity)
+- [ ] Any remaining gaps explicitly deferred (see below)
+
+### Deferrals
+
+- Unresolved items stay in the active milestone's deferrals list in the relevant `docs/IMPLEMENTATION-*.md`.
+- Each deferral must include: **ID**, **rationale**, **risk**, and **target milestone/version**.
+- Use `docs/TODO.md` for items beyond the current release scope (post-release backlog).
+
+### Review Trace (Findings -> IDs -> Commits)
+
+- Convert reviewer findings into tracked IDs before remediation.
+- Commit messages for remediation should reference the finding ID and whether it is initial remediation or re-review closure.
+- Log the exact validation commands + outcomes in the implementation worklog when closing items.
 
 ## Plugin Development
 
