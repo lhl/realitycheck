@@ -8,13 +8,13 @@
 
 Reality Check's `$check` workflow successfully parses and enumerates claims, assigns evidence levels and credence, and flags unverified items for follow-up. However, it **does not actively chase down or verify factual claims**. The workflow tells agents *what* to verify but doesn't give procedural steps or tool access for *how*.
 
-This gap was identified during review of `aakashgupta-2026-amodei-hawkish-china-thread.md` (produced by Codex/gpt-5.2, committed in realitycheck-data `3ee7019`). The analysis correctly:
+This gap was identified during review of `aakashgupta-2026-amodei-hawkish-china-thread.md` (produced by Codex/gpt-5.2, committed in realitycheck-data `3ee7019` on 2026-02-15). The analysis correctly:
 - Typed a Davos/H200 export claim as `[F]` (fact),
 - Rated it `E6` (unsupported),
 - Marked it `?` (unverified),
 - Flagged it for follow-up in the "Claims to Cross-Reference" section.
 
-But no follow-up occurred within the workflow. The claim was eventually verified in a manual second pass using a BIS press release and TechCrunch reporting -- both easily discoverable via web search. The analysis reached `[REVIEWED]` status with a crux factual claim still unverified.
+But no follow-up occurred within the workflow. The claim was later verified in a manual second pass (realitycheck-data `460e8d5` on 2026-02-15; wording follow-up `21b0c4b`) using a BIS press release and TechCrunch reporting — both easily discoverable via basic web search. The first-pass analysis had reached `[REVIEWED]` status with a crux factual claim still unverified.
 
 This is exactly the kind of failure Reality Check exists to prevent: confident-looking outputs with unresolved epistemic gaps.
 
@@ -22,19 +22,25 @@ This is exactly the kind of failure Reality Check exists to prevent: confident-l
 
 Four root causes contribute to this verification gap:
 
-### 1. `WebSearch` is not in the allowed tools for `$check`
+### 1. No tool-agnostic "web discovery" capability in `$check`
 
-The Claude Code `check` skill's `allowed_tools` list (`integrations/_config/skills.yaml:37-46`) includes `WebFetch` (for fetching a provided URL) but **not `WebSearch`** (for discovering URLs). This means the agent can read a page it's given but cannot search the web to find corroborating or disconfirming evidence.
+The workflow needs a **web discovery** step (finding sources to cite) but currently lacks a consistent, integration-agnostic way to do that.
 
-Codex skills don't have an `allowed_tools` mechanism, but the Codex `$check` skill likewise lacks explicit instructions to use web search for verification.
+- **Claude Code**: the `check` skill's `allowed_tools` list (`integrations/_config/skills.yaml:37-46`) includes `WebFetch` (fetch a provided URL) but **not `WebSearch`** (discover URLs). Agents can read what they're given, but can't search for corroborating/disconfirming evidence.
+- **Codex / Amp / OpenCode**: there is no `allowed_tools` gate, but the skill text does not clearly instruct which web search facility to use (or require a minimum attempt), so agents default to "flag for follow-up" rather than actually verifying.
 
 ### 2. No explicit verification loop in the workflow
 
 The methodology's Stage 2 ("Key Factual Claims Verified" table) defines the *output shape* -- columns for Source Says, Actual, External Source, Status -- but provides no procedural instructions for how to populate the "Actual" and "External Source" columns. Agents are expected to verify facts but given no tool guidance, search strategy, or decision procedure for when/how to search.
 
-### 3. `[F]` + `E6` + `?` is a semantic inconsistency the validator doesn't catch
+### 3. Validator doesn't warn on high-stakes "unverified-but-sounding-confident" states
 
-A claim typed as `[F]` (fact -- "checkable, verifiable proposition") with evidence level `E6` (unsupported/speculative) and verification status `?` (unverified) is internally inconsistent: if it's a fact, it should be checkable; if it's checkable and we didn't check it, we shouldn't rate the analysis as reviewed. The current `analysis_validator.py` does not flag this combination.
+The combination `[F]` + `E6` + `?` is not inherently inconsistent; it can mean "checkable, but not yet checked." The failure mode is that this state can coexist with:
+- **`[REVIEWED]` analyses** (giving a false sense that verification happened), and/or
+- **high credence** on factual claims without citations, and/or
+- **no recorded search attempts** for crux factual claims.
+
+The current `analysis_validator.py` does not warn on these "looks reviewed / sounds confident / but not actually verified" patterns.
 
 ### 4. Single-pass analysis has no gate preventing `[REVIEWED]` with unverified crux claims
 
@@ -42,17 +48,17 @@ The workflow allows an analysis to reach `[REVIEWED]` status even when crux fact
 
 ## Goals
 
-1. **Enable web search for fact verification**: Add `WebSearch` to the `$check` skill's allowed tools so agents can discover corroborating/disconfirming evidence.
-2. **Add a procedural verification loop**: Give agents explicit instructions for when and how to search for evidence on `[F]`-typed claims during Stage 2.
-3. **Catch semantic inconsistencies**: Add a validator warning for `[F]` + `E6` + `?` and similar incoherent combinations.
-4. **Gate `[REVIEWED]` status**: Prevent analyses from reaching `[REVIEWED]` when crux factual claims remain unverified.
+1. **Enable web discovery for fact verification**: Ensure `$check` can discover corroborating/disconfirming sources (Claude: add `WebSearch`; other integrations: specify the available web search facility).
+2. **Add a procedural verification loop**: Make Stage 2 explicitly require a minimum verification attempt (DB-first, then web search) for crux factual claims, with recorded queries and citations (or a documented failure mode).
+3. **Catch "reviewed/confident without verification" patterns**: Add validator warnings when factual claims remain unverified but the analysis is marked `[REVIEWED]`, or when high-credence factual claims lack citations/verification attempts.
+4. **Gate `[REVIEWED]` status**: Prevent `[REVIEWED]` when crux factual claims have not been verified/refuted *or* explicitly marked as "searched, not found/blocked" with documented attempts.
 
 ## Non-goals
 
 - Full automated fact-checking pipeline (out of scope; this is about giving agents the tools and instructions to verify within the existing workflow).
 - Changes to the DB schema or LanceDB tables (this is a methodology/template/config change).
 - Rearchitecting the multi-pass workflow (covered by `PLAN-analysis-rigor-improvement.md`).
-- Adding `WebSearch` to all skills (only `check` and potentially `fetch` need it).
+- Adding web discovery/search to all skills (scope this to `check` and optionally `analyze`).
 
 ## Affected Files
 
@@ -60,16 +66,18 @@ The workflow allows an analysis to reach `[REVIEWED]` status even when crux fact
 realitycheck/
  ├── integrations/
  │    └── _config/
- │         └── UPDATE skills.yaml                    # Add WebSearch to check skill allowed_tools
+ │         └── UPDATE skills.yaml                    # Claude: add WebSearch to check (and maybe analyze) allowed_tools
  ├── integrations/
  │    └── _templates/
- │         └── skills/
- │              └── UPDATE check.md.j2               # Add verification loop instructions
+ │         ├── skills/
+ │         │    └── UPDATE check.md.j2               # Add verification loop instructions (tool-agnostic wording)
+ │         └── tables/
+ │              └── UPDATE factual-claims-verified.md.j2  # Add Claim ID + Search Notes + status codes
  ├── methodology/
  │    └── workflows/
- │         └── UPDATE check-core.md                  # Add verification procedure to Stage 2
+ │         └── UPDATE check-core.md                  # Add verification procedure + Stage2 table columns/statuses
  ├── scripts/
- │    └── UPDATE analysis_validator.py               # Add F+E6+? warning; add crux-unverified gate
+ │    └── UPDATE analysis_validator.py               # Add reviewed/crux gate + high-credence-unverified warnings
  └── docs/
       ├── NEW PLAN-v0.3.2.md                         # This document
       └── UPDATE TODO.md                             # Add this item to roadmap
@@ -77,7 +85,7 @@ realitycheck/
 
 ## Implementation
 
-### Change 1: Add `WebSearch` to `check` skill allowed tools
+### Change 1: Ensure a web discovery tool is available to `$check` (per integration)
 
 **File**: `integrations/_config/skills.yaml`
 
@@ -95,21 +103,50 @@ Add `"WebSearch"` to the `check` skill's Claude `allowed_tools` list:
         # ... rest unchanged
 ```
 
-Also consider adding `WebSearch` to the `fetch` skill if URL discovery during source fetching is useful.
+Also consider adding `WebSearch` to `analyze` (manual workflow) if we want the same verification behavior outside `$check`.
 
-**Rationale**: `WebFetch` lets agents read a known URL; `WebSearch` lets them discover URLs. Verification requires discovery ("find reporting on Amodei's Davos remarks") not just retrieval.
+**Skill text (all integrations)**: Update the `$check` skill template to refer to "web search/web discovery" generically, with integration examples rather than hard-coding a single tool name. For example:
+- Claude Code: `WebSearch`
+- OpenAI/Codex toolings: `web.run` (`search_query`, then `open`) or equivalent
+- Amp/OpenCode: whichever web search tool is available in that runtime
+
+This keeps the template portable across Codex/Amp/OpenCode while still being concrete.
+
+**Rationale**: `WebFetch` lets agents read a known URL; verification requires discovery ("find reporting on Amodei's Davos remarks") not just retrieval.
 
 ### Change 2: Add verification loop to Stage 2 methodology
 
-**Files**: `methodology/workflows/check-core.md`, `integrations/_templates/skills/check.md.j2`
+**Files**: `methodology/workflows/check-core.md`, `integrations/_templates/skills/check.md.j2`, `integrations/_templates/tables/factual-claims-verified.md.j2`
 
 Add an explicit verification procedure to Stage 2 between claim extraction and the "Key Factual Claims Verified" table. The procedure should:
 
-1. **Identify verification targets**: All claims typed `[F]` (fact) with `Crux? = Y`, plus any `[F]` claims with `E5` or `E6` evidence levels.
-2. **Search strategy**: For each target, perform a web search using specific, neutral search terms (not the claim's framing). Try at least 2 distinct queries.
-3. **Record results**: For each search, record what was found (or "no results") in the "Key Factual Claims Verified" table, including the source URL and whether it confirms, contradicts, or is ambiguous.
-4. **Update evidence levels**: If verification succeeds, update the claim's evidence level (e.g., E6 -> E4 if credible journalism found, E6 -> E2 if official document found). If verification fails after reasonable search, explicitly record "searched but not found" rather than leaving `?`.
-5. **Decision gate**: If a crux `[F]` claim cannot be verified after searching, downgrade it to `[H]` (hypothesis) or explicitly mark the analysis as incomplete.
+1. **Identify verification targets**:
+   - All claims typed `[F]` with `Crux? = Y` (required),
+   - plus any `[F]` claims with weak evidence (`E5`/`E6`) or high credence (e.g., `>= 0.7`).
+2. **DB-first check**: Before using the web, search the local RC database for existing coverage/citations:
+   - `rc-db search "<neutral keywords>"` (and/or search by named entities + date + venue).
+   - If a suitable source already exists in the DB, cite it and (if needed) register it as supporting evidence.
+3. **Web discovery strategy (timeboxed)**:
+   - For each crux target, spend a bounded effort (e.g., 5–10 minutes; >=2 distinct queries).
+   - Prefer primary sources (official docs, transcripts, video) then reputable secondary reporting.
+   - Use neutral query terms (avoid the source's rhetoric framing).
+4. **Record results in Stage 2**:
+   - Update the "Key Factual Claims Verified" table to include:
+     - **Claim ID** (reference extracted claim IDs; required for crux rows)
+     - **Search Notes** (queries tried + date/timebox notes)
+   - Expand the **Status** codes so we can distinguish "not attempted" from "attempted but unresolved":
+     - `ok` = verified
+     - `x` = refuted
+     - `nf` = searched, not found (no credible external source after timeboxed search)
+     - `blocked` = access/capture blocked (paywall/JS/region/etc.)
+     - `?` = not yet attempted
+   - For each target, record: what the source said, what verification found, the external citation(s), and the queries attempted if unresolved (`nf`/`blocked`).
+5. **Update claim metadata + provenance**:
+   - If verification changes the claim materially (evidence level/credence/status), update the claim table and add `evidence_links` + `reasoning_trails` rows (append-only provenance).
+6. **Decision gate**:
+   - Do **not** mark the analysis `[REVIEWED]` if any crux `[F]` claim is still `?`.
+   - Allow `[REVIEWED]` with a crux claim in `nf`/`blocked` only if `Search Notes` is filled and the analysis summary explicitly treats the claim as unresolved/unknown (i.e., does not smuggle it in as a settled fact).
+   - If a claim turns out not to be checkable/verifiable, retype it (e.g., `[H]`) with an explicit operationalization note; otherwise keep it `[F]` and use `nf`/`blocked` as the documented failure mode.
 
 Example template addition:
 
@@ -118,28 +155,32 @@ Example template addition:
 
 For each `[F]`-typed claim, especially crux claims:
 
-1. **Search**: Use WebSearch with neutral terms to find primary or secondary sources.
+0. **DB-first**: `rc-db search "<keywords>"` to reuse existing sources/citations.
+1. **Search**: Use your environment's web search tool with neutral terms to find primary or secondary sources.
    - Try the specific factual assertion (e.g., "Amodei Davos H200 exports China")
    - Try the broader context (e.g., "Davos 2026 AI chip exports")
+   - Timebox: 5–10 minutes per crux claim; >=2 distinct queries
 2. **Evaluate**: Check discovered sources against the claim.
    - Does the source confirm the claim? Record URL + relevant excerpt.
    - Does the source contradict or modify the claim? Record and adjust.
-   - No relevant sources found? Record "searched, not found" with queries tried.
+   - No relevant sources found? Mark `Status = nf` and record queries/timebox in Search Notes.
+   - Access blocked? Mark `Status = blocked` and record queries + failure mode in Search Notes.
 3. **Update**: Adjust evidence level and credence based on what was found.
-4. **Gate**: Do not mark analysis as [REVIEWED] if crux [F] claims remain `?`.
+4. **Gate**: Do not mark analysis as [REVIEWED] if crux [F] claims remain `?` (not attempted).
 ```
 
-### Change 3: Add semantic consistency check to validator
+### Change 3: Add verification-rigor checks to validator
 
 **File**: `scripts/analysis_validator.py`
 
-Add a validation warning for semantically inconsistent claim metadata combinations:
+Add validation warnings for "reviewed/confident without verification" patterns:
 
-| Combination | Severity | Message |
+| Condition | Severity | Message |
 |-------------|----------|---------|
-| `[F]` + `E6` + `?` | WARN | "Fact claim {id} has unsupported evidence (E6) and is unverified -- verify or retype as [H]" |
-| `[F]` + `E5` + `?` | WARN | "Fact claim {id} has opinion-level evidence (E5) and is unverified -- verify or retype as [H]" |
-| `Crux? = Y` + `?` + `[REVIEWED]` | WARN (ERROR with `--rigor`) | "Analysis marked [REVIEWED] but crux claim {id} is unverified" |
+| `[REVIEWED]` + Stage2 `Crux? = Y` + `Status = ?` | WARN (ERROR with `--rigor`) | "Analysis marked [REVIEWED] but crux factual claim {id} is not attempted (Status=?)" |
+| `[REVIEWED]` + Stage2 `Crux? = Y` + (`Status = nf` or `blocked`) + missing Search Notes | WARN (ERROR with `--rigor`) | "Crux factual claim {id} is unresolved but lacks Search Notes documenting the attempt" |
+| Stage2 `Crux? = Y` + missing Claim ID | WARN | "Crux factual verification row is missing Claim ID (required for auditable gating)" |
+| Claim table: `[F]` + (`Status != ok` and `Status != x`) + `credence >= 0.7` | WARN | "High-credence factual claim {id} is not verified/refuted — add citation/verification or lower credence" |
 
 This aligns with the existing validator pattern: WARN by default, ERROR with `--rigor`.
 
@@ -149,9 +190,10 @@ This aligns with the existing validator pattern: WARN by default, ERROR with `--
 
 Add a validation check that prevents `[REVIEWED]` status when crux factual claims remain unverified:
 
-- Parse the "Key Factual Claims Verified" table.
-- For any row where `Crux? = Y` and `Status = ?`, emit a warning (or error with `--rigor`).
-- The analysis should not be considered fully reviewed until all crux facts are either verified, refuted, or explicitly marked as unverifiable with documented search attempts.
+- Parse the "Key Factual Claims Verified" table (updated to include Claim IDs).
+- For any row where `Crux? = Y` and `Status = ?` and the analysis is `[REVIEWED]`, emit a warning (or error with `--rigor`).
+- For any row where `Crux? = Y` and `Status in {nf, blocked}` but `Search Notes` is empty, emit a warning (or error with `--rigor`).
+- Optionally (future-hardening): require that unresolved crux rows include documented search attempts (query strings + date) before they can be considered "handled" even in non-reviewed drafts.
 
 ## Relationship to Other Plans
 
@@ -163,16 +205,18 @@ Add a validation check that prevents `[REVIEWED]` status when crux factual claim
 
 ### Validator tests (`tests/test_analysis_validator.py`)
 
-1. **Semantic consistency check**:
-   - Test that `[F]` + `E6` + `?` triggers a WARN.
-   - Test that `[F]` + `E4` + `ok` does NOT trigger a warning (consistent).
-   - Test that `[H]` + `E6` + `?` does NOT trigger a warning (hypotheses can be unsupported).
+1. **High-credence unverified factual claim warning**:
+   - Test that `[F]` + `Status=?` + `credence>=0.7` triggers a WARN.
+   - Test that `[F]` + `Status=?` + `credence<0.7` does NOT trigger this warning.
 
 2. **Crux-unverified gate**:
-   - Test that `Crux? = Y` + `Status = ?` with `[REVIEWED]` triggers a WARN.
+   - Test that Stage2 `Crux? = Y` + `Status = ?` with `[REVIEWED]` triggers a WARN.
    - Test that `Crux? = Y` + `Status = ?` without `[REVIEWED]` does NOT trigger (analysis still in progress).
    - Test that `Crux? = Y` + `Status = ok` with `[REVIEWED]` passes cleanly.
+   - Test that `Crux? = Y` + `Status = nf` with `[REVIEWED]` passes if Search Notes is present.
+   - Test that `Crux? = Y` + `Status = nf` with `[REVIEWED]` triggers a WARN if Search Notes is missing.
    - Test that `Crux? = N` + `Status = ?` with `[REVIEWED]` does NOT trigger (non-crux unverified is acceptable).
+   - Test that missing Claim ID on a crux row triggers a WARN.
 
 3. **`--rigor` escalation**:
    - Test that the above WARNs become ERRORs when `--rigor` flag is set.
@@ -180,10 +224,10 @@ Add a validation check that prevents `[REVIEWED]` status when crux factual claim
 ### Manual verification
 
 - Re-run `$check` on a source with verifiable factual claims and confirm that:
-  - The agent uses `WebSearch` to look up facts.
+  - The agent uses web discovery (search) to look up crux facts.
   - The "Key Factual Claims Verified" table is populated with actual external sources.
-  - `[F]` claims that cannot be verified are either retyped or explicitly documented as unverifiable.
-  - The analysis does not reach `[REVIEWED]` with unverified crux claims.
+  - Crux `[F]` claims that cannot be verified are either retyped or explicitly documented as `nf/blocked` with Search Notes.
+  - The analysis does not reach `[REVIEWED]` with crux claims still `?`.
 
 ### Regression test
 
@@ -192,14 +236,15 @@ Add a validation check that prevents `[REVIEWED]` status when crux factual claim
 ## Release Notes (v0.3.2)
 
 ### Added
-- `WebSearch` tool enabled for `$check` skill, allowing agents to discover corroborating/disconfirming evidence during fact verification.
+- Web discovery enabled for `$check` (Claude: `WebSearch`) so agents can discover corroborating/disconfirming evidence during fact verification.
 - Explicit verification loop procedure in Stage 2 methodology for `[F]`-typed claims.
-- Validator warning for semantically inconsistent claim metadata (`[F]` + `E6` + `?` and similar).
-- Validator gate preventing `[REVIEWED]` status when crux factual claims remain unverified.
+- Validator warnings for "reviewed/confident without verification" patterns (crux unresolved in `[REVIEWED]`, high-credence unverified `[F]` claims).
+- Validator gate preventing `[REVIEWED]` status when crux factual claims are still `?` (not attempted).
 
 ### Changed
-- `check` skill allowed tools list now includes `WebSearch`.
+- Claude `check` skill allowed tools list now includes `WebSearch`.
+- Stage 2 "Key Factual Claims Verified" table includes Claim IDs + Search Notes, with explicit `nf/blocked/?` status codes.
 - Stage 2 methodology includes procedural verification instructions alongside existing output templates.
 
 ### Fixed
-- Analyses could reach `[REVIEWED]` status with crux factual claims still marked as unverified.
+- Analyses could reach `[REVIEWED]` status with crux factual claims still `?` (no verification attempt recorded).
