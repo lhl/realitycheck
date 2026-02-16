@@ -250,6 +250,12 @@ class TestExtractClaimId:
         assert extract_claim_id("  TECH-2026-001  ") == "TECH-2026-001"
         assert extract_claim_id("  [TECH-2026-001](path)  ") == "TECH-2026-001"
 
+    def test_extract_with_markdown_wrappers(self):
+        """Simple markdown wrappers around IDs are handled."""
+        assert extract_claim_id("`TECH-2026-001`") == "TECH-2026-001"
+        assert extract_claim_id("**TECH-2026-001**") == "TECH-2026-001"
+        assert extract_claim_id("**[TECH-2026-001](path)**") == "TECH-2026-001"
+
 
 class TestFrameworkRepoCheck:
     """Tests for framework repo detection."""
@@ -827,6 +833,30 @@ class TestStage2VerificationRigor:
         result = validate_file(test_file, profile="full")
         assert any("High-credence factual claim" in warning for warning in result.warnings)
 
+    def test_high_credence_unresolved_factual_claim_warns_with_unbracketed_type(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",
+            key_claim_credence="0.85",
+            key_claim_type="F",
+        )
+        test_file = tmp_path / "high-credence-unresolved-unbracketed-type.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("High-credence factual claim" in warning for warning in result.warnings)
+
+    def test_high_credence_unresolved_factual_claim_warns_with_markdown_wrapped_type(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",
+            key_claim_credence="0.85",
+            key_claim_type="`[f]`",
+        )
+        test_file = tmp_path / "high-credence-unresolved-markdown-type.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("High-credence factual claim" in warning for warning in result.warnings)
+
     def test_low_credence_unresolved_factual_claim_no_high_credence_warning(self, tmp_path):
         content = _build_full_analysis_for_stage2_checks(
             "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",
@@ -848,6 +878,45 @@ class TestStage2VerificationRigor:
 
         result = validate_file(test_file, profile="full", rigor=True)
         assert any("not attempted" in error for error in result.errors)
+
+    @pytest.mark.parametrize(
+        ("status_value", "status_display"),
+        [
+            ("todo", "todo"),
+            ("", "<blank>"),
+        ],
+    )
+    def test_reviewed_crux_unknown_or_blank_status_warns_and_fails_closed(
+        self, tmp_path, status_value, status_display
+    ):
+        content = _build_full_analysis_for_stage2_checks(
+            f"| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | {status_value} |",
+            key_claim_credence="0.50",
+            key_claim_type="[F]",
+        )
+        test_file = tmp_path / "reviewed-unknown-status.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any(
+            "unknown Status" in warning and f"'{status_display}'" in warning
+            for warning in result.warnings
+        )
+        assert any("not attempted" in warning for warning in result.warnings)
+
+    def test_non_metadata_reviewed_token_does_not_trigger_reviewed_gate(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | ? |",
+            key_claim_credence="0.50",
+            key_claim_type="[F]",
+            rigor_level="[DRAFT]",
+        )
+        content += "\n\n### Notes\nThis line includes [REVIEWED] as plain text, not metadata."
+        test_file = tmp_path / "non-metadata-reviewed-token.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert not any("not attempted" in warning for warning in result.warnings)
 
     def test_legacy_stage2_table_warns_missing_required_columns(self, tmp_path):
         legacy_table = """| Claim | Verification Source | Status | Notes | Crux? |

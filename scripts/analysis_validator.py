@@ -29,6 +29,36 @@ class ValidationResult(NamedTuple):
 # Regex patterns for claim ID extraction
 BARE_CLAIM_ID_RE = re.compile(r"^([A-Z]+-\d{4}-\d{3})$")
 LINKED_CLAIM_ID_RE = re.compile(r"^\[([A-Z]+-\d{4}-\d{3})\]\([^)]+\)$")
+MARKDOWN_WRAPPER_MARKERS = ("**", "__", "`", "*", "_")
+
+# Stage 2 factual verification status allowlist (v0.3.2)
+VALID_STAGE2_STATUSES = {"ok", "x", "nf", "blocked", "?"}
+
+
+def _strip_simple_markdown_wrappers(text: str) -> str:
+    """Strip simple markdown wrappers around a whole cell value.
+
+    Handles common wrappers used in markdown tables such as:
+    - `TECH-2026-001`
+    - **TECH-2026-001**
+    - *TECH-2026-001*
+    """
+    cleaned = text.strip()
+    while cleaned:
+        updated = False
+        for marker in MARKDOWN_WRAPPER_MARKERS:
+            marker_len = len(marker)
+            if (
+                cleaned.startswith(marker)
+                and cleaned.endswith(marker)
+                and len(cleaned) > marker_len * 2
+            ):
+                cleaned = cleaned[marker_len:-marker_len].strip()
+                updated = True
+                break
+        if not updated:
+            break
+    return cleaned
 
 
 def extract_claim_id(cell_text: str) -> str | None:
@@ -40,7 +70,7 @@ def extract_claim_id(cell_text: str) -> str | None:
 
     Returns None if the text doesn't match either format.
     """
-    text = cell_text.strip()
+    text = _strip_simple_markdown_wrappers(cell_text)
 
     # Try bare ID first
     bare_match = BARE_CLAIM_ID_RE.match(text)
@@ -376,7 +406,10 @@ def _find_column_index(column_map: dict[str, int], *candidates: str) -> int | No
 
 
 def _normalize_status(status: str) -> str:
-    cleaned = re.sub(r"[`*]", "", status).strip().lower()
+    cleaned = _strip_simple_markdown_wrappers(status)
+    cleaned = re.sub(r"[`*]", "", cleaned).strip().lower()
+    if cleaned.startswith("[") and cleaned.endswith("]") and len(cleaned) >= 3:
+        cleaned = cleaned[1:-1].strip()
     return cleaned
 
 
@@ -385,14 +418,25 @@ def _is_crux_value(value: str) -> bool:
     return cleaned == "Y"
 
 
+def _normalize_claim_type(claim_type: str) -> str:
+    """Normalize claim type values for robust comparisons."""
+    cleaned = _strip_simple_markdown_wrappers(claim_type)
+    cleaned = re.sub(r"\s+", "", cleaned).upper()
+    if cleaned.startswith("[") and cleaned.endswith("]") and len(cleaned) >= 3:
+        cleaned = cleaned[1:-1]
+    return cleaned
+
+
 def _is_reviewed_analysis(content: str) -> bool:
-    """Detect whether an analysis is marked REVIEWED."""
+    """Detect whether an analysis metadata marks rigor level REVIEWED."""
+    metadata_content = _extract_section_content(content, "## Metadata")
+    search_space = metadata_content if metadata_content else content
+
     reviewed_patterns = [
-        r"\|\s*\*\*Rigor Level\*\*\s*\|\s*\[?REVIEWED\]?\s*\|",
-        r"\*\*Rigor Level\*\*:\s*\[?REVIEWED\]?",
-        r"\[REVIEWED\]",
+        r"\|\s*\*{0,2}Rigor Level\*{0,2}\s*\|\s*\[?REVIEWED\]?\s*\|",
+        r"\*{0,2}Rigor Level\*{0,2}\s*:\s*\[?REVIEWED\]?",
     ]
-    return any(re.search(pattern, content, re.IGNORECASE) for pattern in reviewed_patterns)
+    return any(re.search(pattern, search_space, re.IGNORECASE) for pattern in reviewed_patterns)
 
 
 def _extract_stage2_factual_rows(content: str) -> tuple[list[dict[str, str]], list[str]]:
@@ -543,7 +587,8 @@ def validate_factual_verification_rigor(content: str) -> list[str]:
 
     for row in crux_rows:
         claim_id = extract_claim_id(row.get("claim_id", "")) or row.get("claim_id", "").strip() or "<unknown>"
-        status = _normalize_status(row.get("status", ""))
+        status_raw = row.get("status", "").strip()
+        status = _normalize_status(status_raw)
         search_notes = row.get("search_notes", "").strip()
         external_source = row.get("external_source", "").strip()
 
@@ -551,6 +596,14 @@ def validate_factual_verification_rigor(content: str) -> list[str]:
             warnings.append(
                 "Crux factual verification row is missing Claim ID (required for auditable gating)"
             )
+
+        if reviewed and status not in VALID_STAGE2_STATUSES:
+            status_display = status_raw if status_raw else "<blank>"
+            warnings.append(
+                f"Crux factual claim {claim_id} has unknown Status '{status_display}' — use one of: ok, x, nf, blocked, ?"
+            )
+            # Fail closed in reviewed analyses: treat unknown/blank statuses as not attempted.
+            status = "?"
 
         if reviewed and status == "?":
             warnings.append(
@@ -570,11 +623,11 @@ def validate_factual_verification_rigor(content: str) -> list[str]:
     key_claim_rows = _extract_key_claim_rows(content)
     for claim in key_claim_rows:
         claim_id = str(claim["claim_id"])
-        claim_type = str(claim["claim_type"]).strip()
+        claim_type = _normalize_claim_type(str(claim["claim_type"]))
         credence = float(claim["credence"])
         status = status_by_claim_id.get(claim_id, "")
 
-        if claim_type == "[F]" and credence >= 0.7 and status not in {"ok", "x"}:
+        if claim_type == "F" and credence >= 0.7 and status not in {"ok", "x"}:
             warnings.append(
                 f"High-credence factual claim {claim_id} is not verified/refuted — add citation/verification or lower credence"
             )
