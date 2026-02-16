@@ -135,9 +135,22 @@ FULL_SECTIONS = {
     "## Stage 2: Evaluative Analysis": "\n## Stage 2: Evaluative Analysis\n",
     "### Key Factual Claims Verified": """\n### Key Factual Claims Verified
 
-| Claim | Verification Source | Status | Notes | Crux? |
-|-------|---------------------|--------|-------|-------|
-| [claim] | [source] | ✓/✗/? | [notes] | Y/N |
+> **Requirement**: Must include >=1 **crux claim** (central to thesis), not just peripheral numerics.
+
+| Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status |
+|----------|---------------------|-------|-------------|--------|-----------------|-------------|--------|
+| TECH-2026-001 | [e.g., "China makes 50% of X"] | N | [assertion] | [verified value] | [URL/ref] | [q1; q2; date] | ok / x / nf / blocked / ? |
+| TECH-2026-002 | [e.g., "Elite consensus on Y"] | Y | [assertion] | [verified or ?] | [URL/ref or blank] | [queries tried + blockers] | ok / x / nf / blocked / ? |
+
+**Column guide**:
+- **Claim ID**: Claim ID from Key Claims / Claim Summary (required for crux rows)
+- **Claim**: Paraphrased factual claim from the source
+- **Crux?**: Is this claim central to the argument? Mark crux claims with `Y`
+- **Source Says**: What the source asserts
+- **Actual**: What verification found (or `?` if unresolved)
+- **External Source**: URL/reference used for verification (`ok`/`x` should include one)
+- **Search Notes**: Queries attempted, date/timebox notes, and blockers if unresolved
+- **Status**: `ok` = verified; `x` = refuted; `nf` = searched, not found; `blocked` = access/capture blocked; `?` = not yet attempted
 
 """,
     "### Disconfirming Evidence Search": """\n### Disconfirming Evidence Search

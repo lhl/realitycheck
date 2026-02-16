@@ -82,6 +82,11 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 3. **Metadata** - Extract title, author, date, type, generate source-id
 4. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
 5. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence
+   - **DB-first for crux factuals**: run `rc-db search "<neutral keywords>"` before external search
+   - **Web discovery**: use your environment's web search capability (e.g., Claude `WebSearch`, Codex `web.run search_query`)
+   - **Minimum verification attempt**: for each crux `[F]` claim, run >=2 distinct queries and record attempts
+   - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"
+   - **Review gate**: do not mark `[REVIEWED]` if any crux `[F]` claim remains `?`
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
 7. **Extract** - Format claims as YAML
 8. **Register** - Add source and claims to database
@@ -144,7 +149,7 @@ For multi-source requests, produce:
 - Scope & Limitations
 
 **Stage 2 (Evaluative)**:
-- Key Factual Claims Verified (with Crux? column)
+- Key Factual Claims Verified (Claim ID + Crux? + Search Notes + status codes)
 - Disconfirming Evidence Search
 - Corrections & Updates (including capture failures)
 - Internal Tensions / Self-Contradictions
@@ -262,18 +267,25 @@ Use this structure for analysis documents:
 
 > **Requirement**: Must include >=1 **crux claim** (central to thesis), not just peripheral numerics.
 
-| Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Status |
-|---------------------|-------|-------------|--------|-----------------|--------|
-| [e.g., "China makes 50% of X"] | N | [assertion] | [verified value] | [URL/ref] | ok / x / ? |
-| [e.g., "Elite consensus on Y"] | **Y** | [assertion] | [verified or ?] | [URL/ref] | ok / x / ? |
+| Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status |
+|----------|---------------------|-------|-------------|--------|-----------------|-------------|--------|
+| [e.g., TECH-2026-001] | [e.g., "China makes 50% of X"] | N | [assertion] | [verified value] | [URL/ref] | [q1; q2; date] | ok / x / nf / blocked / ? |
+| [e.g., TECH-2026-002] | [e.g., "Elite consensus on Y"] | **Y** | [assertion] | [verified or ?] | [URL/ref or blank] | [queries tried + blockers] | ok / x / nf / blocked / ? |
 
 **Column guide**:
+- **Claim ID**: Claim ID from Key Claims / Claim Summary (required for crux rows)
 - **Claim**: Paraphrased factual claim from the source
 - **Crux?**: Is this claim central to the argument? Mark crux claims with **Y**
 - **Source Says**: What the source asserts
-- **Actual**: What verification found (or `?` if unverified)
-- **External Source**: URL or reference used for verification
-- **Status**: `ok` = verified, `x` = refuted, `?` = unverified
+- **Actual**: What verification found (or `?` if unresolved)
+- **External Source**: URL/reference used for verification (`ok`/`x` should include one)
+- **Search Notes**: Queries attempted, date/timebox notes, and blockers if unresolved
+- **Status**:
+  - `ok` = verified
+  - `x` = refuted
+  - `nf` = searched, not found
+  - `blocked` = access/capture blocked
+  - `?` = not yet attempted
 
 ### Disconfirming Evidence Search
 

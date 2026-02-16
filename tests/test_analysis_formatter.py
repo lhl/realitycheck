@@ -605,6 +605,48 @@ class TestRigorV1TableSnippets:
         assert "Impacted Claim IDs" in CORRECTIONS_UPDATES_TABLE
         assert "Action Taken" in CORRECTIONS_UPDATES_TABLE
 
+    def test_factual_claims_table_uses_v032_contract(self):
+        """Stage 2 factual verification snippet uses v0.3.2 column contract."""
+        from analysis_formatter import FULL_SECTIONS
+
+        section = FULL_SECTIONS["### Key Factual Claims Verified"]
+        assert "| Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status |" in section
+        assert "`ok` = verified" in section
+        assert "`x` = refuted" in section
+        assert "`nf` = searched, not found" in section
+        assert "`blocked` = access/capture blocked" in section
+        assert "`?` = not yet attempted" in section
+
+
+class TestStage2V032Formatting:
+    """Tests for v0.3.2 Stage 2 factual table insertion behavior."""
+
+    def test_inserted_stage2_table_has_claim_id_and_search_notes(self, tmp_path):
+        """Formatter inserts Stage 2 factual table with Claim ID and Search Notes columns."""
+        content = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+| **Analysis Depth** | full |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+Test thesis.
+"""
+        test_file = tmp_path / "test.md"
+        test_file.write_text(content)
+
+        formatted, _changes = format_file(test_file, profile="full")
+
+        assert "### Key Factual Claims Verified" in formatted
+        assert "| Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status |" in formatted
+        assert "`nf` = searched, not found" in formatted
+        assert "`blocked` = access/capture blocked" in formatted
+
 
 class TestCorrectionsUpdatesInsertion:
     """Tests for Corrections & Updates table insertion."""

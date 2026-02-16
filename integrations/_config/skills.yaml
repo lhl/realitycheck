@@ -36,6 +36,7 @@ skills:
       argument_hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
       allowed_tools:
         - "WebFetch"
+        - "WebSearch"
         - "Read"
         - "Write"
         - "Bash(uv run python scripts/db.py *)"

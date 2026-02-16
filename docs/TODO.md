@@ -82,7 +82,7 @@ Tracking future work items.
 - Update the Stage 2 "Key Factual Claims Verified" table contract (Claim ID + Search Notes + `nf/blocked/?`)
 - Add validator warnings/gates for reviewed/unverified and high-credence-unverified factual claims
 
-**Status**: Planning.
+**Status**: ✅ Implemented in framework repo (see implementation doc); release cut pending.
 
 ---
 

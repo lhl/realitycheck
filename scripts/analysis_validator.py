@@ -303,6 +303,285 @@ def validate_layer_values(content: str) -> list[str]:
     return warnings
 
 
+def _split_md_table_row(line: str) -> list[str]:
+    """Split a markdown table row into cells."""
+    if not line.strip().startswith("|"):
+        return []
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def _is_table_separator_row(cells: list[str]) -> bool:
+    """Check whether cells represent a markdown separator row."""
+    if not cells:
+        return False
+    for cell in cells:
+        stripped = cell.replace(":", "").replace("-", "").strip()
+        if stripped:
+            return False
+    return True
+
+
+def _extract_section_content(content: str, section_header: str) -> str:
+    """Extract a section body from a markdown document."""
+    section_pattern = re.compile(rf"^\s*{re.escape(section_header)}\s*$", re.IGNORECASE | re.MULTILINE)
+    section_match = section_pattern.search(content)
+    if not section_match:
+        return ""
+
+    start = section_match.end()
+    remainder = content[start:]
+    next_heading = re.search(r"^\s*#{2,6}\s+", remainder, re.MULTILINE)
+    if next_heading:
+        end = start + next_heading.start()
+    else:
+        end = len(content)
+    return content[start:end]
+
+
+def _parse_first_markdown_table(section_content: str) -> tuple[list[str], list[list[str]]]:
+    """Parse the first markdown table found inside a section body."""
+    lines = section_content.splitlines()
+    for index in range(len(lines) - 1):
+        header_cells = _split_md_table_row(lines[index])
+        if not header_cells:
+            continue
+
+        separator_cells = _split_md_table_row(lines[index + 1])
+        if not _is_table_separator_row(separator_cells):
+            continue
+
+        rows: list[list[str]] = []
+        row_index = index + 2
+        while row_index < len(lines):
+            row_cells = _split_md_table_row(lines[row_index])
+            if not row_cells:
+                break
+            if not _is_table_separator_row(row_cells):
+                rows.append(row_cells)
+            row_index += 1
+        return header_cells, rows
+
+    return [], []
+
+
+def _normalize_column_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name.strip().lower())
+
+
+def _find_column_index(column_map: dict[str, int], *candidates: str) -> int | None:
+    for candidate in candidates:
+        if candidate in column_map:
+            return column_map[candidate]
+    return None
+
+
+def _normalize_status(status: str) -> str:
+    cleaned = re.sub(r"[`*]", "", status).strip().lower()
+    return cleaned
+
+
+def _is_crux_value(value: str) -> bool:
+    cleaned = re.sub(r"[`*\s]", "", value).upper()
+    return cleaned == "Y"
+
+
+def _is_reviewed_analysis(content: str) -> bool:
+    """Detect whether an analysis is marked REVIEWED."""
+    reviewed_patterns = [
+        r"\|\s*\*\*Rigor Level\*\*\s*\|\s*\[?REVIEWED\]?\s*\|",
+        r"\*\*Rigor Level\*\*:\s*\[?REVIEWED\]?",
+        r"\[REVIEWED\]",
+    ]
+    return any(re.search(pattern, content, re.IGNORECASE) for pattern in reviewed_patterns)
+
+
+def _extract_stage2_factual_rows(content: str) -> tuple[list[dict[str, str]], list[str]]:
+    """Extract rows from the Stage 2 factual verification table."""
+    warnings: list[str] = []
+    section_content = _extract_section_content(content, "### Key Factual Claims Verified")
+    if not section_content:
+        return [], warnings
+
+    headers, rows = _parse_first_markdown_table(section_content)
+    if not headers:
+        return [], warnings
+
+    column_map = {_normalize_column_name(name): idx for idx, name in enumerate(headers)}
+
+    claim_id_idx = _find_column_index(column_map, "claim id", "id")
+    claim_idx = _find_column_index(column_map, "claim (paraphrased)", "claim")
+    crux_idx = _find_column_index(column_map, "crux?")
+    source_says_idx = _find_column_index(column_map, "source says")
+    actual_idx = _find_column_index(column_map, "actual")
+    external_source_idx = _find_column_index(column_map, "external source", "verification source")
+    search_notes_idx = _find_column_index(column_map, "search notes", "notes")
+    status_idx = _find_column_index(column_map, "status")
+
+    missing_required = []
+    if claim_id_idx is None:
+        missing_required.append("Claim ID")
+    if claim_idx is None:
+        missing_required.append("Claim (paraphrased)")
+    if crux_idx is None:
+        missing_required.append("Crux?")
+    if source_says_idx is None:
+        missing_required.append("Source Says")
+    if actual_idx is None:
+        missing_required.append("Actual")
+    if external_source_idx is None:
+        missing_required.append("External Source")
+    if search_notes_idx is None:
+        missing_required.append("Search Notes")
+    if status_idx is None:
+        missing_required.append("Status")
+
+    if missing_required:
+        warnings.append(
+            "Key Factual Claims Verified table is missing required columns for factual verification gating: "
+            + ", ".join(missing_required)
+        )
+
+    def cell(row_cells: list[str], index: int | None) -> str:
+        if index is None:
+            return ""
+        if index >= len(row_cells):
+            return ""
+        return row_cells[index].strip()
+
+    extracted_rows: list[dict[str, str]] = []
+    for row_cells in rows:
+        extracted_rows.append(
+            {
+                "claim_id": cell(row_cells, claim_id_idx),
+                "claim": cell(row_cells, claim_idx),
+                "crux": cell(row_cells, crux_idx),
+                "source_says": cell(row_cells, source_says_idx),
+                "actual": cell(row_cells, actual_idx),
+                "external_source": cell(row_cells, external_source_idx),
+                "search_notes": cell(row_cells, search_notes_idx),
+                "status": cell(row_cells, status_idx),
+            }
+        )
+
+    return extracted_rows, warnings
+
+
+def _extract_key_claim_rows(content: str) -> list[dict[str, str | float]]:
+    """Extract claim IDs, types, and credence values from Key Claims table."""
+    lines = content.splitlines()
+    header_index = None
+    for index, line in enumerate(lines):
+        if re.search(r"^\|\s*#\s*\|.*\|\s*Claim ID\s*\|", line, re.IGNORECASE):
+            header_index = index
+            break
+
+    if header_index is None or header_index + 2 >= len(lines):
+        return []
+
+    header_cells = _split_md_table_row(lines[header_index])
+    separator_cells = _split_md_table_row(lines[header_index + 1])
+    if not _is_table_separator_row(separator_cells):
+        return []
+
+    column_map = {_normalize_column_name(name): idx for idx, name in enumerate(header_cells)}
+    claim_id_idx = _find_column_index(column_map, "claim id")
+    claim_type_idx = _find_column_index(column_map, "type")
+    credence_idx = _find_column_index(column_map, "credence", "conf")
+
+    if claim_id_idx is None or claim_type_idx is None or credence_idx is None:
+        return []
+
+    claims: list[dict[str, str | float]] = []
+    for line in lines[header_index + 2:]:
+        if not line.strip().startswith("|"):
+            break
+        row_cells = _split_md_table_row(line)
+        if not row_cells or len(row_cells) <= max(claim_id_idx, claim_type_idx, credence_idx):
+            continue
+
+        claim_id = extract_claim_id(row_cells[claim_id_idx])
+        if not claim_id:
+            continue
+
+        claim_type = row_cells[claim_type_idx].strip()
+        try:
+            credence = float(row_cells[credence_idx].strip())
+        except ValueError:
+            continue
+
+        claims.append(
+            {
+                "claim_id": claim_id,
+                "claim_type": claim_type,
+                "credence": credence,
+            }
+        )
+
+    return claims
+
+
+def validate_factual_verification_rigor(content: str) -> list[str]:
+    """Validate Stage 2 factual verification rigor checks (v0.3.2)."""
+    warnings: list[str] = []
+    reviewed = _is_reviewed_analysis(content)
+
+    stage2_rows, stage2_warnings = _extract_stage2_factual_rows(content)
+    warnings.extend(stage2_warnings)
+
+    crux_rows = [row for row in stage2_rows if _is_crux_value(row.get("crux", ""))]
+
+    if reviewed and not crux_rows:
+        warnings.append(
+            "Analysis marked [REVIEWED] but Stage 2 does not identify any crux factual claim (Crux?=Y required)"
+        )
+
+    status_by_claim_id: dict[str, str] = {}
+    for row in stage2_rows:
+        claim_id = extract_claim_id(row.get("claim_id", ""))
+        if claim_id:
+            status_by_claim_id[claim_id] = _normalize_status(row.get("status", ""))
+
+    for row in crux_rows:
+        claim_id = extract_claim_id(row.get("claim_id", "")) or row.get("claim_id", "").strip() or "<unknown>"
+        status = _normalize_status(row.get("status", ""))
+        search_notes = row.get("search_notes", "").strip()
+        external_source = row.get("external_source", "").strip()
+
+        if not extract_claim_id(row.get("claim_id", "")):
+            warnings.append(
+                "Crux factual verification row is missing Claim ID (required for auditable gating)"
+            )
+
+        if reviewed and status == "?":
+            warnings.append(
+                f"Analysis marked [REVIEWED] but crux factual claim {claim_id} is not attempted (Status=?)"
+            )
+
+        if reviewed and status in {"nf", "blocked"} and not search_notes:
+            warnings.append(
+                f"Crux factual claim {claim_id} is unresolved but lacks Search Notes documenting the attempt"
+            )
+
+        if reviewed and status in {"ok", "x"} and not external_source:
+            warnings.append(
+                f"Crux factual claim {claim_id} marked verified/refuted but lacks an External Source citation"
+            )
+
+    key_claim_rows = _extract_key_claim_rows(content)
+    for claim in key_claim_rows:
+        claim_id = str(claim["claim_id"])
+        claim_type = str(claim["claim_type"]).strip()
+        credence = float(claim["credence"])
+        status = status_by_claim_id.get(claim_id, "")
+
+        if claim_type == "[F]" and credence >= 0.7 and status not in {"ok", "x"}:
+            warnings.append(
+                f"High-credence factual claim {claim_id} is not verified/refuted — add citation/verification or lower credence"
+            )
+
+    return warnings
+
+
 def validate_file(path: Path, profile: str | None = None, rigor: bool = False) -> ValidationResult:
     """Validate a single analysis file.
 
@@ -358,6 +637,7 @@ def validate_file(path: Path, profile: str | None = None, rigor: bool = False) -
         rigor_warnings.extend(validate_rigor_sections(content))
         rigor_warnings.extend(validate_rigor_columns(content))
         rigor_warnings.extend(validate_layer_values(content))
+        rigor_warnings.extend(validate_factual_verification_rigor(content))
 
         if rigor:
             # In rigor mode, rigor warnings become errors

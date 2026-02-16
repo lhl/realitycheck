@@ -689,3 +689,177 @@ claims:
         # Should be missing Credence in Analysis
         credence_errors = [e for e in result.errors if "Credence in Analysis" in e]
         assert len(credence_errors) >= 1
+
+
+def _build_stage2_table_v032(rows: str) -> str:
+    return f"""| Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status |
+|----------|---------------------|-------|-------------|--------|-----------------|-------------|--------|
+{rows}
+"""
+
+
+def _build_full_analysis_for_stage2_checks(
+    stage2_rows: str,
+    *,
+    key_claim_credence: str = "0.80",
+    key_claim_type: str = "[F]",
+    stage2_table_override: str | None = None,
+    rigor_level: str = "[REVIEWED]",
+) -> str:
+    stage2_table = stage2_table_override or _build_stage2_table_v032(stage2_rows)
+    return f"""# Source Analysis: Test
+
+> **Claim types**: `[F]` fact, `[T]` theory, `[H]` hypothesis, `[P]` prediction, `[A]` assumption, `[C]` counterfactual, `[S]` speculation, `[X]` contradiction
+> **Evidence**: **E1** systematic review/meta-analysis; **E2** peer-reviewed/official stats; **E3** expert consensus/preprint; **E4** credible journalism/industry; **E5** opinion/anecdote; **E6** unsupported/speculative
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+| **Rigor Level** | {rigor_level} |
+
+## Stage 1: Descriptive Analysis
+### Core Thesis
+Test.
+### Key Claims
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| 1 | Test claim | TECH-2026-001 | ASSERTED | N/A | who=all | most | {key_claim_type} | TECH | E6 | {key_claim_credence} | ? | N/A |
+### Argument Structure
+### Theoretical Lineage
+## Stage 2: Evaluative Analysis
+### Key Factual Claims Verified
+{stage2_table}
+### Disconfirming Evidence Search
+### Corrections & Updates
+### Internal Tensions
+### Persuasion Techniques
+### Unstated Assumptions
+## Stage 3: Dialectical Analysis
+### Steelmanned Argument
+### Strongest Counterarguments
+### Supporting Theories
+### Contradicting Theories
+### Claim Summary
+| ID | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |
+|----|------|--------|-------|-------|-------|------------|----------|----------|-------|
+| TECH-2026-001 | {key_claim_type} | TECH | ASSERTED | N/A | who=all | most | E6 | {key_claim_credence} | Test claim |
+### Claims to Register
+
+```yaml
+claims:
+  - id: "TECH-2026-001"
+    text: "Test claim"
+    type: "{key_claim_type}"
+    domain: "TECH"
+    evidence_level: "E6"
+    credence: {key_claim_credence}
+    source_ids: ["test-source"]
+```
+
+**Credence in Analysis**: 0.80
+"""
+
+
+class TestStage2VerificationRigor:
+    """Tests for v0.3.2 Stage 2 factual verification warnings and gates."""
+
+    def test_reviewed_crux_status_unknown_warns(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | ? |"
+        )
+        test_file = tmp_path / "reviewed-unknown.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("not attempted" in warning for warning in result.warnings)
+
+    def test_reviewed_missing_crux_row_warns(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | N | Source assertion | 2026 value | https://example.com/source | q1; q2 | ok |"
+        )
+        test_file = tmp_path / "reviewed-no-crux.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("does not identify any crux factual claim" in warning for warning in result.warnings)
+
+    def test_reviewed_crux_blocked_missing_notes_warns(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source |  | blocked |"
+        )
+        test_file = tmp_path / "reviewed-blocked-missing-notes.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("lacks Search Notes" in warning for warning in result.warnings)
+
+    def test_reviewed_crux_blocked_with_notes_passes_gate(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1='blocked'; q2='paywall' | blocked |"
+        )
+        test_file = tmp_path / "reviewed-blocked-with-notes.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert not any("lacks Search Notes" in warning for warning in result.warnings)
+
+    def test_reviewed_crux_ok_missing_external_source_warns(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | 2026 value |  | q1; q2 | ok |"
+        )
+        test_file = tmp_path / "reviewed-missing-external-source.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("lacks an External Source citation" in warning for warning in result.warnings)
+
+    def test_high_credence_unresolved_factual_claim_warns(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",
+            key_claim_credence="0.85",
+            key_claim_type="[F]",
+        )
+        test_file = tmp_path / "high-credence-unresolved.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("High-credence factual claim" in warning for warning in result.warnings)
+
+    def test_low_credence_unresolved_factual_claim_no_high_credence_warning(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",
+            key_claim_credence="0.50",
+            key_claim_type="[F]",
+        )
+        test_file = tmp_path / "low-credence-unresolved.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert not any("High-credence factual claim" in warning for warning in result.warnings)
+
+    def test_rigor_flag_escalates_reviewed_crux_warning_to_error(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | ? |"
+        )
+        test_file = tmp_path / "rigor-escalation.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full", rigor=True)
+        assert any("not attempted" in error for error in result.errors)
+
+    def test_legacy_stage2_table_warns_missing_required_columns(self, tmp_path):
+        legacy_table = """| Claim | Verification Source | Status | Notes | Crux? |
+|-------|---------------------|--------|-------|-------|
+| Test claim | https://example.com/source | ? | q1; q2 | Y |
+"""
+        content = _build_full_analysis_for_stage2_checks(
+            "| placeholder | row | N | n/a | n/a | n/a | n/a | ? |",
+            stage2_table_override=legacy_table,
+        )
+        test_file = tmp_path / "legacy-stage2-table.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("missing required columns for factual verification gating" in warning for warning in result.warnings)

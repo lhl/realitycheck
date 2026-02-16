@@ -16,6 +16,11 @@ The flagship Reality Check command for rigorous source analysis.
 3. **Metadata** - Extract title, author, date, type, generate source-id
 4. **Stage 1: Descriptive** - Neutral summary, key claims, argument structure
 5. **Stage 2: Evaluative** - Evidence quality, fact-checking, disconfirming evidence
+   - **DB-first for crux factuals**: run `rc-db search "<neutral keywords>"` before external search
+   - **Web discovery**: use your environment's web search capability (e.g., Claude `WebSearch`, Codex `web.run search_query`)
+   - **Minimum verification attempt**: for each crux `[F]` claim, run >=2 distinct queries and record attempts
+   - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"
+   - **Review gate**: do not mark `[REVIEWED]` if any crux `[F]` claim remains `?`
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
 7. **Extract** - Format claims as YAML
 8. **Register** - Add source and claims to database
@@ -78,7 +83,7 @@ For multi-source requests, produce:
 - Scope & Limitations
 
 **Stage 2 (Evaluative)**:
-- Key Factual Claims Verified (with Crux? column)
+- Key Factual Claims Verified (Claim ID + Crux? + Search Notes + status codes)
 - Disconfirming Evidence Search
 - Corrections & Updates (including capture failures)
 - Internal Tensions / Self-Contradictions
