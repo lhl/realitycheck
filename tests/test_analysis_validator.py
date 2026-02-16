@@ -857,6 +857,23 @@ class TestStage2VerificationRigor:
         result = validate_file(test_file, profile="full")
         assert any("High-credence factual claim" in warning for warning in result.warnings)
 
+    def test_high_credence_unresolved_factual_claim_warns_with_wrapped_key_claim_headers(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",
+            key_claim_credence="0.85",
+            key_claim_type="[F]",
+        )
+        content = content.replace(
+            "| # | Claim | Claim ID | Layer |",
+            "| # | Claim | **Claim ID** | Layer |",
+            1,
+        )
+        test_file = tmp_path / "high-credence-wrapped-key-claims-header.md"
+        test_file.write_text(content)
+
+        result = validate_file(test_file, profile="full")
+        assert any("High-credence factual claim" in warning for warning in result.warnings)
+
     def test_low_credence_unresolved_factual_claim_no_high_credence_warning(self, tmp_path):
         content = _build_full_analysis_for_stage2_checks(
             "| TECH-2026-001 | Test claim | Y | Source assertion | ? | https://example.com/source | q1; q2 | nf |",

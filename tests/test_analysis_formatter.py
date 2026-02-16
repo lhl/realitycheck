@@ -825,6 +825,30 @@ class TestRigorV1TableExtraction:
         assert claims[1]["id"] == "TECH-2026-002"
         assert claims[1]["credence"] == 0.90
 
+    def test_extract_claims_with_wrapped_headers_and_escaped_pipes(self, tmp_path):
+        """Extraction tolerates wrapped headers and unescapes \\| within cells."""
+        content = """# Source Analysis: Test
+
+## Stage 1: Descriptive Analysis
+
+### Key Claims
+
+| # | Claim | **Claim ID** | Layer | Actor | Scope | Quantifier | `Type` | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|--------------|-------|-------|-------|------------|--------|--------|------|----------|-----------|----------------|
+| 1 | Test claim \\| text | `TECH-2026-001` | ASSERTED | ICE | who=all | some | `[F]` | TECH | `E2` | 0.75 | ? | N/A |
+
+"""
+        from analysis_formatter import extract_claims_from_key_claims_table
+
+        claims = extract_claims_from_key_claims_table(content)
+
+        assert len(claims) == 1
+        assert claims[0]["id"] == "TECH-2026-001"
+        assert claims[0]["text"] == "Test claim | text"
+        assert claims[0]["type"] == "[F]"
+        assert claims[0]["domain"] == "TECH"
+        assert claims[0]["evidence_level"] == "E2"
+
 
 class TestLinkedClaimIds:
     """Tests for linked claim ID handling."""
@@ -852,10 +876,17 @@ class TestLinkedClaimIds:
         assert extract_claim_id("  TECH-2026-001  ") == "TECH-2026-001"
         assert extract_claim_id("  [TECH-2026-001](path)  ") == "TECH-2026-001"
 
+    def test_extract_claim_id_wrapped(self):
+        """Claim IDs wrapped in basic markdown are extracted."""
+        assert extract_claim_id("`TECH-2026-001`") == "TECH-2026-001"
+        assert extract_claim_id("**TECH-2026-001**") == "TECH-2026-001"
+        assert extract_claim_id("**[TECH-2026-001](path)**") == "TECH-2026-001"
+
     def test_is_linked_claim_id_true(self):
         """Linked format detected."""
         assert is_linked_claim_id("[TECH-2026-001](../reasoning/TECH-2026-001.md)") is True
         assert is_linked_claim_id("[LABOR-2025-042](path)") is True
+        assert is_linked_claim_id("**[LABOR-2025-042](path)**") is True
 
     def test_is_linked_claim_id_false(self):
         """Non-linked format not detected as linked."""
@@ -904,6 +935,63 @@ Test thesis.
         assert "[TECH-2026-001](../reasoning/TECH-2026-001.md)" in formatted
         # Should appear in Claim Summary section
         assert "### Claim Summary" in formatted
+
+    def test_format_file_does_not_duplicate_key_claims_table_with_wrapped_headers(self, tmp_path):
+        """Formatter detects an existing Key Claims table even when headers are wrapped."""
+        content = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+| **Analysis Depth** | full |
+
+## Stage 1: Descriptive Analysis
+
+### Core Thesis
+Test.
+
+### Key Claims
+
+| # | Claim | **Claim ID** | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
+|---|-------|--------------|------|--------|------|----------|-----------|----------------|
+| 1 | Test | TECH-2026-001 | [F] | TECH | E2 | 0.75 | ? | N/A |
+"""
+        test_file = tmp_path / "wrapped-header.md"
+        test_file.write_text(content)
+
+        _formatted, changes = format_file(test_file, profile="full")
+
+        assert "Added Key Claims table" not in changes
+
+    def test_format_file_does_not_duplicate_claim_summary_table_with_wrapped_headers(self, tmp_path):
+        """Formatter detects an existing Claim Summary table even when headers are wrapped."""
+        content = """# Source Analysis: Test
+
+## Metadata
+
+| Field | Value |
+|-------|-------|
+| **Source ID** | test-source |
+| **Analysis Depth** | quick |
+
+## Summary
+
+Test.
+
+### Claim Summary
+
+| **ID** | Type | Domain | Layer | Actor | Scope | Quantifier | Evidence | Credence | Claim |
+|--------|------|--------|-------|-------|-------|------------|----------|----------|-------|
+| TECH-2026-001 | [F] | TECH | ASSERTED | N/A | who=all | most | E2 | 0.75 | Test claim |
+"""
+        test_file = tmp_path / "wrapped-claim-summary.md"
+        test_file.write_text(content)
+
+        _formatted, changes = format_file(test_file, profile="quick")
+
+        assert "Added Claim Summary table" not in changes
 
     def test_formatter_mixed_linked_and_bare_ids(self, tmp_path):
         """Mixed linked and bare IDs are both handled correctly."""

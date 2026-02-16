@@ -192,6 +192,7 @@ If `REALITYCHECK_DATA` is not set, commands will only run when a default databas
 rc-db init                              # Initialize database tables
 rc-db init-project [--path DIR]         # Create new project structure
 rc-db stats                             # Show statistics
+rc-db backup [--output-dir DIR] [--prefix NAME] [--dry-run]  # Create timestamped .tar.gz backup
 rc-db reset                             # Reset database (destructive!)
 
 # Claim operations

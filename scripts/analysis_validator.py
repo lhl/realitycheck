@@ -115,7 +115,7 @@ FULL_PROFILE_REQUIRED = {
         # Key Claims table with required columns
         (r"\|\s*#\s*\|.*Claim.*\|.*Claim ID.*\|.*Type.*\|.*Domain.*\|", "Key Claims table"),
         # Claim Summary table
-        (r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", "Claim Summary table"),
+        (r"\|\s*[*_`]*ID[*_`]*\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", "Claim Summary table"),
     ],
     "elements": [
         # Legends (claim types + evidence)
@@ -136,7 +136,7 @@ RIGOR_V1_REQUIRED = {
     "rigor_columns": {
         # Check that claim tables have Layer/Actor/Scope/Quantifier columns
         "key_claims": (r"\|\s*#\s*\|.*\|.*Layer.*\|.*Actor.*\|.*Scope.*\|.*Quantifier.*\|", "Key Claims table rigor columns"),
-        "claim_summary": (r"\|\s*ID\s*\|.*\|.*Layer.*\|.*Actor.*\|.*Scope.*\|.*Quantifier.*\|", "Claim Summary table rigor columns"),
+        "claim_summary": (r"\|\s*[*_`]*ID[*_`]*\s*\|.*\|.*Layer.*\|.*Actor.*\|.*Scope.*\|.*Quantifier.*\|", "Claim Summary table rigor columns"),
     },
 }
 
@@ -150,7 +150,7 @@ QUICK_PROFILE_REQUIRED = {
     ],
     "tables": [
         # Claim Summary table
-        (r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", "Claim Summary table"),
+        (r"\|\s*[*_`]*ID[*_`]*\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", "Claim Summary table"),
     ],
     "elements": [
         # Legends (claim types + evidence)
@@ -270,7 +270,11 @@ def validate_rigor_columns(content: str) -> list[str]:
     # Only check if tables exist at all
     for table_name, (pattern, description) in RIGOR_V1_REQUIRED["rigor_columns"].items():
         # Check if the table exists with basic pattern first
-        basic_pattern = r"\|\s*#\s*\|" if table_name == "key_claims" else r"\|\s*ID\s*\|"
+        basic_pattern = (
+            r"\|\s*#\s*\|"
+            if table_name == "key_claims"
+            else r"\|\s*[*_`]*ID[*_`]*\s*\|"
+        )
         if re.search(basic_pattern, content, re.IGNORECASE):
             # Table exists, check for rigor columns
             if not re.search(pattern, content, re.IGNORECASE):
@@ -281,63 +285,96 @@ def validate_rigor_columns(content: str) -> list[str]:
 
 def validate_layer_values(content: str) -> list[str]:
     """Check that Layer column values are valid (ASSERTED/LAWFUL/PRACTICED/EFFECT)."""
-    warnings = []
-
-    # Find Layer values in tables
-    # Look for table rows that might have a Layer column
-    # We look for patterns like: | ... | SOMETHING | ... | where SOMETHING might be a layer value
-    layer_pattern = re.compile(
-        r"\|\s*Layer\s*\|",
-        re.IGNORECASE
-    )
-
-    if not layer_pattern.search(content):
-        # No Layer column found, skip validation
+    warnings: list[str] = []
+    if not re.search(r"\bLayer\b", content, re.IGNORECASE):
         return warnings
 
-    # Extract potential layer values from table rows
-    # Look for cells that contain values that look like they might be layer values
-    lines = content.split('\n')
-    in_table = False
-    layer_col_idx = None
+    def norm_header(value: str) -> str:
+        cleaned = _strip_simple_markdown_wrappers(value)
+        return re.sub(r"\s+", " ", cleaned.strip().lower())
 
-    for line in lines:
-        if not line.strip().startswith('|'):
-            in_table = False
-            layer_col_idx = None
+    lines = content.splitlines()
+    idx = 0
+    while idx < len(lines) - 1:
+        header_cells = _split_md_table_row(lines[idx])
+        if not header_cells:
+            idx += 1
             continue
 
-        cells = [c.strip() for c in line.split('|')]
-        if not cells:
+        sep_cells = _split_md_table_row(lines[idx + 1])
+        if not _is_table_separator_row(sep_cells):
+            idx += 1
             continue
 
-        # Check if this is a header row with Layer column
-        for idx, cell in enumerate(cells):
-            if cell.lower() == 'layer':
-                in_table = True
-                layer_col_idx = idx
+        layer_col_idx = None
+        for col_idx, cell in enumerate(header_cells):
+            if norm_header(cell) == "layer":
+                layer_col_idx = col_idx
                 break
 
-        # If we're in a table with a Layer column, check the value
-        if in_table and layer_col_idx is not None and layer_col_idx < len(cells):
-            cell_value = cells[layer_col_idx].strip()
-            # Skip header row and separator row
-            if cell_value.lower() == 'layer' or cell_value.startswith('-') or not cell_value:
+        if layer_col_idx is None:
+            idx += 1
+            continue
+
+        row_idx = idx + 2
+        while row_idx < len(lines):
+            row_cells = _split_md_table_row(lines[row_idx])
+            if not row_cells:
+                break
+            if _is_table_separator_row(row_cells):
+                row_idx += 1
                 continue
-            # Check if value is valid
-            if cell_value not in VALID_LAYER_VALUES and cell_value != 'N/A':
-                # Allow placeholder values in templates
-                if 'ASSERTED/LAWFUL/PRACTICED/EFFECT' not in cell_value:
-                    warnings.append(f"Invalid Layer value '{cell_value}' - must be ASSERTED/LAWFUL/PRACTICED/EFFECT")
+            if layer_col_idx >= len(row_cells):
+                row_idx += 1
+                continue
+
+            cell_value = _strip_simple_markdown_wrappers(row_cells[layer_col_idx].strip())
+            if not cell_value or norm_header(cell_value) == "layer":
+                row_idx += 1
+                continue
+            if cell_value.startswith("-"):
+                row_idx += 1
+                continue
+            if cell_value in VALID_LAYER_VALUES or cell_value == "N/A":
+                row_idx += 1
+                continue
+            # Allow placeholder values in templates
+            if "ASSERTED/LAWFUL/PRACTICED/EFFECT" not in cell_value:
+                warnings.append(
+                    f"Invalid Layer value '{cell_value}' - must be ASSERTED/LAWFUL/PRACTICED/EFFECT"
+                )
+            row_idx += 1
+
+        idx = row_idx
 
     return warnings
 
 
 def _split_md_table_row(line: str) -> list[str]:
     """Split a markdown table row into cells."""
-    if not line.strip().startswith("|"):
+    stripped = line.strip()
+    if not stripped.startswith("|"):
         return []
-    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+    # Split on unescaped pipes. Convert "\|" into a literal "|".
+    body = stripped[1:-1] if stripped.endswith("|") else stripped[1:]
+    cells: list[str] = []
+    current: list[str] = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\" and i + 1 < len(body) and body[i + 1] == "|":
+            current.append("|")
+            i += 2
+            continue
+        if ch == "|":
+            cells.append("".join(current).strip())
+            current = []
+            i += 1
+            continue
+        current.append(ch)
+        i += 1
+    cells.append("".join(current).strip())
+    return cells
 
 
 def _is_table_separator_row(cells: list[str]) -> bool:
@@ -395,7 +432,8 @@ def _parse_first_markdown_table(section_content: str) -> tuple[list[str], list[l
 
 
 def _normalize_column_name(name: str) -> str:
-    return re.sub(r"\s+", " ", name.strip().lower())
+    cleaned = _strip_simple_markdown_wrappers(name)
+    return re.sub(r"\s+", " ", cleaned.strip().lower())
 
 
 def _find_column_index(column_map: dict[str, int], *candidates: str) -> int | None:
@@ -513,26 +551,41 @@ def _extract_stage2_factual_rows(content: str) -> tuple[list[dict[str, str]], li
 def _extract_key_claim_rows(content: str) -> list[dict[str, str | float]]:
     """Extract claim IDs, types, and credence values from Key Claims table."""
     lines = content.splitlines()
-    header_index = None
-    for index, line in enumerate(lines):
-        if re.search(r"^\|\s*#\s*\|.*\|\s*Claim ID\s*\|", line, re.IGNORECASE):
-            header_index = index
-            break
+    header_index: int | None = None
+    claim_id_idx: int | None = None
+    claim_type_idx: int | None = None
+    credence_idx: int | None = None
 
-    if header_index is None or header_index + 2 >= len(lines):
-        return []
+    for index in range(len(lines) - 1):
+        header_cells = _split_md_table_row(lines[index])
+        if not header_cells:
+            continue
 
-    header_cells = _split_md_table_row(lines[header_index])
-    separator_cells = _split_md_table_row(lines[header_index + 1])
-    if not _is_table_separator_row(separator_cells):
-        return []
+        separator_cells = _split_md_table_row(lines[index + 1])
+        if not _is_table_separator_row(separator_cells):
+            continue
 
-    column_map = {_normalize_column_name(name): idx for idx, name in enumerate(header_cells)}
-    claim_id_idx = _find_column_index(column_map, "claim id")
-    claim_type_idx = _find_column_index(column_map, "type")
-    credence_idx = _find_column_index(column_map, "credence", "conf")
+        column_map = {_normalize_column_name(name): idx for idx, name in enumerate(header_cells)}
+        maybe_claim_id_idx = _find_column_index(column_map, "claim id")
+        maybe_claim_type_idx = _find_column_index(column_map, "type")
+        maybe_credence_idx = _find_column_index(column_map, "credence", "conf")
 
-    if claim_id_idx is None or claim_type_idx is None or credence_idx is None:
+        # Identify the Key Claims table by the presence of the columns this
+        # validator relies on for high-credence factual gating.
+        if (
+            maybe_claim_id_idx is None
+            or maybe_claim_type_idx is None
+            or maybe_credence_idx is None
+        ):
+            continue
+
+        header_index = index
+        claim_id_idx = maybe_claim_id_idx
+        claim_type_idx = maybe_claim_type_idx
+        credence_idx = maybe_credence_idx
+        break
+
+    if header_index is None or claim_id_idx is None or claim_type_idx is None or credence_idx is None:
         return []
 
     claims: list[dict[str, str | float]] = []
@@ -549,7 +602,8 @@ def _extract_key_claim_rows(content: str) -> list[dict[str, str | float]]:
 
         claim_type = row_cells[claim_type_idx].strip()
         try:
-            credence = float(row_cells[credence_idx].strip())
+            credence_text = _strip_simple_markdown_wrappers(row_cells[credence_idx].strip())
+            credence = float(credence_text)
         except ValueError:
             continue
 

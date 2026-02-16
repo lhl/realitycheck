@@ -11,9 +11,10 @@ from __future__ import annotations
 import json
 import os
 import sys
+import tarfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -1343,8 +1344,7 @@ def add_analysis_log(
 
     # Set created_at if not provided
     if not log.get("created_at"):
-        from datetime import datetime
-        log["created_at"] = datetime.utcnow().isoformat() + "Z"
+        log["created_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     # Backfill framework/methodology versions if missing (best-effort).
     if not log.get("framework_version"):
@@ -1369,6 +1369,49 @@ def _project_root_from_db_path(db_path: Path) -> Path:
     if resolved.parent.name == "data":
         return resolved.parent.parent
     return resolved.parent
+
+
+def create_db_backup_archive(
+    *,
+    db_path: Path,
+    output_dir: Path | None = None,
+    prefix: str = "realitycheck-db",
+    dry_run: bool = False,
+) -> Path:
+    """Create a timestamped tar.gz backup of the LanceDB directory.
+
+    The archive stores paths relative to the project root when possible:
+    - `data/<db_dirname>/...` when the DB is in a `data/` directory
+    - `<db_dirname>/...` otherwise
+    """
+    db_dir = db_path.expanduser().resolve()
+    if not db_dir.exists():
+        raise FileNotFoundError(f"Database path does not exist: {db_dir}")
+    if not db_dir.is_dir():
+        raise ValueError(f"Database path is not a directory: {db_dir}")
+
+    project_root = _project_root_from_db_path(db_dir)
+    out_dir = (output_dir or (project_root / "backups")).expanduser()
+    if not out_dir.is_absolute():
+        out_dir = (Path.cwd() / out_dir).resolve()
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%SZ")
+    archive_path = out_dir / f"{prefix}-{timestamp}.tar.gz"
+
+    if dry_run:
+        return archive_path
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    arcname = str(Path("data") / db_dir.name) if db_dir.parent.name == "data" else db_dir.name
+    config_path = project_root / ".realitycheck.yaml"
+
+    with tarfile.open(archive_path, "w:gz") as tar:
+        tar.add(db_dir, arcname=arcname)
+        if config_path.is_file():
+            tar.add(config_path, arcname=".realitycheck.yaml")
+
+    return archive_path
 
 
 def find_project_root(start_dir: Optional[Path] = None) -> Optional[Path]:
@@ -2655,6 +2698,24 @@ Examples:
     subparsers.add_parser("stats", help="Show database statistics")
     subparsers.add_parser("reset", help="Drop all tables and reinitialize")
     subparsers.add_parser("doctor", help="Detect project root and print DB setup guidance")
+    backup_parser = subparsers.add_parser(
+        "backup",
+        help="Create a timestamped backup archive of the LanceDB directory",
+    )
+    backup_parser.add_argument(
+        "--output-dir",
+        help="Directory to write backups (default: <project_root>/backups)",
+    )
+    backup_parser.add_argument(
+        "--prefix",
+        default="realitycheck-db",
+        help="Archive filename prefix (default: realitycheck-db)",
+    )
+    backup_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned backup path without writing",
+    )
     integrations_parser = subparsers.add_parser(
         "integrations",
         help="Sync Reality Check skills/plugins for installed integrations",
@@ -3297,6 +3358,25 @@ Examples:
         for table, count in stats.items():
             print(f"  {table}: {count} rows")
         sys.stdout.flush()
+
+    elif args.command == "backup":
+        output_dir = Path(args.output_dir).expanduser() if args.output_dir else None
+        try:
+            archive_path = create_db_backup_archive(
+                db_path=DB_PATH,
+                output_dir=output_dir,
+                prefix=args.prefix,
+                dry_run=args.dry_run,
+            )
+        except Exception as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(2)
+
+        if args.dry_run:
+            print(f"Would create backup: {archive_path}", flush=True)
+        else:
+            size = archive_path.stat().st_size if archive_path.exists() else 0
+            print(f"Backup created: {archive_path} ({size:,} bytes)", flush=True)
 
     elif args.command == "integrations":
         if args.integrations_command != "sync":

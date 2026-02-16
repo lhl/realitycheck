@@ -1,8 +1,10 @@
 # Plan: Verification Loop for Factual Claims (v0.3.2)
 
-**Status**: Spec Draft
+**Status**: Implemented (framework changes committed; release cut pending)
 **Created**: 2026-02-15
-**Version**: 0.3.2 (point release: methodology/template/config changes + small validator addition)
+**Last Updated**: 2026-02-16
+**Version**: 0.3.2 (methodology/template/config + validator/formatter hardening)
+**Implementation**: [IMPLEMENTATION-v0.3.2.md](IMPLEMENTATION-v0.3.2.md)
 
 ## Motivation
 
@@ -274,3 +276,11 @@ Add a validation check that prevents `[REVIEWED]` status when crux factual claim
 
 ### Fixed
 - Analyses could reach `[REVIEWED]` status with crux factual claims still `?` (no verification attempt recorded).
+
+## Post-Implementation Addenda (2026-02-16)
+
+The following follow-ups were included in the v0.3.2 implementation pass to reduce drift and improve end-user safety:
+
+- End-user integration update path: `scripts/integration_sync.py`, auto-sync on first `rc-*` run after version change, and manual `rc-db integrations sync`.
+- Markdown parsing hardening in formatter/validator to tolerate simple markdown wrappers and escaped pipes in tables (reduces false negatives and fail-open states).
+- New `rc-db backup` command to create timestamped `.tar.gz` snapshots of the LanceDB directory.

@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime, timezone
 from importlib import metadata
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
@@ -61,11 +61,24 @@ def _is_existing_path(path: Path) -> bool:
     return path.exists() or path.is_symlink()
 
 
+def _parts_contain_subpath(parts: tuple[str, ...], subpath: tuple[str, ...]) -> bool:
+    if len(parts) < len(subpath):
+        return False
+    max_start = len(parts) - len(subpath) + 1
+    return any(parts[idx:idx + len(subpath)] == subpath for idx in range(max_start))
+
+
+def _is_managed_target_path(path_text: str, subpath: tuple[str, ...]) -> bool:
+    normalized = _normalize_path_text(path_text)
+    parts = tuple(part for part in PurePosixPath(normalized).parts if part and part != ".")
+    return "realitycheck" in parts and _parts_contain_subpath(parts, subpath)
+
+
 def _is_managed_skill_symlink(path: Path, integration: str, skill_name: str) -> bool:
     if not path.is_symlink():
         return False
 
-    expected_fragment = f"integrations/{integration}/skills/{skill_name}"
+    expected_subpath = ("integrations", integration, "skills", skill_name)
     candidates: list[str] = []
 
     try:
@@ -78,14 +91,14 @@ def _is_managed_skill_symlink(path: Path, integration: str, skill_name: str) -> 
     except Exception:
         pass
 
-    return any(expected_fragment in text and "realitycheck" in text for text in candidates)
+    return any(_is_managed_target_path(text, expected_subpath) for text in candidates)
 
 
 def _is_managed_plugin_symlink(path: Path) -> bool:
     if not path.is_symlink():
         return False
 
-    expected_fragment = "integrations/claude/plugin"
+    expected_subpath = ("integrations", "claude", "plugin")
     candidates: list[str] = []
 
     try:
@@ -98,7 +111,7 @@ def _is_managed_plugin_symlink(path: Path) -> bool:
     except Exception:
         pass
 
-    return any(expected_fragment in text and "realitycheck" in text for text in candidates)
+    return any(_is_managed_target_path(text, expected_subpath) for text in candidates)
 
 
 def _relink(dst: Path, src: Path, dry_run: bool) -> None:
@@ -163,7 +176,7 @@ def sync_integrations(
         )
         manage_this_integration = install_all or has_existing_install
 
-        if not manage_this_integration and not install_missing:
+        if not manage_this_integration:
             continue
 
         for src_skill in src_skills:
@@ -186,7 +199,7 @@ def sync_integrations(
                 result["skipped"] += 1
                 continue
 
-            should_install = install_all or install_missing or has_existing_install
+            should_install = install_all or (install_missing and has_existing_install)
             if should_install:
                 _relink(dst_skill, src_resolved, dry_run=dry_run)
                 result["installed"] += 1
@@ -203,7 +216,12 @@ def sync_integrations(
     ) if (framework_root / "integrations" / "claude" / "skills").is_dir() else False
 
     if src_plugin.is_dir():
-        should_manage_plugin = install_all or dst_plugin.is_symlink() or dst_plugin.exists() or claude_skill_installed
+        plugin_present = dst_plugin.is_symlink() or dst_plugin.exists()
+        should_manage_plugin = (
+            install_all
+            or plugin_present
+            or (install_missing and claude_skill_installed)
+        )
         if should_manage_plugin:
             src_plugin_resolved = src_plugin.resolve()
             if dst_plugin.is_symlink():
@@ -218,7 +236,7 @@ def sync_integrations(
                     result["skipped"] += 1
             elif dst_plugin.exists():
                 result["skipped"] += 1
-            elif install_all or install_missing or claude_skill_installed:
+            elif install_all or (install_missing and claude_skill_installed):
                 _relink(dst_plugin, src_plugin_resolved, dry_run=dry_run)
                 result["installed"] += 1
 

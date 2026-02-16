@@ -2025,6 +2025,54 @@ class TestIntegrationsCLI:
         assert "Integration sync summary" in combined
 
 
+class TestBackupCLI:
+    """Tests for backup CLI command."""
+
+    def test_backup_creates_archive(self, temp_db_path: Path, tmp_path: Path):
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        env["REALITYCHECK_AUTO_SYNC"] = "0"
+
+        init_db = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(init_db)
+
+        backup_dir = tmp_path / "backups"
+        result = subprocess.run(
+            [
+                "uv",
+                "run",
+                "python",
+                "scripts/db.py",
+                "backup",
+                "--output-dir",
+                str(backup_dir),
+                "--prefix",
+                "testdb",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(result)
+
+        archives = list(backup_dir.glob("testdb-*.tar.gz"))
+        assert len(archives) == 1
+
+        import tarfile
+
+        with tarfile.open(archives[0], "r:gz") as tar:
+            names = tar.getnames()
+
+        assert any(name == "test.lance" or name.startswith("test.lance/") for name in names)
+
+
 class TestInitProjectCLI:
     """Tests for init-project CLI command."""
 

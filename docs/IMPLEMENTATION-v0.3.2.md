@@ -47,6 +47,7 @@ Primary outcomes for v0.3.2:
 - `make assemble-skills` and `make check-skills` pass cleanly.
 - Manual regression on the Amodei/H200 case confirms v0.3.2 gates catch unresolved crux factual claims in legacy outputs.
 - End-user upgrades reliably refresh Reality Check-managed integrations (skills/plugin) via auto-sync and manual sync command.
+- New `rc-db backup` command creates timestamped `.tar.gz` snapshots of the LanceDB directory (tested).
 
 ## Affected Files (Expected)
 
@@ -241,3 +242,23 @@ No open decisions remain for coder handoff. Resolved scope choices for v0.3.2:
   - `uv run pytest tests/test_integration_sync.py tests/test_db.py::TestIntegrationsCLI tests/test_installation.py` → `30 passed`
   - `uv run pytest` → `435 passed, 2 warnings` (existing `datetime.utcnow()` deprecation warning path)
   - `uv build --wheel` and wheel inspection confirm integration assets are included.
+
+### 2026-02-16: parser hardening + explicit backups
+
+- Hardened formatter/validator markdown table parsing to reduce false negatives and fail-open states:
+  - tolerate simple markdown wrappers in headers/cells (e.g. `**Claim ID**`, ``Type``)
+  - handle escaped pipes (`\\|`) in markdown tables without breaking column alignment
+  - formatter: robust detection of existing Key Claims + Claim Summary tables to prevent duplicate insertion
+  - validator: robust detection of Key Claims table for high-credence factual verification warnings
+- Tightened integration sync safety semantics:
+  - default sync updates existing Reality Check-managed symlinks only (no new installs)
+  - `--install-missing` installs missing skills/plugins only when the integration is already present
+  - managed-symlink detection uses path parts (avoids substring false positives)
+- Added explicit backup workflow for safety:
+  - new CLI: `rc-db backup [--output-dir DIR] [--prefix NAME] [--dry-run]`
+  - `create_db_backup_archive()` creates a timestamped `.tar.gz` snapshot of the LanceDB directory
+- Cleanup: analysis-log `created_at` now uses timezone-aware UTC (removes `datetime.utcnow()` deprecation warnings).
+- Validation evidence:
+  - `uv run pytest tests/test_analysis_formatter.py tests/test_analysis_validator.py -q` → `110 passed`
+  - `uv run pytest tests/test_db.py::TestBackupCLI -q` → `1 passed`
+  - `uv run pytest -q` → `449 passed`

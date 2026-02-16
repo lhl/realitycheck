@@ -26,6 +26,33 @@ import yaml
 # Regex patterns for claim ID extraction
 BARE_CLAIM_ID_RE = re.compile(r"^([A-Z]+-\d{4}-\d{3})$")
 LINKED_CLAIM_ID_RE = re.compile(r"^\[([A-Z]+-\d{4}-\d{3})\]\(([^)]+)\)$")
+MARKDOWN_WRAPPER_MARKERS = ("**", "__", "`", "*", "_")
+
+
+def _strip_simple_markdown_wrappers(text: str) -> str:
+    """Strip simple markdown wrappers around a whole cell value.
+
+    Handles common wrappers used in markdown tables such as:
+    - `TECH-2026-001`
+    - **TECH-2026-001**
+    - *TECH-2026-001*
+    """
+    cleaned = text.strip()
+    while cleaned:
+        updated = False
+        for marker in MARKDOWN_WRAPPER_MARKERS:
+            marker_len = len(marker)
+            if (
+                cleaned.startswith(marker)
+                and cleaned.endswith(marker)
+                and len(cleaned) > marker_len * 2
+            ):
+                cleaned = cleaned[marker_len:-marker_len].strip()
+                updated = True
+                break
+        if not updated:
+            break
+    return cleaned
 
 
 def extract_claim_id(cell_text: str) -> str | None:
@@ -37,7 +64,7 @@ def extract_claim_id(cell_text: str) -> str | None:
 
     Returns None if the text doesn't match either format.
     """
-    text = cell_text.strip()
+    text = _strip_simple_markdown_wrappers(cell_text)
 
     # Try bare ID first
     bare_match = BARE_CLAIM_ID_RE.match(text)
@@ -54,7 +81,54 @@ def extract_claim_id(cell_text: str) -> str | None:
 
 def is_linked_claim_id(cell_text: str) -> bool:
     """Check if cell text is a markdown-linked claim ID."""
-    return bool(LINKED_CLAIM_ID_RE.match(cell_text.strip()))
+    return bool(LINKED_CLAIM_ID_RE.match(_strip_simple_markdown_wrappers(cell_text)))
+
+
+def _normalize_column_name(name: str) -> str:
+    cleaned = _strip_simple_markdown_wrappers(name)
+    return re.sub(r"\s+", " ", cleaned.strip().lower())
+
+
+def has_key_claims_table(content: str) -> bool:
+    """Return True if content contains a Key Claims table with required columns."""
+    required = {"#", "claim", "claim id", "type", "domain"}
+    lines = content.splitlines()
+    for idx in range(len(lines) - 1):
+        header_cells = _split_md_table_row(lines[idx])
+        if not header_cells:
+            continue
+        sep_cells = _split_md_table_row(lines[idx + 1])
+        if not _is_table_separator_row(sep_cells):
+            continue
+        normalized = {_normalize_column_name(cell) for cell in header_cells}
+        if required.issubset(normalized):
+            return True
+    return False
+
+
+def has_claim_summary_table(content: str) -> bool:
+    """Return True if content contains a Claim Summary table with required columns."""
+    required_base = {"id", "type", "domain"}
+    evidence_candidates = {"evidence", "evid"}
+    credence_candidates = {"credence", "conf"}
+
+    lines = content.splitlines()
+    for idx in range(len(lines) - 1):
+        header_cells = _split_md_table_row(lines[idx])
+        if not header_cells:
+            continue
+        sep_cells = _split_md_table_row(lines[idx + 1])
+        if not _is_table_separator_row(sep_cells):
+            continue
+        normalized = {_normalize_column_name(cell) for cell in header_cells}
+        if not required_base.issubset(normalized):
+            continue
+        if not (normalized & evidence_candidates):
+            continue
+        if not (normalized & credence_candidates):
+            continue
+        return True
+    return False
 
 
 # =============================================================================
@@ -297,10 +371,29 @@ def normalize_legacy_headings(content: str) -> tuple[str, list[str]]:
 
 def _split_md_table_row(line: str) -> list[str]:
     """Split a Markdown table row into cells (best-effort)."""
-    if not line.strip().startswith("|"):
+    stripped = line.strip()
+    if not stripped.startswith("|"):
         return []
-    parts = [p.strip() for p in line.strip().strip("|").split("|")]
-    return parts
+    # Split on unescaped pipes. Convert "\|" into a literal "|".
+    body = stripped[1:-1] if stripped.endswith("|") else stripped[1:]
+    cells: list[str] = []
+    current: list[str] = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\" and i + 1 < len(body) and body[i + 1] == "|":
+            current.append("|")
+            i += 2
+            continue
+        if ch == "|":
+            cells.append("".join(current).strip())
+            current = []
+            i += 1
+            continue
+        current.append(ch)
+        i += 1
+    cells.append("".join(current).strip())
+    return cells
 
 
 def _is_table_separator_row(cells: list[str]) -> bool:
@@ -322,7 +415,11 @@ def extract_claims_from_key_claims_table(content: str) -> list[dict]:
     lines = content.splitlines()
     header_idx = None
     for i, line in enumerate(lines):
-        if re.search(r"^\|\s*#\s*\|.*\|\s*Claim\s+ID\s*\|", line, re.IGNORECASE):
+        header_cells = _split_md_table_row(line)
+        if not header_cells:
+            continue
+        normalized = {_normalize_column_name(cell) for cell in header_cells}
+        if {"#", "claim", "claim id"}.issubset(normalized):
             header_idx = i
             break
     if header_idx is None or header_idx + 2 >= len(lines):
@@ -333,10 +430,7 @@ def extract_claims_from_key_claims_table(content: str) -> list[dict]:
     if not _is_table_separator_row(sep_cells):
         return []
 
-    def norm(name: str) -> str:
-        return re.sub(r"\s+", " ", name.strip().lower())
-
-    col_map = {norm(name): idx for idx, name in enumerate(header_cells)}
+    col_map = {_normalize_column_name(name): idx for idx, name in enumerate(header_cells)}
     claim_idx = col_map.get("claim")
     claim_id_idx = col_map.get("claim id")
     type_idx = col_map.get("type")
@@ -362,9 +456,13 @@ def extract_claims_from_key_claims_table(content: str) -> list[dict]:
             continue
 
         claim_text = row_cells[claim_idx].strip()
-        claim_type = row_cells[type_idx].strip()
-        domain = row_cells[domain_idx].strip()
-        evidence_level = row_cells[evidence_idx].strip() if evidence_idx is not None else ""
+        claim_type = _strip_simple_markdown_wrappers(row_cells[type_idx].strip())
+        domain = _strip_simple_markdown_wrappers(row_cells[domain_idx].strip())
+        evidence_level = (
+            _strip_simple_markdown_wrappers(row_cells[evidence_idx].strip())
+            if evidence_idx is not None
+            else ""
+        )
         credence_raw = row_cells[credence_idx].strip() if credence_idx is not None else ""
 
         credence: float | None = None
@@ -565,7 +663,7 @@ def insert_key_claims_table(content: str) -> str:
 
     Uses rigor-v1 format with Layer/Actor/Scope/Quantifier columns.
     """
-    if re.search(r"\|\s*#\s*\|.*Claim.*\|.*Claim ID.*\|.*Type.*\|.*Domain.*\|", content, re.IGNORECASE):
+    if has_key_claims_table(content):
         return content
 
     # Insert after ### Key Claims header, or create the section
@@ -652,7 +750,7 @@ def insert_corrections_updates_table(content: str) -> str:
 
 def insert_claim_summary_table(content: str, claims: list[dict] | None = None) -> str:
     """Insert Claim Summary table if missing."""
-    if re.search(r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", content, re.IGNORECASE):
+    if has_claim_summary_table(content):
         return content
 
     # Insert after ### Claim Summary header, or create the section
@@ -796,7 +894,7 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
 
     # Step 3: Insert Key Claims table (full profile only)
     if actual_profile == "full":
-        if not re.search(r"\|\s*#\s*\|.*Claim.*\|.*Claim ID.*\|", content, re.IGNORECASE):
+        if not has_key_claims_table(content):
             content = insert_key_claims_table(content)
             changes.append("Added Key Claims table")
 
@@ -808,7 +906,7 @@ def format_file(path: Path, profile: str | None = None, dry_run: bool = False) -
                 changes.append("Added Corrections & Updates section")
 
     # Step 4: Insert Claim Summary table
-    if not re.search(r"\|\s*ID\s*\|.*Type.*\|.*Domain.*\|.*Evidence.*\|.*Credence.*\|", content, re.IGNORECASE):
+    if not has_claim_summary_table(content):
         content = insert_claim_summary_table(content, derived_claims)
         changes.append("Added Claim Summary table")
 

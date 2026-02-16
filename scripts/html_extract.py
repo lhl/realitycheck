@@ -21,6 +21,11 @@ from typing import Any, Optional
 
 from bs4 import BeautifulSoup
 
+if __package__:
+    from .integration_sync import maybe_auto_sync_integrations
+else:
+    from integration_sync import maybe_auto_sync_integrations
+
 
 _META_TITLE_SELECTORS: tuple[tuple[str, str], ...] = (
     ("property", "og:title"),
@@ -262,10 +267,6 @@ def main() -> int:
 
     args = parser.parse_args()
     try:
-        if __package__:
-            from .integration_sync import maybe_auto_sync_integrations
-        else:
-            from integration_sync import maybe_auto_sync_integrations
         maybe_auto_sync_integrations()
     except Exception:
         pass

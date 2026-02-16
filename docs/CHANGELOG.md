@@ -22,6 +22,7 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
   - reviewed crux `ok`/`x` requires External Source
   - reviewed analysis must include at least one crux factual row
   - high-credence unresolved factual warnings (`credence >= 0.7`)
+- New `rc-db backup` command to create timestamped `.tar.gz` snapshots of the LanceDB directory (optional `--output-dir`, `--prefix`).
 - New integration sync module (`scripts/integration_sync.py`) and manual CLI:
   - `rc-db integrations sync --install-missing|--all|--dry-run`
   - first-run auto-sync after framework version change (opt-out: `REALITYCHECK_AUTO_SYNC=0`)
@@ -33,13 +34,18 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
   - treat unknown/blank reviewed crux status values as unresolved (fail closed)
   - tolerate simple markdown wrappers around claim IDs
   - restrict `[REVIEWED]` detection to metadata rigor-level field
+- Formatter/validator markdown table parsing hardening:
+  - tolerate simple markdown wrappers in table headers/cells (e.g. `**Claim ID**`, ``Type``)
+  - handle escaped pipes (`\\|`) in markdown tables without breaking column alignment
+  - reduce false negatives and prevent duplicate table insertion in formatter
+- Analysis log timestamps now use timezone-aware UTC (removes `datetime.utcnow()` deprecation warnings).
 - Packaging now includes integration assets in wheel installs via hatch `force-include` (`integrations/**`, `methodology/workflows/check-core.md`, `README.md`) so pip/uv users can sync integrations without a source checkout.
 
 ### Tested
 
-- `uv run pytest tests/test_analysis_formatter.py tests/test_analysis_validator.py` → pass
-- `uv run pytest tests/test_integration_sync.py tests/test_db.py::TestIntegrationsCLI tests/test_installation.py` → pass
-- `uv run pytest` → `435 passed, 2 warnings`
+- `uv run pytest tests/test_analysis_formatter.py tests/test_analysis_validator.py -q` → `110 passed`
+- `uv run pytest tests/test_db.py::TestBackupCLI -q` → `1 passed`
+- `uv run pytest -q` → `449 passed`
 
 ## 0.3.1 - 2026-02-11
 
