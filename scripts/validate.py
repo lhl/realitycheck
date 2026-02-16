@@ -50,6 +50,7 @@ if __package__:
         list_reasoning_trails,
         get_stats,
     )
+    from .integration_sync import maybe_auto_sync_integrations
 else:
     from db import (
         VALID_DOMAINS,
@@ -73,6 +74,7 @@ else:
         list_reasoning_trails,
         get_stats,
     )
+    from integration_sync import maybe_auto_sync_integrations
 
 
 # Validation patterns
@@ -759,6 +761,10 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+    try:
+        maybe_auto_sync_integrations()
+    except Exception:
+        pass
 
     if args.mode == "db":
         findings = validate_db(args.db_path, strict=args.strict)

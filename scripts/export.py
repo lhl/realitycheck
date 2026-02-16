@@ -42,6 +42,7 @@ if __package__:
         get_chain,
         get_stats,
     )
+    from .integration_sync import maybe_auto_sync_integrations
 else:
     from db import (
         find_project_root,
@@ -62,6 +63,7 @@ else:
         get_chain,
         get_stats,
     )
+    from integration_sync import maybe_auto_sync_integrations
 
 
 # =============================================================================
@@ -1003,6 +1005,10 @@ def main():
     subparsers.add_parser("stats", help="Show database statistics")
 
     args = parser.parse_args()
+    try:
+        maybe_auto_sync_integrations()
+    except Exception:
+        pass
 
     selected_db_path = args.db_path
     if args.command and selected_db_path is None and not os.getenv("REALITYCHECK_DATA"):

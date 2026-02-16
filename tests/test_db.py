@@ -9,6 +9,7 @@ Tests cover:
 """
 
 import pytest
+import os
 from pathlib import Path
 import subprocess
 from datetime import date, timedelta
@@ -1992,6 +1993,36 @@ class TestDoctorCLI:
         combined = (result.stdout or "") + (result.stderr or "")
         assert str(project_path) in combined
         assert "REALITYCHECK_DATA" in combined
+
+
+class TestIntegrationsCLI:
+    """Tests for integrations CLI subcommand."""
+
+    def test_integrations_sync_dry_run_without_data_env(self, tmp_path: Path):
+        """`rc-db integrations sync` should not require REALITYCHECK_DATA."""
+        env = os.environ.copy()
+        env["HOME"] = str(tmp_path / "home")
+        env["REALITYCHECK_AUTO_SYNC"] = "0"
+
+        result = subprocess.run(
+            [
+                "uv",
+                "run",
+                "python",
+                "scripts/db.py",
+                "integrations",
+                "sync",
+                "--dry-run",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent,
+            env=env,
+        )
+
+        assert_cli_success(result)
+        combined = (result.stdout or "") + (result.stderr or "")
+        assert "Integration sync summary" in combined
 
 
 class TestInitProjectCLI:

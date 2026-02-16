@@ -386,6 +386,28 @@ Using the realitycheck-check skill, analyze https://example.com/article
 
 See `integrations/opencode/README.md` for full documentation.
 
+## Keeping Integrations Updated
+
+When you upgrade Reality Check, CLI/package code updates immediately, but integrations (skills/plugin symlinks) may still point at older locations.
+
+Reality Check now performs a best-effort auto-sync on first `rc-*` command run after a version change. It updates existing Reality Check-managed installs without overwriting unrelated user files.
+
+Manual sync command:
+
+```bash
+# Update integrations that already have at least one Reality Check install
+rc-db integrations sync --install-missing
+
+# Install/update all supported integrations (skills + Claude plugin)
+rc-db integrations sync --all
+```
+
+Disable auto-sync:
+
+```bash
+export REALITYCHECK_AUTO_SYNC=0
+```
+
 ## Taxonomy Reference
 
 ### Claim Types

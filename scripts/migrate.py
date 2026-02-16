@@ -36,6 +36,7 @@ if __package__:
         init_tables,
         get_stats,
     )
+    from .integration_sync import maybe_auto_sync_integrations
 else:
     from db import (
         DOMAIN_MIGRATION,
@@ -50,6 +51,7 @@ else:
         init_tables,
         get_stats,
     )
+    from integration_sync import maybe_auto_sync_integrations
 
 
 def load_yaml(path: Path) -> dict:
@@ -485,6 +487,10 @@ def main():
     )
 
     args = parser.parse_args()
+    try:
+        maybe_auto_sync_integrations()
+    except Exception:
+        pass
 
     if not args.source_repo.exists():
         print(f"Error: Source repo not found: {args.source_repo}", file=sys.stderr)

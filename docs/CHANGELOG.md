@@ -6,7 +6,40 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
-- (Add changes here; move them into a versioned section when releasing.)
+### 0.3.2
+
+**Verification Loop + Upgrade Sync Hardening** — closes factual-verification gaps and ensures end users pick up refreshed integrations after upgrading.
+
+### Added
+
+- Stage 2 factual verification contract update across templates/formatter/workflow docs:
+  - `Claim ID | Claim (paraphrased) | Crux? | Source Says | Actual | External Source | Search Notes | Status`
+  - status semantics: `ok`, `x`, `nf`, `blocked`, `?`
+- Claude `check` integration enables `WebSearch`; shared skill text adds tool-agnostic DB-first + web discovery verification loop.
+- New validator gating for factual verification rigor (`analysis_validator.py`):
+  - reviewed crux `Status=?` gate
+  - reviewed crux unresolved (`nf`/`blocked`) requires Search Notes
+  - reviewed crux `ok`/`x` requires External Source
+  - reviewed analysis must include at least one crux factual row
+  - high-credence unresolved factual warnings (`credence >= 0.7`)
+- New integration sync module (`scripts/integration_sync.py`) and manual CLI:
+  - `rc-db integrations sync --install-missing|--all|--dry-run`
+  - first-run auto-sync after framework version change (opt-out: `REALITYCHECK_AUTO_SYNC=0`)
+
+### Changed
+
+- Validator hardening after review:
+  - normalize factual type parsing (`F`, `[f]`, markdown-wrapped variants)
+  - treat unknown/blank reviewed crux status values as unresolved (fail closed)
+  - tolerate simple markdown wrappers around claim IDs
+  - restrict `[REVIEWED]` detection to metadata rigor-level field
+- Packaging now includes integration assets in wheel installs via hatch `force-include` (`integrations/**`, `methodology/workflows/check-core.md`, `README.md`) so pip/uv users can sync integrations without a source checkout.
+
+### Tested
+
+- `uv run pytest tests/test_analysis_formatter.py tests/test_analysis_validator.py` → pass
+- `uv run pytest tests/test_integration_sync.py tests/test_db.py::TestIntegrationsCLI tests/test_installation.py` → pass
+- `uv run pytest` → `435 passed, 2 warnings`
 
 ## 0.3.1 - 2026-02-11
 

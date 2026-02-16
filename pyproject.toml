@@ -63,6 +63,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["scripts"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"integrations" = "integrations"
+"methodology/workflows/check-core.md" = "methodology/workflows/check-core.md"
+"README.md" = "README.md"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

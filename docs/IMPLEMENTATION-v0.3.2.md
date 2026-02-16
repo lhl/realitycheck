@@ -3,7 +3,7 @@
 **Status**: Implemented (ready for reviewer pass)
 **Plan**: [PLAN-v0.3.2.md](PLAN-v0.3.2.md)
 **Started**: 2026-02-15
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-02-16
 
 ## Summary
 
@@ -46,6 +46,7 @@ Primary outcomes for v0.3.2:
 - Targeted tests pass for new validator behavior.
 - `make assemble-skills` and `make check-skills` pass cleanly.
 - Manual regression on the Amodei/H200 case confirms v0.3.2 gates catch unresolved crux factual claims in legacy outputs.
+- End-user upgrades reliably refresh Reality Check-managed integrations (skills/plugin) via auto-sync and manual sync command.
 
 ## Affected Files (Expected)
 
@@ -220,3 +221,23 @@ No open decisions remain for coder handoff. Resolved scope choices for v0.3.2:
 - Manual regression evidence (Amodei/H200 case):
   - `uv run python scripts/analysis_validator.py /home/lhl/github/lhl/realitycheck-data/analysis/sources/aakashgupta-2026-amodei-hawkish-china-thread.md --profile full --rigor`
   - Result intentionally fails legacy analysis with v0.3.2 gates (`Claim ID`/`Search Notes` missing and high-credence unresolved factual warning), confirming the new contract is actively enforced.
+
+### 2026-02-16: post-review hardening + end-user upgrade sync
+
+- Addressed reviewer hardening gaps in `scripts/analysis_validator.py` and tests:
+  - normalized factual claim type handling (`F`, `[F]`, markdown-wrapped variants) for high-credence unresolved warning
+  - fail-closed behavior for unknown/blank reviewed crux `Status` values (with explicit warning)
+  - claim ID extraction now tolerates simple markdown wrappers
+  - narrowed `[REVIEWED]` detection to metadata rigor-level field
+- Added end-user integration update path for pre-release v0.3.2:
+  - new `scripts/integration_sync.py` module for safe, best-effort sync of Reality Check-managed skill/plugin symlinks
+  - auto-sync hook on first `rc-*` run after version change (configurable via `REALITYCHECK_AUTO_SYNC=0`)
+  - manual command: `rc-db integrations sync [--install-missing|--all|--dry-run]`
+  - packaging updated so wheel installs include integration assets (`integrations/**`, `methodology/workflows/check-core.md`, `README.md`)
+- Documentation updates:
+  - README section: "Keeping Integrations Updated"
+  - changelog notes added under Unreleased/v0.3.2 scope
+- Validation evidence for this follow-up:
+  - `uv run pytest tests/test_integration_sync.py tests/test_db.py::TestIntegrationsCLI tests/test_installation.py` → `30 passed`
+  - `uv run pytest` → `435 passed, 2 warnings` (existing `datetime.utcnow()` deprecation warning path)
+  - `uv build --wheel` and wheel inspection confirm integration assets are included.

@@ -22,6 +22,7 @@ import pyarrow as pa
 
 if __package__:
     from .analysis_log_writer import upsert_analysis_log_section
+    from .integration_sync import maybe_auto_sync_integrations, sync_integrations
     from .usage_capture import (
         UsageTotals,
         estimate_cost_usd,
@@ -38,6 +39,7 @@ if __package__:
     )
 else:
     from analysis_log_writer import upsert_analysis_log_section
+    from integration_sync import maybe_auto_sync_integrations, sync_integrations
     from usage_capture import (
         UsageTotals,
         estimate_cost_usd,
@@ -2653,6 +2655,30 @@ Examples:
     subparsers.add_parser("stats", help="Show database statistics")
     subparsers.add_parser("reset", help="Drop all tables and reinitialize")
     subparsers.add_parser("doctor", help="Detect project root and print DB setup guidance")
+    integrations_parser = subparsers.add_parser(
+        "integrations",
+        help="Sync Reality Check skills/plugins for installed integrations",
+    )
+    integrations_subparsers = integrations_parser.add_subparsers(dest="integrations_command")
+    integrations_sync_parser = integrations_subparsers.add_parser(
+        "sync",
+        help="Sync installed integrations to the current framework version",
+    )
+    integrations_sync_parser.add_argument(
+        "--install-missing",
+        action="store_true",
+        help="Install missing skills for integrations that already have at least one Reality Check skill installed",
+    )
+    integrations_sync_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Install Reality Check skills/plugins for all supported integrations",
+    )
+    integrations_sync_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show planned changes without writing",
+    )
 
     repair_parser = subparsers.add_parser(
         "repair",
@@ -3162,6 +3188,10 @@ Examples:
     # Parse and execute
     # -------------------------------------------------------------------------
     args = parser.parse_args()
+    try:
+        maybe_auto_sync_integrations()
+    except Exception:
+        pass
 
     def is_framework_repo() -> bool:
         """Check if we're in the realitycheck framework repo (not a data repo)."""
@@ -3188,7 +3218,7 @@ Examples:
         if not command:
             return
 
-        if command == "doctor":
+        if command in {"doctor", "integrations"}:
             return
 
         if os.getenv("REALITYCHECK_DATA"):
@@ -3267,6 +3297,21 @@ Examples:
         for table, count in stats.items():
             print(f"  {table}: {count} rows")
         sys.stdout.flush()
+
+    elif args.command == "integrations":
+        if args.integrations_command != "sync":
+            integrations_parser.print_help()
+            sys.exit(2)
+
+        summary = sync_integrations(
+            install_missing=args.install_missing,
+            install_all=args.all,
+            dry_run=args.dry_run,
+            quiet=False,
+        )
+
+        if summary["errors"]:
+            sys.exit(1)
 
     elif args.command == "reset":
         db = get_db()

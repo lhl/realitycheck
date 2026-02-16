@@ -261,6 +261,14 @@ def main() -> int:
     parser.add_argument("--max-chars", type=int, default=0, help="Truncate extracted text to N chars (0 = no limit)")
 
     args = parser.parse_args()
+    try:
+        if __package__:
+            from .integration_sync import maybe_auto_sync_integrations
+        else:
+            from integration_sync import maybe_auto_sync_integrations
+        maybe_auto_sync_integrations()
+    except Exception:
+        pass
 
     try:
         html = _read_input(args.input)
@@ -289,4 +297,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

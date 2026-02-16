@@ -29,6 +29,7 @@ if __package__:
         get_chain,
         EMBEDDING_MODEL,
     )
+    from .integration_sync import maybe_auto_sync_integrations
 else:
     from db import (
         get_db,
@@ -42,6 +43,7 @@ else:
         get_chain,
         EMBEDDING_MODEL,
     )
+    from integration_sync import maybe_auto_sync_integrations
 
 
 def check_embeddings(db_path: Optional[Path] = None) -> dict:
@@ -294,6 +296,10 @@ def main():
     regen_parser.add_argument("--batch-size", type=int, default=32)
 
     args = parser.parse_args()
+    try:
+        maybe_auto_sync_integrations()
+    except Exception:
+        pass
 
     if args.command:
         db_path = getattr(args, "db_path", None)
