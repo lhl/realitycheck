@@ -530,6 +530,34 @@ uv run pytest -v
 uv run pytest --cov=scripts --cov-report=term-missing
 ```
 
+## Development Stats Report
+
+Generate `docs/STATUS-dev-stats.md` (per-tag development statistics) with:
+
+```bash
+python scripts/release_stats_rollup.py \
+  --repo-root . \
+  --with-scc \
+  --with-test-composition \
+  --output-json /tmp/realitycheck-release-stats.json \
+  --output-markdown docs/STATUS-dev-stats.md
+```
+
+This report includes:
+- Release snapshot deltas vs prior release
+- Velocity/cadence tables
+- Cache-aware token and cost estimates for Codex + Claude
+- Test composition and documentation churn
+
+You can override pricing assumptions (including cached-token rates) with:
+- `--price-gpt5-input-per-1m`
+- `--price-gpt5-cached-input-per-1m`
+- `--price-gpt5-output-per-1m`
+- `--price-opus4-input-per-1m`
+- `--price-opus4-cache-write-per-1m`
+- `--price-opus4-cache-read-per-1m`
+- `--price-opus4-output-per-1m`
+
 See [CLAUDE.md](CLAUDE.md) for development workflow and contribution guidelines.
 
 ## Documentation
