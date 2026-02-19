@@ -6,7 +6,7 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
-### 0.3.2
+## 0.3.2 - 2026-02-19
 
 **Verification Loop + Upgrade Sync Hardening** — closes factual-verification gaps and ensures end users pick up refreshed integrations after upgrading.
 
@@ -45,7 +45,7 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - `uv run pytest tests/test_analysis_formatter.py tests/test_analysis_validator.py -q` → `110 passed`
 - `uv run pytest tests/test_db.py::TestBackupCLI -q` → `1 passed`
-- `uv run pytest -q` → `449 passed`
+- `uv run pytest -q` → `454 passed`
 
 ## 0.3.1 - 2026-02-11
 

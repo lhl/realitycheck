@@ -20,7 +20,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.3.1** - Analysis Rigor & Inbox Workflow: Layer/Actor/Scope/Quantifier columns, `--rigor` flag, filing workflow; 412 tests.
+**v0.3.2** - Verification Loop + Upgrade Sync Hardening: factual verification gates, `rc-db backup`, integration auto-sync; 454 tests.
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
 ## Prerequisites
@@ -471,7 +471,7 @@ realitycheck/                 # Framework repo (this)
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md
 │   └── templates/
-├── tests/                    # pytest suite (412 tests)
+├── tests/                    # pytest suite (454 tests)
 └── docs/                     # Documentation
 
 my-research/                  # Your data repo (separate)
@@ -584,9 +584,9 @@ Also see `CITATION.cff` for machine-readable citation metadata.
   author  = {Lin, Leonard},
   title   = {Reality Check},
   year    = {2026},
-  version = {0.3.1},
+  version = {0.3.2},
   url     = {https://github.com/lhl/realitycheck},
-  note    = {Accessed: 2026-02-11}
+  note    = {Accessed: 2026-02-19}
 }
 ```
 <!-- END REALITYCHECK_BIBTEX -->
