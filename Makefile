@@ -54,8 +54,8 @@ check-skills:
 # Skills Installation
 # =============================================================================
 
-# Install all
-install-skills-all: install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
+# Install all (assemble first to ensure generated files match current version)
+install-skills-all: assemble-skills install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
 	@echo ""
 	@echo "All skills installed. Restart your tools to use them."
 
