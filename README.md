@@ -20,7 +20,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 
 ## Status
 
-**v0.3.2** - Verification Loop + Upgrade Sync Hardening: factual verification gates, `rc-db backup`, integration auto-sync; 454 tests.
+**v0.3.3** - Verification Loop + Upgrade Sync Hardening: factual verification gates, `rc-db backup`, integration auto-sync; 454 tests.
 [![PyPI version](https://badge.fury.io/py/realitycheck.svg)](https://pypi.org/project/realitycheck/)
 
 ## Prerequisites
@@ -584,9 +584,9 @@ Also see `CITATION.cff` for machine-readable citation metadata.
   author  = {Lin, Leonard},
   title   = {Reality Check},
   year    = {2026},
-  version = {0.3.2},
+  version = {0.3.3},
   url     = {https://github.com/lhl/realitycheck},
-  note    = {Accessed: 2026-02-19}
+  note    = {Accessed: 2026-02-20}
 }
 ```
 <!-- END REALITYCHECK_BIBTEX -->

@@ -6,6 +6,19 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
+## 0.3.3 - 2026-02-20
+
+**Build fix** — plugin.json version was not synced during v0.3.2 release; install-skills-all now auto-assembles to prevent future mismatches.
+
+### Fixed
+
+- Sync plugin.json version 0.3.1 → 0.3.2 (missed during v0.3.2 release)
+- `install-skills-all` Make target now depends on `assemble-skills` so installing always regenerates from templates first
+
+### Changed
+
+- Added `make assemble-skills` step to DEPLOY.md release checklist
+
 ## 0.3.2 - 2026-02-19
 
 **Verification Loop + Upgrade Sync Hardening** — closes factual-verification gaps and ensures end users pick up refreshed integrations after upgrading.
