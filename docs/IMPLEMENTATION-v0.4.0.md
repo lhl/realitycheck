@@ -1,6 +1,6 @@
 # Implementation: Analysis Linking + Backfill Tooling (v0.4.0)
 
-**Status**: Planned (spec + plan ready for review)
+**Status**: Spec Locked (Phase 0 complete; ready for Phase 1)
 **Plan**: [PLAN-v0.4.0.md](PLAN-v0.4.0.md)
 **Started**: 2026-02-21
 **Last Updated**: 2026-02-22
@@ -67,6 +67,8 @@ docs/
 scripts/
   NEW    link.py (or linker.py)
 
+UPDATE pyproject.toml                    # add `rc-link` entry point
+
 tests/
   NEW    test_link.py (or test_linker.py)
 
@@ -79,32 +81,23 @@ scripts/export.py (optional stretch)
   UPDATE evidence export rendering
 ```
 
-## Locked Decisions
+## Locked Decisions (all locked 2026-02-22)
 
-- **No DB/schema changes in v0.4.0** (locked 2026-02-22): `rc-link` is markdown-only and can run without opening a DB.
-
-## Open Decisions (remaining)
-
-- **Link style** inside syntheses:
-  - Option A: section-relative (`../sources/<id>.md`) (preferred for “within analysis/” navigation)
-  - Option B: repo-relative (`analysis/sources/<id>.md`) (preferred for “paste into README-style indexes”)
-- **Artifact discovery**:
-  - v0.4.0 baseline: link targets that are already referenced in-doc + synthesis→analysis links
-  - stretch: heuristic discovery of likely captures for a given source-id (must be conservative / report ambiguities)
-- **Validator posture**:
-  - likely: no gating; optional WARN-only checks later if needed
-- **`rc-link scan` output format**:
-  - v0.4.0 baseline: human-readable INFO/WARN text (validator-style)
-  - stretch: `--format json` for automation
+- **Link style**: section-relative (`../sources/<id>.md`) inside `analysis/`; repo-relative reserved for README-style indexes.
+- **Artifact discovery**: in-doc only for v0.4.0 (upgrade existing mentioned paths to links); heuristic discovery is a stretch goal.
+- **Validator posture**: no new validator WARN/ERROR gates; `rc-link scan` is the completeness check.
+- **`rc-link scan` output format**: human-readable INFO/WARN text (validator-style); no structured output in v0.4.0.
+- **Export rendering**: optional stretch, independent of `rc-link`.
+- **DB/schema**: no DB/schema changes; `rc-link` is markdown-only and can run without opening a DB.
 
 ## Punchlist
 
 ### Phase 0: Spec Lock
 
-- [ ] Lock decisions in `docs/PLAN-v0.4.0.md` (link style, artifact discovery posture, validator posture, scan format, DB/schema posture).
-- [ ] Catalog “known input patterns” from a real data repo for synthesis parsing (and add to plan).
-- [ ] Confirm `rc-link` CLI naming and scope (`scan|apply`, flags).
-- [ ] Decide whether export rendering improvements are in-scope for v0.4.0 (independent of `rc-link`).
+- [x] Lock decisions in `docs/PLAN-v0.4.0.md` (link style, artifact discovery posture, validator posture, scan format, DB/schema posture). ✓ 2026-02-22
+- [x] Catalog “known input patterns” from a real data repo for synthesis parsing (and add to plan). ✓ 2026-02-22
+- [x] Confirm `rc-link` CLI naming and scope (`scan|apply`, flags). ✓ 2026-02-22
+- [x] Decide whether export rendering improvements are in-scope for v0.4.0 (independent of `rc-link`). ✓ optional stretch, locked 2026-02-22
 
 ### Phase 1: Tests First
 
@@ -171,6 +164,9 @@ Next: circulate docs for review before any code changes.
   - known synthesis input patterns and scan output format expectations
   - additional test cases (malformed input, already-linked, dry-run, minimal diffs, symlink safety)
 
-### 2026-02-22: Spec lock (partial)
+### 2026-02-22: Phase 0 complete (all decisions locked)
 
-- Locked decision: v0.4.0 remains markdown-only (no DB/schema changes).
+- Locked all 6 decisions: link style (section-relative), artifact discovery (in-doc only), validator posture (no new gates), scan output (INFO/WARN text), export rendering (optional stretch), DB/schema (markdown-only).
+- Added `pyproject.toml` to affected files (for `rc-link` entry point).
+- Removed "Open Questions" sections from both plan and implementation docs — all answers are now in the locked decisions block.
+- Phase 0 punchlist complete. Ready for Phase 1 (tests first).

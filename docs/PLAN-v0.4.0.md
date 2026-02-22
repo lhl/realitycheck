@@ -1,6 +1,6 @@
 # Plan: Analysis Linking + Backfill Tooling (v0.4.0)
 
-**Status**: Draft (review requested)
+**Status**: Spec Locked (Phase 0 complete)
 **Created**: 2026-02-21
 **Last Updated**: 2026-02-22
 **Version**: 0.4.0 (proposed)
@@ -70,16 +70,16 @@ We already have substantial corpora (`analysis/`, `reference/`, exported `analys
 - DB schema changes (v0.4.0 focuses on markdown navigation and can run without opening a DB).
 - Enforcing strict “link completeness” gates in validators (warnings may be acceptable, hard errors are out of scope for v0.4.0).
 
-## Decisions to Lock (Phase 0)
+## Locked Decisions (Phase 0)
 
-These should be resolved during “Spec Lock” before implementation.
+All decisions locked as of 2026-02-22.
 
-1. **Canonical link style inside `analysis/`**: prefer section-relative links (e.g., in `analysis/syntheses/*.md`, link to `../sources/<source-id>.md`).
-2. **Artifact matching posture**: v0.4.0 baseline is “in-doc only” (upgrade existing mentioned paths to links); heuristic discovery is a stretch goal.
-3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check.
-4. **`rc-link scan` output format**: default human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0.
-5. **Export rendering improvements**: optional stretch, independent of `rc-link`.
-6. **DB/schema posture**: **LOCKED (2026-02-22)** — no DB/schema changes in v0.4.0; `rc-link` must be markdown-only and runnable without opening a DB.
+1. **Canonical link style inside `analysis/`**: section-relative links (e.g., `../sources/<source-id>.md`). **LOCKED (2026-02-22)**
+2. **Artifact matching posture**: “in-doc only” (upgrade existing mentioned paths to links); heuristic discovery is a stretch goal. **LOCKED (2026-02-22)**
+3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check. **LOCKED (2026-02-22)**
+4. **`rc-link scan` output format**: human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0. **LOCKED (2026-02-22)**
+5. **Export rendering improvements**: optional stretch, independent of `rc-link`. **LOCKED (2026-02-22)**
+6. **DB/schema posture**: no DB/schema changes in v0.4.0; `rc-link` must be markdown-only and runnable without opening a DB. **LOCKED (2026-02-22)**
 
 ### DB/schema changes: tradeoffs (separate milestone)
 
@@ -226,6 +226,8 @@ docs/
 scripts/
   NEW  link.py (or linker.py)              # `rc-link` implementation
 
+UPDATE pyproject.toml                       # add `rc-link` entry point
+
 tests/
   NEW  test_link.py (or test_linker.py)    # unit + fixture-based tests
 
@@ -270,8 +272,3 @@ scripts/export.py (optional stretch)
   - analyses link to existing reference artifacts without breaking,
   - GitHub browsing works (no absolute filesystem paths).
 
-## Open Questions (remaining)
-
-1. **Canonical link style**: do we prefer section-relative links (`../sources/...`) inside `analysis/syntheses/*.md`, and reserve repo-relative links for README-style indexes?
-2. **Artifact matching**: should v0.4.0 stay “in-doc only” (recommended), with heuristic discovery deferred as a stretch?
-3. **Validator posture**: do we keep validator changes out of scope (recommended), with `rc-link scan` as the check?
