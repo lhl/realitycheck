@@ -3,7 +3,7 @@
 **Status**: Planned (spec + plan ready for review)
 **Plan**: [PLAN-v0.4.0.md](PLAN-v0.4.0.md)
 **Started**: 2026-02-21
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-22
 
 ## Summary
 
@@ -47,7 +47,7 @@ Primary outcomes intended for v0.4.0:
   - upgrades existing `reference/...` path mentions to markdown links **only when the target exists**
   - (optional flag) links claim IDs to `analysis/reasoning/<claim-id>.md` when present
 - Template updates land:
-  - synthesis template includes a canonical `## Source Analyses` section in its minimal snippet
+  - synthesis template explicitly requires a canonical `## Source Analyses` section (and includes it in the minimal snippet)
   - source analysis templates include optional metadata slots for internal captures/transcripts (blank by default)
 - Targeted tests pass:
   - new linker tests
@@ -89,14 +89,21 @@ scripts/export.py (optional stretch)
   - stretch: heuristic discovery of likely captures for a given source-id (must be conservative / report ambiguities)
 - **Validator posture**:
   - likely: no gating; optional WARN-only checks later if needed
+- **DB/schema integration**:
+  - v0.4.0 baseline: markdown-only `rc-link` (no DB/schema changes)
+  - stretch: structured artifact fields (separate milestone)
+- **`rc-link scan` output format**:
+  - v0.4.0 baseline: human-readable INFO/WARN text (validator-style)
+  - stretch: `--format json` for automation
 
 ## Punchlist
 
 ### Phase 0: Spec Lock
 
-- [ ] Confirm Linking Contract v1 (required sections + link styles).
+- [ ] Lock decisions in `docs/PLAN-v0.4.0.md` (link style, artifact discovery posture, validator posture, scan format, DB/schema posture).
+- [ ] Catalog “known input patterns” from a real data repo for synthesis parsing (and add to plan).
 - [ ] Confirm `rc-link` CLI naming and scope (`scan|apply`, flags).
-- [ ] Decide whether export rendering improvements are in-scope for v0.4.0.
+- [ ] Decide whether export rendering improvements are in-scope for v0.4.0 (independent of `rc-link`).
 
 ### Phase 1: Tests First
 
@@ -105,19 +112,27 @@ scripts/export.py (optional stretch)
 - [ ] Add idempotency tests (apply twice → no diff).
 - [ ] Add tests for “non-existent target → no change”.
 - [ ] Add tests for ambiguity reporting (no silent choice).
+- [ ] Add tests for malformed/unrecognized inputs (skip + report; no crash).
+- [ ] Add tests for already-linked content (no duplicates; add only missing).
+- [ ] Add tests for `--dry-run` (zero modifications).
+- [ ] Add tests for minimal diffs (preserve unrelated content/whitespace).
+- [ ] Add path traversal / symlink safety tests (never link outside `--project-root`).
 
 ### Phase 2: Implement `rc-link`
 
-- [ ] Implement `scan` report (structured output; human-readable summary).
+- [ ] Implement `scan` report (human-readable INFO/WARN text + summary).
 - [ ] Implement `apply` with minimal diffs and conservative rules.
 - [ ] Add `--dry-run` and `--only`/`--include` style filtering.
 - [ ] Add entry point so users can run `rc-link ...` (packaging / CLI wiring).
+- [ ] Ensure relative links are computed from the edited file’s directory (normalized to POSIX slashes).
 
 ### Phase 3: Template Updates + Regeneration
 
 - [ ] Update `integrations/_templates/skills/synthesize.md.j2` to include `## Source Analyses`.
 - [ ] Update analysis templates to include optional capture/transcript slots.
 - [ ] Regenerate skills (`make assemble-skills`) and verify no drift.
+
+Note: Phase 2 and Phase 3 are independent and can be parallelized across agents once Phase 0 is locked.
 
 ### Phase 4 (Optional): Export Rendering Improvements
 
@@ -147,3 +162,10 @@ scripts/export.py (optional stretch)
 
 Next: circulate docs for review before any code changes.
 
+### 2026-02-22: Planner review incorporated (docs updates)
+
+- Updated `docs/PLAN-v0.4.0.md` and this tracker to clarify:
+  - synthesis template requirements vs snippet example
+  - `rc-link` scope boundaries vs optional `rc-export` rendering improvements
+  - known synthesis input patterns and scan output format expectations
+  - additional test cases (malformed input, already-linked, dry-run, minimal diffs, symlink safety)

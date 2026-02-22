@@ -2,7 +2,7 @@
 
 **Status**: Draft (review requested)
 **Created**: 2026-02-21
-**Last Updated**: 2026-02-21
+**Last Updated**: 2026-02-22
 **Version**: 0.4.0 (proposed)
 **Implementation**: [IMPLEMENTATION-v0.4.0.md](IMPLEMENTATION-v0.4.0.md)
 **Research / State Snapshot**: [ANALYSIS-linking.md](ANALYSIS-linking.md)
@@ -58,12 +58,45 @@ We already have substantial corpora (`analysis/`, `reference/`, exported `analys
 3. **Make new outputs link-ready by default** by updating templates so syntheses and analyses include the right sections/fields (even if blank).
 4. **Enable practical backfill** so existing KBs can become navigable without manual editing.
 
+## Versioning / Sequencing Note
+
+- This plan assumes “analysis linking + backfill tooling” is released as **v0.4.0** because it introduces a new CLI and updates multiple templates/workflows.
+- “Pip-friendly skill/plugin installation” remains tracked separately in `docs/TODO.md` and can ship independently (e.g., as a v0.3.x patch/minor within the 0.x line).
+
 ## Non-goals
 
 - Building a full static-site generator (Quartz/MkDocs/etc.) as part of v0.4.0.
 - Capturing new artifacts from the web (this plan focuses on linking **existing** local artifacts).
-- DB schema changes.
+- DB schema changes (v0.4.0 focuses on markdown navigation and can run without opening a DB).
 - Enforcing strict “link completeness” gates in validators (warnings may be acceptable, hard errors are out of scope for v0.4.0).
+
+## Decisions to Lock (Phase 0)
+
+These should be resolved during “Spec Lock” before implementation.
+
+1. **Canonical link style inside `analysis/`**: prefer section-relative links (e.g., in `analysis/syntheses/*.md`, link to `../sources/<source-id>.md`).
+2. **Artifact matching posture**: v0.4.0 baseline is “in-doc only” (upgrade existing mentioned paths to links); heuristic discovery is a stretch goal.
+3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check.
+4. **`rc-link scan` output format**: default human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0.
+5. **Export rendering improvements**: optional stretch, independent of `rc-link`.
+
+### DB/schema changes: tradeoffs (separate milestone)
+
+This plan’s default posture is **no DB/schema changes** in v0.4.0. If we reconsider that, the tradeoffs are:
+
+**Pros of adding structured DB fields/tables for artifacts/locators**:
+
+- Enables exports to render artifact links without parsing strings.
+- Supports stronger validation and coverage metrics (e.g., “% of high-credence claims with primary artifacts + locators”).
+- Makes it easier to build UI/static-site layers off canonical structured data.
+
+**Cons**:
+
+- Requires schema migration + backfill (risk of incorrect auto-population).
+- Forces design decisions about “multiple artifacts per source” and artifact identity/fingerprints.
+- Couples `rc-link` (markdown navigation) to DB availability and correctness; harder to run “on any folder of exported markdown.”
+
+Recommendation for v0.4.0: keep `rc-link` markdown-only, and treat any structured artifact schema as a follow-on milestone once the linking contract is stable.
 
 ## Proposed Design
 
@@ -116,36 +149,60 @@ rc-link apply --project-root /path/to/data-repo [--dry-run] [--only ...]
 - **Idempotent**: repeated `apply` runs should converge to zero diffs.
 - **Minimal diffs**: insert missing sections/links; do not rewrite prose.
 - **Offline**: no network.
+- **Rooted**: never read/write outside `--project-root` (don’t follow symlinks that escape root).
 
 **`scan` output**:
 
-- syntheses missing `Source Analyses` section or missing per-source links
-- analyses referencing `reference/...` paths that exist but are not linked
-- analyses containing claim IDs with reasoning docs available but not linked
-- ambiguities (multiple candidate artifacts; conflicting patterns)
+- Default: line-oriented text similar to `rc-validate`, using `INFO`/`WARN` prefixes and file paths.
+- Reports:
+  - syntheses missing `## Source Analyses` section or missing per-source links
+  - syntheses that mention source IDs but have no resolvable existing `analysis/sources/<source-id>.md`
+  - analyses referencing `reference/...` paths that exist but are not linked
+  - analyses containing claim IDs with reasoning docs available but not linked
+  - malformed / unrecognized patterns (graceful skip + WARN)
+  - ambiguities (conflicting patterns; duplicate IDs; invalid IDs)
+
+**Known input patterns to handle (data-repo syntheses)**:
+
+These are observed in real syntheses and should be supported in v0.4.0:
+
+1. Blockquote metadata line: `> **Source IDs**: `...`` with comma-separated, backticked IDs.
+2. A “Primary Sources” table with a `Source ID` column containing backticked IDs.
+3. Existing source-analysis links/lists that should be treated as already satisfied (and should not be duplicated).
 
 **`apply` behaviors (initial v0.4.0 scope)**:
 
 1. **Synthesis link insertion**:
-   - Parse source IDs from common patterns (e.g., `> **Source IDs**: ...`, “Primary Sources” tables).
-   - Add/refresh `## Source Analyses` with `../sources/<source-id>.md` links **when those files exist**.
+   - Parse source IDs from known patterns (see above).
+   - If a synthesis already contains some source-analysis links, add only the missing ones (no duplicates).
+   - Add (or fill) a `## Source Analyses` section with `../sources/<source-id>.md` links **when those files exist**.
+   - If no source IDs are found, do not modify the file (report via `scan`).
 
 2. **Path-to-link upgrades**:
    - Convert existing plain-text or code-span `reference/...` paths into markdown links when the target exists.
    - Convert existing plain-text `analysis/sources/...` mentions into markdown links when the target exists.
+   - Do not “discover” new capture paths by scanning `reference/` in v0.4.0 baseline.
 
 3. **Claim ID linking (optional flag)**:
    - When `analysis/reasoning/<claim-id>.md` exists, link claim IDs in `analysis/sources/*.md` tables.
+
+**Relative path computation**:
+
+- v0.4.0 can assume the conventional data-repo layout (`analysis/syntheses/`, `analysis/sources/`, `analysis/reasoning/`, `reference/`).
+- Links inserted by `rc-link` should be computed relative to the file being edited, using filesystem path math (e.g., `os.path.relpath`) and normalized to POSIX-style slashes.
+- If a computed link would escape `--project-root`, do not insert it (report via `scan`).
 
 ### C) Template updates (make “correct linking” the default skeleton)
 
 Update templates so “the right place to put links” is always present:
 
 - `integrations/_templates/skills/synthesize.md.j2`:
-  - add explicit `## Source Analyses` section to the minimal snippet
-  - make the “Source analysis links” requirement more explicit and easier to satisfy
+  - make `## Source Analyses` a required, explicit output section (not only a snippet example)
+  - keep a minimal snippet, but also add a clear instruction in the output contract / required elements list
+  - ensure the minimal snippet matches the contract (i.e., it shows a `## Source Analyses` section, not only an in-metadata bullet)
 - `integrations/_templates/analysis/source-analysis-full.md.j2` and `source-analysis-quick.md.j2`:
   - add optional rows/fields for `Captured Artifact` / `Transcript` (left blank if unknown)
+  - place the new rows immediately after `URL` in the Metadata table
 
 ### D) Export improvements (optional stretch)
 
@@ -154,6 +211,8 @@ Improve `rc-export md evidence-by-claim` and `evidence-by-source` rendering:
 - If an evidence `location` contains `artifact=<repo-relative-path>`, render `artifact` as a markdown link (relative to the exported evidence doc).
 
 This should not change DB values; it’s purely presentation.
+
+Note: This is independent of `rc-link` (which is markdown-only). It can be implemented in parallel or deferred.
 
 ## Affected Files (planned)
 
@@ -186,10 +245,14 @@ scripts/export.py (optional stretch)
    - Adds `## Source Analyses` when missing.
    - Links only existing `analysis/sources/<id>.md` files.
    - Idempotent: second run yields no changes.
+   - Handles malformed/unrecognized inputs gracefully (no change + report).
+   - Does not duplicate existing links (adds only missing).
 
 2. **Path linking**:
    - Converts `` `reference/...` `` to `[reference/...](../../reference/...)` when target exists.
    - Leaves non-existent paths unchanged.
+   - Preserves unrelated content verbatim (minimal diffs).
+   - Refuses to link outside `--project-root` (path traversal / symlink safety).
 
 3. **Claim ID linking (optional)**:
    - Links claim IDs when `analysis/reasoning/<claim-id>.md` exists.
@@ -197,6 +260,7 @@ scripts/export.py (optional stretch)
 
 4. **Safety / ambiguity**:
    - Reports ambiguous candidates; does not pick silently.
+   - `--dry-run` produces reports but makes zero file modifications.
 
 ### Manual verification
 
@@ -207,7 +271,7 @@ scripts/export.py (optional stretch)
 
 ## Open Questions
 
-1. **Canonical link style**: do we prefer repo-relative links (`analysis/sources/...`) or section-relative links (`../sources/...`) inside syntheses?
-2. **Artifact matching**: should v0.4.0 attempt heuristics to “discover” captures, or only link captures already mentioned in-doc (plus syntheses → analyses)?
-3. **Validator posture**: do we add WARN-only checks for syntheses missing `Source Analyses`, or keep validation strictly out of scope for v0.4.0?
-
+1. **Canonical link style**: do we prefer section-relative links (`../sources/...`) inside `analysis/syntheses/*.md`, and reserve repo-relative links for README-style indexes?
+2. **Artifact matching**: should v0.4.0 stay “in-doc only” (recommended), with heuristic discovery deferred as a stretch?
+3. **Validator posture**: do we keep validator changes out of scope (recommended), with `rc-link scan` as the check?
+4. **DB/schema coupling**: confirm v0.4.0 stays markdown-only (recommended). If we want structured artifact fields, spin that into a separate plan/milestone (v0.5.0+).

@@ -215,11 +215,11 @@ Key properties:
 
 **Source-analysis linker**
 
-- Determine `source_id` (from metadata, or from filename as fallback).
-- Try to find a best-match captured artifact in `reference/`:
-  - Prefer exact filename matches, then directory-name matches, with a filetype priority (e.g., `.pdf` > `.md` > `.html` > `.txt` > `.json` > `.zip`).
-  - If multiple plausible matches exist, don’t guess silently: report ambiguity in `scan`.
-- Insert a `Captured Artifact` / `Primary capture` row/link if missing.
+- v0.4.0 baseline is **in-doc only** (no heuristic discovery):
+  - If the analysis already mentions a repo-relative path like `reference/primary/...`, `reference/captured/...`, or `reference/transcripts/...`,
+    upgrade that mention into a markdown link when the target exists.
+  - If the analysis does not mention an internal capture path, do not try to “discover” one automatically in v0.4.0 (report as missing if desired).
+- Stretch goal (future milestone): conservative heuristic discovery of likely captures for a source-id, with explicit ambiguity reporting.
 
 **Claim→reasoning linker**
 
