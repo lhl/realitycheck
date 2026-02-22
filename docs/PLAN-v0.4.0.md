@@ -75,12 +75,12 @@ We already have substantial corpora (`analysis/`, `reference/`, exported `analys
 All decisions locked as of 2026-02-22.
 
 1. **Canonical link style inside `analysis/`**: section-relative links (e.g., `../sources/<source-id>.md`). **LOCKED (2026-02-22)**
-2. **Artifact matching posture**: upgrade-only — convert existing in-doc path mentions to links when the target exists; do not discover/insert captures not already mentioned. Deterministic filesystem discovery is a stretch goal. **LOCKED (2026-02-22)**
+2. **Artifact matching posture**: upgrade-only — `apply` converts existing in-doc path mentions to links when the target exists; it must not discover/insert captures not already mentioned. `scan` may do filesystem discovery for _reporting_ (e.g., "INFO: capture exists but is not referenced"), but `apply` must not act on those discoveries. Deterministic filesystem discovery in `apply` is a stretch goal. **LOCKED (2026-02-22)**
 3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check. **LOCKED (2026-02-22)**
 4. **`rc-link scan` output format**: human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0. **LOCKED (2026-02-22)**
 5. **Export rendering improvements**: optional stretch, independent of `rc-link`. **LOCKED (2026-02-22)**
 6. **DB/schema posture**: no DB/schema changes in v0.4.0; `rc-link` must be markdown-only and runnable without opening a DB. **LOCKED (2026-02-22)**
-7. **CLI root resolution**: `--project-root` is optional; fallback chain is `REALITYCHECK_DATA` env var (derive root from DB path) → CWD auto-detect (same markers as existing CLI helpers) → error with guidance. **LOCKED (2026-02-22)**
+7. **CLI root resolution**: `--project-root` is optional; fallback chain is `REALITYCHECK_DATA` env var (resolve via `Path().expanduser().resolve()`, derive root, fail if invalid — do not fall through) → CWD auto-detect (same markers as existing CLI helpers) → error with guidance. **LOCKED (2026-02-22)**
 8. **CLI filter contract**: v0.4.0 uses `--only syntheses,sources,claims` (comma-separated; default `syntheses,sources`); no `--include` alias in v0.4.0. **LOCKED (2026-02-22)**
 9. **Exit codes**: success path returns `0` (including INFO/WARN findings); fatal usage/runtime/file-system errors return `2`. **LOCKED (2026-02-22)**
 10. **Mutation boundaries**: never rewrite inside fenced code blocks, frontmatter, or HTML comments; avoid nested-link rewrites; edit only targeted sections/cells for minimal diffs. **LOCKED (2026-02-22)**
@@ -162,7 +162,7 @@ rc-link apply [--project-root /path/to/data-repo] [--only syntheses,sources,clai
 **Root resolution**:
 
 - If `--project-root` is provided, use it.
-- If `REALITYCHECK_DATA` is set, derive project root from it (same logic as `_project_root_from_db_path()` in `db.py`).
+- If `REALITYCHECK_DATA` is set, resolve via `Path(value).expanduser().resolve()`, then derive project root (same logic as `_project_root_from_db_path()` in `db.py`). If the derived root doesn't exist or lacks an `analysis/` directory, **fail immediately** (exit 2) — do not fall through to CWD auto-detect, because the user explicitly set the env var.
 - Otherwise, auto-detect project root from CWD using existing repo markers (`.realitycheck.yaml` preferred; fallback `data/realitycheck.lance` + minimal project structure via `find_project_root()` in `db.py`).
 - If no project root can be resolved, fail with usage guidance.
 

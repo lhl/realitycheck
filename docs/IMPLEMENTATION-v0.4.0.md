@@ -102,12 +102,12 @@ scripts/export.py (optional stretch)
 ## Locked Decisions (all locked 2026-02-22)
 
 - **Link style**: section-relative (`../sources/<id>.md`) inside `analysis/`; repo-relative reserved for README-style indexes.
-- **Artifact matching**: upgrade-only — convert existing in-doc path mentions to links when target exists; no filesystem discovery of unmentioned captures in v0.4.0.
+- **Artifact matching**: upgrade-only — `apply` converts existing in-doc path mentions to links when target exists; `scan` may report filesystem discoveries but `apply` must not act on them. No discovery-based insertion in v0.4.0.
 - **Validator posture**: no new validator WARN/ERROR gates; `rc-link scan` is the completeness check.
 - **`rc-link scan` output format**: human-readable INFO/WARN text (validator-style); no structured output in v0.4.0.
 - **Export rendering**: optional stretch, independent of `rc-link`.
 - **DB/schema**: no DB/schema changes; `rc-link` is markdown-only and can run without opening a DB.
-- **CLI contract**: `--project-root` optional (fallback: `REALITYCHECK_DATA` → CWD auto-detect), `--only` canonical selector, default `syntheses,sources`, no `--include`.
+- **CLI contract**: `--project-root` optional (fallback: `REALITYCHECK_DATA` resolved via `Path().expanduser().resolve()` — fail if invalid, do not fall through → CWD auto-detect), `--only` canonical selector, default `syntheses,sources`, no `--include`.
 - **Exit code contract**: `0` for completed scan/apply (including WARN findings), `2` for fatal usage/runtime errors.
 - **Mutation boundaries**: no edits in fenced code/frontmatter/comments; avoid nested link rewrites; minimal section/cell edits only.
 - **Deterministic insertion**: stable section placement and source-link ordering.
