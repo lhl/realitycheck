@@ -79,7 +79,11 @@ scripts/export.py (optional stretch)
   UPDATE evidence export rendering
 ```
 
-## Open Decisions
+## Locked Decisions
+
+- **No DB/schema changes in v0.4.0** (locked 2026-02-22): `rc-link` is markdown-only and can run without opening a DB.
+
+## Open Decisions (remaining)
 
 - **Link style** inside syntheses:
   - Option A: section-relative (`../sources/<id>.md`) (preferred for “within analysis/” navigation)
@@ -89,9 +93,6 @@ scripts/export.py (optional stretch)
   - stretch: heuristic discovery of likely captures for a given source-id (must be conservative / report ambiguities)
 - **Validator posture**:
   - likely: no gating; optional WARN-only checks later if needed
-- **DB/schema integration**:
-  - v0.4.0 baseline: markdown-only `rc-link` (no DB/schema changes)
-  - stretch: structured artifact fields (separate milestone)
 - **`rc-link scan` output format**:
   - v0.4.0 baseline: human-readable INFO/WARN text (validator-style)
   - stretch: `--format json` for automation
@@ -169,3 +170,7 @@ Next: circulate docs for review before any code changes.
   - `rc-link` scope boundaries vs optional `rc-export` rendering improvements
   - known synthesis input patterns and scan output format expectations
   - additional test cases (malformed input, already-linked, dry-run, minimal diffs, symlink safety)
+
+### 2026-02-22: Spec lock (partial)
+
+- Locked decision: v0.4.0 remains markdown-only (no DB/schema changes).

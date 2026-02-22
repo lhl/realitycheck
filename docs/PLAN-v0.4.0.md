@@ -79,6 +79,7 @@ These should be resolved during “Spec Lock” before implementation.
 3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check.
 4. **`rc-link scan` output format**: default human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0.
 5. **Export rendering improvements**: optional stretch, independent of `rc-link`.
+6. **DB/schema posture**: **LOCKED (2026-02-22)** — no DB/schema changes in v0.4.0; `rc-link` must be markdown-only and runnable without opening a DB.
 
 ### DB/schema changes: tradeoffs (separate milestone)
 
@@ -269,9 +270,8 @@ scripts/export.py (optional stretch)
   - analyses link to existing reference artifacts without breaking,
   - GitHub browsing works (no absolute filesystem paths).
 
-## Open Questions
+## Open Questions (remaining)
 
 1. **Canonical link style**: do we prefer section-relative links (`../sources/...`) inside `analysis/syntheses/*.md`, and reserve repo-relative links for README-style indexes?
 2. **Artifact matching**: should v0.4.0 stay “in-doc only” (recommended), with heuristic discovery deferred as a stretch?
 3. **Validator posture**: do we keep validator changes out of scope (recommended), with `rc-link scan` as the check?
-4. **DB/schema coupling**: confirm v0.4.0 stays markdown-only (recommended). If we want structured artifact fields, spin that into a separate plan/milestone (v0.5.0+).
