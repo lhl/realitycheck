@@ -215,12 +215,11 @@ Key properties:
 
 **Source-analysis linker**
 
-- v0.4.0 baseline is **markdown-only writes**:
-  - `rc-link` may discover files on disk (to detect opportunities and resolve relative targets), but writes only to markdown docs.
+- v0.4.0 baseline is **upgrade-only** (no filesystem discovery of unmentioned captures):
   - If the analysis already mentions a repo-relative path like `reference/primary/...`, `reference/captured/...`, or `reference/transcripts/...`,
     upgrade that mention into a markdown link when the target exists.
-  - For capture links not already mentioned, conservative discovery is allowed when deterministic; ambiguous candidates should be reported without modifying the file.
-- Stretch goal (future milestone): broader heuristic discovery beyond deterministic/unique matches, with explicit ambiguity reporting.
+  - If the analysis does not mention an internal capture path, do not try to discover one automatically in v0.4.0 (report as missing if desired via `scan`).
+- Stretch goal (future milestone): deterministic filesystem discovery of likely captures for a source-id, with explicit ambiguity reporting.
 
 **Claim→reasoning linker**
 

@@ -75,12 +75,12 @@ We already have substantial corpora (`analysis/`, `reference/`, exported `analys
 All decisions locked as of 2026-02-22.
 
 1. **Canonical link style inside `analysis/`**: section-relative links (e.g., `../sources/<source-id>.md`). **LOCKED (2026-02-22)**
-2. **Write scope posture**: `rc-link` is **markdown-only write scope** (no DB/schema writes), but may discover files on disk to decide what links to add/report. **LOCKED (2026-02-22)**
+2. **Artifact matching posture**: upgrade-only — convert existing in-doc path mentions to links when the target exists; do not discover/insert captures not already mentioned. Deterministic filesystem discovery is a stretch goal. **LOCKED (2026-02-22)**
 3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check. **LOCKED (2026-02-22)**
 4. **`rc-link scan` output format**: human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0. **LOCKED (2026-02-22)**
 5. **Export rendering improvements**: optional stretch, independent of `rc-link`. **LOCKED (2026-02-22)**
 6. **DB/schema posture**: no DB/schema changes in v0.4.0; `rc-link` must be markdown-only and runnable without opening a DB. **LOCKED (2026-02-22)**
-7. **CLI root resolution**: `--project-root` is optional; default behavior auto-detects project root from CWD (same markers used by existing CLI helpers) and errors if none is found. **LOCKED (2026-02-22)**
+7. **CLI root resolution**: `--project-root` is optional; fallback chain is `REALITYCHECK_DATA` env var (derive root from DB path) → CWD auto-detect (same markers as existing CLI helpers) → error with guidance. **LOCKED (2026-02-22)**
 8. **CLI filter contract**: v0.4.0 uses `--only syntheses,sources,claims` (comma-separated; default `syntheses,sources`); no `--include` alias in v0.4.0. **LOCKED (2026-02-22)**
 9. **Exit codes**: success path returns `0` (including INFO/WARN findings); fatal usage/runtime/file-system errors return `2`. **LOCKED (2026-02-22)**
 10. **Mutation boundaries**: never rewrite inside fenced code blocks, frontmatter, or HTML comments; avoid nested-link rewrites; edit only targeted sections/cells for minimal diffs. **LOCKED (2026-02-22)**
@@ -162,7 +162,8 @@ rc-link apply [--project-root /path/to/data-repo] [--only syntheses,sources,clai
 **Root resolution**:
 
 - If `--project-root` is provided, use it.
-- If omitted, auto-detect project root from CWD using existing repo markers (`.realitycheck.yaml` preferred; fallback `data/realitycheck.lance` + minimal project structure).
+- If `REALITYCHECK_DATA` is set, derive project root from it (same logic as `_project_root_from_db_path()` in `db.py`).
+- Otherwise, auto-detect project root from CWD using existing repo markers (`.realitycheck.yaml` preferred; fallback `data/realitycheck.lance` + minimal project structure via `find_project_root()` in `db.py`).
 - If no project root can be resolved, fail with usage guidance.
 
 **`scan` output**:
@@ -198,7 +199,7 @@ These are observed in real syntheses and should be supported in v0.4.0:
 2. **Path-to-link upgrades**:
    - Convert existing plain-text or code-span `reference/...` paths into markdown links when the target exists.
    - Convert existing plain-text `analysis/sources/...` mentions into markdown links when the target exists.
-   - Discover candidate internal captures for a source from `reference/primary/`, `reference/captured/`, and `reference/transcripts/` when deterministic; if ambiguous, report and do not modify.
+   - Do not discover/insert capture paths not already mentioned in the doc. Deterministic filesystem discovery of captures is a stretch goal.
 
 3. **Claim ID linking (selector-gated)**:
    - When `analysis/reasoning/<claim-id>.md` exists, link claim IDs in `analysis/sources/*.md` tables.
