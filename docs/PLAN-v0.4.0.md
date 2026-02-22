@@ -75,11 +75,17 @@ We already have substantial corpora (`analysis/`, `reference/`, exported `analys
 All decisions locked as of 2026-02-22.
 
 1. **Canonical link style inside `analysis/`**: section-relative links (e.g., `../sources/<source-id>.md`). **LOCKED (2026-02-22)**
-2. **Artifact matching posture**: “in-doc only” (upgrade existing mentioned paths to links); heuristic discovery is a stretch goal. **LOCKED (2026-02-22)**
+2. **Write scope posture**: `rc-link` is **markdown-only write scope** (no DB/schema writes), but may discover files on disk to decide what links to add/report. **LOCKED (2026-02-22)**
 3. **Validator posture**: no new validator WARN/ERROR gates in v0.4.0; `rc-link scan` is the completeness check. **LOCKED (2026-02-22)**
 4. **`rc-link scan` output format**: human-readable text (validator-style INFO/WARN lines), no structured output required in v0.4.0. **LOCKED (2026-02-22)**
 5. **Export rendering improvements**: optional stretch, independent of `rc-link`. **LOCKED (2026-02-22)**
 6. **DB/schema posture**: no DB/schema changes in v0.4.0; `rc-link` must be markdown-only and runnable without opening a DB. **LOCKED (2026-02-22)**
+7. **CLI root resolution**: `--project-root` is optional; default behavior auto-detects project root from CWD (same markers used by existing CLI helpers) and errors if none is found. **LOCKED (2026-02-22)**
+8. **CLI filter contract**: v0.4.0 uses `--only syntheses,sources,claims` (comma-separated; default `syntheses,sources`); no `--include` alias in v0.4.0. **LOCKED (2026-02-22)**
+9. **Exit codes**: success path returns `0` (including INFO/WARN findings); fatal usage/runtime/file-system errors return `2`. **LOCKED (2026-02-22)**
+10. **Mutation boundaries**: never rewrite inside fenced code blocks, frontmatter, or HTML comments; avoid nested-link rewrites; edit only targeted sections/cells for minimal diffs. **LOCKED (2026-02-22)**
+11. **Deterministic synthesis insertion**: `## Source Analyses` links are deduped and ordered by first source-ID appearance in the document; new section insertion is deterministic. **LOCKED (2026-02-22)**
+12. **Synthesis template parity**: both `integrations/_templates/skills/synthesize.md.j2` and `methodology/templates/synthesis.md` are updated to use an explicit `## Source Analyses` section. **LOCKED (2026-02-22)**
 
 ### DB/schema changes: tradeoffs (separate milestone)
 
@@ -140,8 +146,8 @@ This is backwards-compatible: the validator already supports linked claim IDs.
 Add a new helper CLI designed for safe, idempotent markdown linking in data repos:
 
 ```bash
-rc-link scan  --project-root /path/to/data-repo
-rc-link apply --project-root /path/to/data-repo [--dry-run] [--only ...]
+rc-link scan  [--project-root /path/to/data-repo] [--only syntheses,sources,claims]
+rc-link apply [--project-root /path/to/data-repo] [--only syntheses,sources,claims] [--dry-run]
 ```
 
 **Core principles**:
@@ -151,6 +157,13 @@ rc-link apply --project-root /path/to/data-repo [--dry-run] [--only ...]
 - **Minimal diffs**: insert missing sections/links; do not rewrite prose.
 - **Offline**: no network.
 - **Rooted**: never read/write outside `--project-root` (don’t follow symlinks that escape root).
+- **Markdown-only writes**: filesystem discovery is allowed, but writes are limited to markdown files under `analysis/`.
+
+**Root resolution**:
+
+- If `--project-root` is provided, use it.
+- If omitted, auto-detect project root from CWD using existing repo markers (`.realitycheck.yaml` preferred; fallback `data/realitycheck.lance` + minimal project structure).
+- If no project root can be resolved, fail with usage guidance.
 
 **`scan` output**:
 
@@ -162,6 +175,9 @@ rc-link apply --project-root /path/to/data-repo [--dry-run] [--only ...]
   - analyses containing claim IDs with reasoning docs available but not linked
   - malformed / unrecognized patterns (graceful skip + WARN)
   - ambiguities (conflicting patterns; duplicate IDs; invalid IDs)
+- Exit codes:
+  - `0`: scan completed (including WARN findings)
+  - `2`: fatal usage/runtime/file-system error
 
 **Known input patterns to handle (data-repo syntheses)**:
 
@@ -182,16 +198,30 @@ These are observed in real syntheses and should be supported in v0.4.0:
 2. **Path-to-link upgrades**:
    - Convert existing plain-text or code-span `reference/...` paths into markdown links when the target exists.
    - Convert existing plain-text `analysis/sources/...` mentions into markdown links when the target exists.
-   - Do not “discover” new capture paths by scanning `reference/` in v0.4.0 baseline.
+   - Discover candidate internal captures for a source from `reference/primary/`, `reference/captured/`, and `reference/transcripts/` when deterministic; if ambiguous, report and do not modify.
 
-3. **Claim ID linking (optional flag)**:
+3. **Claim ID linking (selector-gated)**:
    - When `analysis/reasoning/<claim-id>.md` exists, link claim IDs in `analysis/sources/*.md` tables.
+   - This behavior runs when `claims` is included in `--only` (it is not part of default `--only`).
+
+4. **Edit boundaries (minimal-diff contract)**:
+   - Do not edit fenced code blocks, frontmatter blocks, or HTML comments.
+   - Do not rewrite existing markdown links whose targets already resolve.
+   - Do not reorder unrelated sections or rewrite prose; only add/fill required link sections and targeted linkable cells.
 
 **Relative path computation**:
 
 - v0.4.0 can assume the conventional data-repo layout (`analysis/syntheses/`, `analysis/sources/`, `analysis/reasoning/`, `reference/`).
 - Links inserted by `rc-link` should be computed relative to the file being edited, using filesystem path math (e.g., `os.path.relpath`) and normalized to POSIX-style slashes.
 - If a computed link would escape `--project-root`, do not insert it (report via `scan`).
+- Normalize all inserted links to POSIX slashes.
+
+**Deterministic `## Source Analyses` insertion**:
+
+- If section already exists, update it in place (add missing links only).
+- If missing and `## Synthesis Metadata` exists, insert `## Source Analyses` immediately after that section.
+- Otherwise insert after the first H1 block.
+- Link list order is by first source-ID appearance in the synthesis (stable dedupe).
 
 ### C) Template updates (make “correct linking” the default skeleton)
 
@@ -201,6 +231,8 @@ Update templates so “the right place to put links” is always present:
   - make `## Source Analyses` a required, explicit output section (not only a snippet example)
   - keep a minimal snippet, but also add a clear instruction in the output contract / required elements list
   - ensure the minimal snippet matches the contract (i.e., it shows a `## Source Analyses` section, not only an in-metadata bullet)
+- `methodology/templates/synthesis.md`:
+  - switch from metadata bullet style to an explicit `## Source Analyses` section for parity with skill contracts
 - `integrations/_templates/analysis/source-analysis-full.md.j2` and `source-analysis-quick.md.j2`:
   - add optional rows/fields for `Captured Artifact` / `Transcript` (left blank if unknown)
   - place the new rows immediately after `URL` in the Metadata table
@@ -224,17 +256,24 @@ docs/
   UPDATE ANALYSIS-linking.md               # keep in sync with v0.4.0 scope
 
 scripts/
-  NEW  link.py (or linker.py)              # `rc-link` implementation
+  NEW  link.py                             # `rc-link` implementation
 
 UPDATE pyproject.toml                       # add `rc-link` entry point
 
 tests/
-  NEW  test_link.py (or test_linker.py)    # unit + fixture-based tests
+  NEW  test_link.py                         # unit + fixture-based tests
+  UPDATE test_installation.py               # entry-point/import coverage for rc-link
 
 integrations/_templates/
   UPDATE skills/synthesize.md.j2
   UPDATE analysis/source-analysis-full.md.j2
   UPDATE analysis/source-analysis-quick.md.j2
+
+methodology/templates/
+  UPDATE synthesis.md
+
+README.md
+  UPDATE CLI Reference                      # add `rc-link` usage
 
 scripts/export.py (optional stretch)
   UPDATE evidence export rendering
@@ -250,12 +289,14 @@ scripts/export.py (optional stretch)
    - Idempotent: second run yields no changes.
    - Handles malformed/unrecognized inputs gracefully (no change + report).
    - Does not duplicate existing links (adds only missing).
+   - Uses deterministic section placement + link ordering.
 
 2. **Path linking**:
    - Converts `` `reference/...` `` to `[reference/...](../../reference/...)` when target exists.
    - Leaves non-existent paths unchanged.
    - Preserves unrelated content verbatim (minimal diffs).
    - Refuses to link outside `--project-root` (path traversal / symlink safety).
+   - Does not modify fenced code/frontmatter/comment blocks.
 
 3. **Claim ID linking (optional)**:
    - Links claim IDs when `analysis/reasoning/<claim-id>.md` exists.
@@ -264,6 +305,12 @@ scripts/export.py (optional stretch)
 4. **Safety / ambiguity**:
    - Reports ambiguous candidates; does not pick silently.
    - `--dry-run` produces reports but makes zero file modifications.
+   - Exit code behavior matches contract (`0` for completed scan/apply with WARNs, `2` on fatal errors).
+
+5. **CLI contract / packaging**:
+   - Auto-detects project root when `--project-root` is omitted.
+   - Fails with clear guidance when no project root is detected.
+   - `rc-link --help` and module import are covered in installation tests.
 
 ### Manual verification
 
@@ -271,4 +318,3 @@ scripts/export.py (optional stretch)
   - syntheses become “click-through” navigable,
   - analyses link to existing reference artifacts without breaking,
   - GitHub browsing works (no absolute filesystem paths).
-

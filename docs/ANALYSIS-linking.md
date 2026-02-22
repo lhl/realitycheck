@@ -215,11 +215,12 @@ Key properties:
 
 **Source-analysis linker**
 
-- v0.4.0 baseline is **in-doc only** (no heuristic discovery):
+- v0.4.0 baseline is **markdown-only writes**:
+  - `rc-link` may discover files on disk (to detect opportunities and resolve relative targets), but writes only to markdown docs.
   - If the analysis already mentions a repo-relative path like `reference/primary/...`, `reference/captured/...`, or `reference/transcripts/...`,
     upgrade that mention into a markdown link when the target exists.
-  - If the analysis does not mention an internal capture path, do not try to “discover” one automatically in v0.4.0 (report as missing if desired).
-- Stretch goal (future milestone): conservative heuristic discovery of likely captures for a source-id, with explicit ambiguity reporting.
+  - For capture links not already mentioned, conservative discovery is allowed when deterministic; ambiguous candidates should be reported without modifying the file.
+- Stretch goal (future milestone): broader heuristic discovery beyond deterministic/unique matches, with explicit ambiguity reporting.
 
 **Claim→reasoning linker**
 
@@ -233,7 +234,9 @@ These are low-risk changes that reduce analyst overhead:
 1. **Add optional capture fields to analysis templates**
    - Extend `integrations/_templates/analysis/source-analysis-full.md.j2` and `source-analysis-quick.md.j2` to include optional `Captured Artifact` / `Transcript` rows (left blank if unknown).
 2. **Make synthesis templates explicitly include `Source Analyses` links**
-   - Ensure generated syntheses include the section in the default skeleton, matching `methodology/templates/synthesis.md`.
+   - Ensure generated syntheses include the section in both:
+     - `integrations/_templates/skills/synthesize.md.j2`
+     - `methodology/templates/synthesis.md`
 3. **(Optional) Improve `rc-export md evidence-*` outputs**
    - If an evidence `location` contains `artifact=reference/...`, render it as a markdown link to the artifact path (relative to the evidence doc).
 
@@ -255,6 +258,13 @@ Report should include:
 - source analyses missing capture links (when a capture file exists)
 - analyses with claim IDs that have reasoning docs but aren’t linked
 - ambiguities (multiple candidate capture files)
+
+Operational conventions for v0.4.0:
+
+- `--project-root` may be omitted; auto-detect from CWD is allowed.
+- `--only` is the canonical selector (`syntheses,sources,claims`), with claim linking treated as opt-in selector scope.
+- INFO/WARN findings are non-fatal; fatal usage/runtime errors return `2`.
+- Minimal-diff posture: do not rewrite fenced code blocks, frontmatter blocks, or HTML comments.
 
 ### Step 1: Apply safe link insertions
 
