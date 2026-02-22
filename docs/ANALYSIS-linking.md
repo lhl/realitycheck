@@ -260,7 +260,7 @@ Report should include:
 
 Operational conventions for v0.4.0:
 
-- `--project-root` may be omitted; auto-detect from CWD is allowed.
+- `--project-root` may be omitted; resolution falls back to `REALITYCHECK_DATA` (if set) then CWD auto-detect.
 - `--only` is the canonical selector (`syntheses,sources,claims`), with claim linking treated as opt-in selector scope.
 - INFO/WARN findings are non-fatal; fatal usage/runtime errors return `2`.
 - Minimal-diff posture: do not rewrite fenced code blocks, frontmatter blocks, or HTML comments.

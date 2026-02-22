@@ -49,7 +49,7 @@ Primary outcomes intended for v0.4.0:
   - does not discover/insert capture paths not already mentioned in the doc (upgrade-only; deterministic discovery is a stretch goal)
   - links claim IDs to `analysis/reasoning/<claim-id>.md` when `claims` is enabled via `--only`
 - `rc-link` CLI contract is explicit and tested:
-  - `--project-root` is optional; auto-detect from CWD when omitted
+  - `--project-root` is optional; when omitted, resolution falls back to `REALITYCHECK_DATA` (if set) then CWD auto-detect
   - `--only` is the canonical selector (`syntheses,sources,claims`; default `syntheses,sources`)
   - exit codes: `0` for completed runs (including WARN findings), `2` for fatal usage/runtime errors
 - Minimal-diff boundaries are enforced:
