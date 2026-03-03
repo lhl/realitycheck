@@ -2630,7 +2630,7 @@ def _format_record_text(record: dict, record_type: str = "claim") -> str:
     return "\n".join(lines)
 
 
-def _output_result(data: Any, format_type: str = "json", record_type: str = "claim") -> None:
+def _output_result(data: Any, format_type: str = "json", record_type: str = "claim", full: bool = False) -> None:
     """Output data in requested format."""
     import json
     import sys
@@ -2650,6 +2650,14 @@ def _output_result(data: Any, format_type: str = "json", record_type: str = "cla
         return obj
 
     data = clean_for_json(data)
+
+    # Strip noisy fields from JSON output by default (embeddings are ~89% of payload)
+    if format_type == "json" and not full:
+        _STRIP_FIELDS = {"embedding", "_distance"}
+        if isinstance(data, list):
+            data = [{k: v for k, v in item.items() if k not in _STRIP_FIELDS} for item in data if isinstance(item, dict)]
+        elif isinstance(data, dict):
+            data = {k: v for k, v in data.items() if k not in _STRIP_FIELDS}
 
     if format_type == "json":
         print(json.dumps(data, indent=2, default=str))
@@ -2796,6 +2804,7 @@ Examples:
     search_parser.add_argument("--limit", type=int, default=10, help="Max results")
     search_parser.add_argument("--domain", help="Filter by domain")
     search_parser.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    search_parser.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # -------------------------------------------------------------------------
     # Claim commands
@@ -2841,11 +2850,13 @@ Examples:
     claim_ticket.add_argument("--older-than-days", type=int, default=7, help="Abandoned threshold in days")
     claim_ticket.add_argument("--dry-run", action="store_true", help="Show what would be released without writing")
     claim_ticket.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    claim_ticket.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # claim get
     claim_get = claim_subparsers.add_parser("get", help="Get a claim by ID")
     claim_get.add_argument("claim_id", help="Claim ID")
     claim_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    claim_get.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # claim list
     claim_list = claim_subparsers.add_parser("list", help="List claims")
@@ -2853,6 +2864,7 @@ Examples:
     claim_list.add_argument("--type", help="Filter by type")
     claim_list.add_argument("--limit", type=int, default=100, help="Max results")
     claim_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    claim_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # claim update
     claim_update = claim_subparsers.add_parser("update", help="Update a claim")
@@ -2914,6 +2926,7 @@ Examples:
     source_get = source_subparsers.add_parser("get", help="Get a source by ID")
     source_get.add_argument("source_id", help="Source ID")
     source_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    source_get.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # source list
     source_list = source_subparsers.add_parser("list", help="List sources")
@@ -2921,6 +2934,7 @@ Examples:
     source_list.add_argument("--status", help="Filter by status")
     source_list.add_argument("--limit", type=int, default=100, help="Max results")
     source_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    source_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # -------------------------------------------------------------------------
     # Chain commands
@@ -2942,11 +2956,13 @@ Examples:
     chain_get = chain_subparsers.add_parser("get", help="Get a chain by ID")
     chain_get.add_argument("chain_id", help="Chain ID")
     chain_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    chain_get.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # chain list
     chain_list = chain_subparsers.add_parser("list", help="List chains")
     chain_list.add_argument("--limit", type=int, default=100, help="Max results")
     chain_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    chain_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # -------------------------------------------------------------------------
     # Prediction commands
@@ -2969,6 +2985,7 @@ Examples:
     prediction_list.add_argument("--status", help="Filter by status")
     prediction_list.add_argument("--limit", type=int, default=100, help="Max results")
     prediction_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    prediction_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # -------------------------------------------------------------------------
     # Analysis log commands
@@ -3045,6 +3062,7 @@ Examples:
     analysis_get = analysis_subparsers.add_parser("get", help="Get an analysis log by ID")
     analysis_get.add_argument("analysis_id", help="Analysis log ID")
     analysis_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    analysis_get.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # analysis list
     analysis_list = analysis_subparsers.add_parser("list", help="List analysis logs")
@@ -3053,6 +3071,7 @@ Examples:
     analysis_list.add_argument("--status", help="Filter by status")
     analysis_list.add_argument("--limit", type=int, default=20, help="Max results (default: 20)")
     analysis_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    analysis_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # analysis start (lifecycle command)
     analysis_start = analysis_subparsers.add_parser("start", help="Start an analysis (captures baseline tokens)")
@@ -3162,6 +3181,7 @@ Examples:
     evidence_get = evidence_subparsers.add_parser("get", help="Get an evidence link by ID")
     evidence_get.add_argument("link_id", help="Evidence link ID")
     evidence_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    evidence_get.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # evidence list
     evidence_list = evidence_subparsers.add_parser("list", help="List evidence links")
@@ -3171,6 +3191,7 @@ Examples:
     evidence_list.add_argument("--include-superseded", action="store_true", help="Include superseded/retracted links")
     evidence_list.add_argument("--limit", type=int, default=100, help="Max results")
     evidence_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    evidence_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # evidence supersede
     evidence_supersede = evidence_subparsers.add_parser("supersede", help="Supersede an evidence link with a new one")
@@ -3211,6 +3232,7 @@ Examples:
     reasoning_get.add_argument("--id", help="Reasoning trail ID")
     reasoning_get.add_argument("--claim-id", help="Claim ID (returns current active trail)")
     reasoning_get.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    reasoning_get.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # reasoning list
     reasoning_list = reasoning_subparsers.add_parser("list", help="List reasoning trails")
@@ -3218,11 +3240,13 @@ Examples:
     reasoning_list.add_argument("--include-superseded", action="store_true", help="Include superseded trails")
     reasoning_list.add_argument("--limit", type=int, default=100, help="Max results")
     reasoning_list.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    reasoning_list.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # reasoning history
     reasoning_history = reasoning_subparsers.add_parser("history", help="Show credence evolution history for a claim")
     reasoning_history.add_argument("--claim-id", required=True, help="Claim ID")
     reasoning_history.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    reasoning_history.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # -------------------------------------------------------------------------
     # Related command
@@ -3230,6 +3254,7 @@ Examples:
     related_parser = subparsers.add_parser("related", help="Find claims related to a given claim")
     related_parser.add_argument("claim_id", help="Claim ID to find relationships for")
     related_parser.add_argument("--format", choices=["json", "text"], default="json", help="Output format")
+    related_parser.add_argument("--full", action="store_true", default=False, help="Include all fields (embeddings, distances) in output")
 
     # -------------------------------------------------------------------------
     # Import command
@@ -3785,7 +3810,7 @@ rc-validate
     elif args.command == "search":
         results = search_claims(args.query, limit=args.limit, domain=args.domain)
         if args.format == "json":
-            _output_result(results, "json", "claim")
+            _output_result(results, "json", "claim", full=args.full)
         else:
             for i, result in enumerate(results, 1):
                 print(f"{i}. [{result['id']}] {result['text'][:80]}...")
@@ -3912,14 +3937,14 @@ rc-validate
         elif args.claim_command == "get":
             result = get_claim(args.claim_id, db)
             if result:
-                _output_result(result, args.format, "claim")
+                _output_result(result, args.format, "claim", full=args.full)
             else:
                 print(f"Claim not found: {args.claim_id}", file=sys.stderr)
                 sys.exit(1)
 
         elif args.claim_command == "list":
             results = list_claims(domain=args.domain, claim_type=args.type, limit=args.limit, db=db)
-            _output_result(results, args.format, "claim")
+            _output_result(results, args.format, "claim", full=args.full)
 
         elif args.claim_command == "update":
             updates = {}
@@ -4043,14 +4068,14 @@ rc-validate
         elif args.source_command == "get":
             result = get_source(args.source_id, db)
             if result:
-                _output_result(result, args.format, "source")
+                _output_result(result, args.format, "source", full=args.full)
             else:
                 print(f"Source not found: {args.source_id}", file=sys.stderr)
                 sys.exit(1)
 
         elif args.source_command == "list":
             results = list_sources(source_type=args.type, status=args.status, limit=args.limit, db=db)
-            _output_result(results, args.format, "source")
+            _output_result(results, args.format, "source", full=args.full)
 
         else:
             source_parser.print_help()
@@ -4090,14 +4115,14 @@ rc-validate
         elif args.chain_command == "get":
             result = get_chain(args.chain_id, db)
             if result:
-                _output_result(result, args.format, "chain")
+                _output_result(result, args.format, "chain", full=args.full)
             else:
                 print(f"Chain not found: {args.chain_id}", file=sys.stderr)
                 sys.exit(1)
 
         elif args.chain_command == "list":
             results = list_chains(limit=args.limit, db=db)
-            _output_result(results, args.format, "chain")
+            _output_result(results, args.format, "chain", full=args.full)
 
         else:
             chain_parser.print_help()
@@ -4123,7 +4148,7 @@ rc-validate
 
         elif args.prediction_command == "list":
             results = list_predictions(status=args.status, limit=args.limit, db=db)
-            _output_result(results, args.format, "prediction")
+            _output_result(results, args.format, "prediction", full=args.full)
 
         else:
             prediction_parser.print_help()
@@ -4275,7 +4300,7 @@ rc-validate
         elif args.analysis_command == "get":
             result = get_analysis_log(args.analysis_id, db)
             if result:
-                _output_result(result, args.format, "analysis_log")
+                _output_result(result, args.format, "analysis_log", full=args.full)
             else:
                 print(f"Analysis log not found: {args.analysis_id}", file=sys.stderr)
                 sys.exit(1)
@@ -4288,7 +4313,7 @@ rc-validate
                 limit=args.limit,
                 db=db,
             )
-            _output_result(results, args.format, "analysis_log")
+            _output_result(results, args.format, "analysis_log", full=args.full)
 
         elif args.analysis_command == "start":
             # Lifecycle: start an analysis with baseline snapshot
@@ -4920,7 +4945,7 @@ rc-validate
         elif args.evidence_command == "get":
             result = get_evidence_link(args.link_id, db=db)
             if result:
-                _output_result(result, args.format, "evidence_link")
+                _output_result(result, args.format, "evidence_link", full=args.full)
             else:
                 print(f"Evidence link not found: {args.link_id}", file=sys.stderr)
                 sys.exit(1)
@@ -4934,7 +4959,7 @@ rc-validate
                 limit=args.limit,
                 db=db,
             )
-            _output_result(results, args.format, "evidence_link")
+            _output_result(results, args.format, "evidence_link", full=args.full)
 
         elif args.evidence_command == "supersede":
             try:
@@ -5001,7 +5026,7 @@ rc-validate
                 sys.exit(1)
             result = get_reasoning_trail(id=args.id, claim_id=getattr(args, "claim_id", None), db=db)
             if result:
-                _output_result(result, args.format, "reasoning_trail")
+                _output_result(result, args.format, "reasoning_trail", full=args.full)
             else:
                 target = args.id or args.claim_id
                 print(f"Reasoning trail not found for: {target}", file=sys.stderr)
@@ -5014,7 +5039,7 @@ rc-validate
                 limit=args.limit,
                 db=db,
             )
-            _output_result(results, args.format, "reasoning_trail")
+            _output_result(results, args.format, "reasoning_trail", full=args.full)
 
         elif args.reasoning_command == "history":
             results = get_reasoning_history(args.claim_id, db=db)
@@ -5022,18 +5047,7 @@ rc-validate
                 print(f"No reasoning history found for: {args.claim_id}", file=sys.stderr)
                 sys.exit(1)
             if args.format == "json":
-                import json
-                def clean_for_json(obj):
-                    if hasattr(obj, 'tolist'):
-                        return obj.tolist()
-                    elif isinstance(obj, dict):
-                        return {k: clean_for_json(v) for k, v in obj.items()}
-                    elif isinstance(obj, list):
-                        return [clean_for_json(v) for v in obj]
-                    elif hasattr(obj, 'as_py'):
-                        return obj.as_py()
-                    return obj
-                print(json.dumps([clean_for_json(r) for r in results], indent=2, default=str), flush=True)
+                _output_result(results, "json", "reasoning_trail", full=args.full)
             else:
                 print(f"Credence history for {args.claim_id}:", flush=True)
                 for trail in results:
@@ -5056,7 +5070,6 @@ rc-validate
             sys.exit(1)
         if args.format == "json":
             import json
-            # Clean the nested claims for JSON
             def clean_for_json(obj):
                 if hasattr(obj, 'tolist'):
                     return obj.tolist()
@@ -5067,7 +5080,13 @@ rc-validate
                 elif hasattr(obj, 'as_py'):
                     return obj.as_py()
                 return obj
-            print(json.dumps(clean_for_json(result), indent=2, default=str), flush=True)
+            cleaned = clean_for_json(result)
+            if not args.full:
+                _STRIP_FIELDS = {"embedding", "_distance"}
+                for rel_type, claims in cleaned.items():
+                    if isinstance(claims, list):
+                        cleaned[rel_type] = [{k: v for k, v in c.items() if k not in _STRIP_FIELDS} for c in claims if isinstance(c, dict)]
+            print(json.dumps(cleaned, indent=2, default=str), flush=True)
         else:
             print(f"Related claims for {args.claim_id}:", flush=True)
             for rel_type, claims in result.items():

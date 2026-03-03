@@ -608,4 +608,17 @@ Create a desktop GUI for non-technical users:
 
 ---
 
-*Last updated: 2026-01-22 (Amp skills added)*
+## CLI Output Ergonomics: Strip Embeddings (v0.3.4)
+
+### Worklog
+
+- **2026-03-03**: Implemented Step 1 of CLI output ergonomics (TODO.md):
+  - `_output_result()` now strips `embedding` and `_distance` fields from JSON output by default
+  - Added `--full` flag to all 17 subcommands with `--format` to opt into raw output
+  - Custom JSON handlers (`related`, `reasoning history`) also strip fields unless `--full`
+  - 4 new tests in `TestEmbeddingStripping`: list/get strip by default, list/get `--full` preserves
+  - Validation: 441 passed, 17 skipped (embedding tests), 0 failures
+
+---
+
+*Last updated: 2026-03-03 (CLI embedding stripping)*

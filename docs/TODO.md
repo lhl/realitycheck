@@ -43,6 +43,70 @@ rc-db integrations sync              # already exists (v0.3.2)
 
 ---
 
+## CLI Output Ergonomics: Strip Embeddings, Improve Text Format
+
+**Problem**: JSON output from `db.py search`, `claim list`, etc. includes full 384-dim float32 embedding vectors in every result. Each embedding is ~8.4KB of JSON — **89% of the per-claim payload**. A 10-result search dumps ~85KB of embedding noise into agent context windows, wasting tokens and polluting reasoning. This was discovered during a multi-search analysis session where agents were piping JSON through Python one-liners to get usable output.
+
+**Secondary issue**: `--format text` for `search` truncates claim text at 80 chars and omits `source_ids`, `operationalization`, `assumptions`, and `falsifiers`. The `claim list --format text` output is better but still sparse. When JSON is the default and it dumps embeddings, agents have no good option.
+
+**Solution** (three incremental changes):
+
+1. ✅ **Strip embeddings from JSON by default** — `_output_result()` now strips `embedding` and `_distance` fields from JSON output by default. All 17 subcommands with `--format` gained a `--full` flag to opt into raw output. (Shipped v0.3.4, 2026-03-03)
+
+2. **Improve `--format text` for search**: Show full text (or 200+ chars), `source_ids`, evidence level, and key metadata. Match the richer format already used by `claim list --format text`.
+
+3. **Consider defaulting search to `--format text`**: Once JSON is clean (no embeddings), this becomes less urgent. But text is more natural for interactive/agent use. Could also add `--format compact` as a middle ground (JSON without embeddings, single-line per claim).
+
+**Impact**: Immediate improvement for every agent session that queries the DB. The embedding strip alone reduces context burn by ~9x per search query.
+
+**Scope**: Small — mostly changes to `_output_result()` and the `search` CLI handler. No schema changes, no new tables.
+
+**Status**: Step 1 complete (2026-03-03). Steps 2-3 remain for future work.
+
+---
+
+## Source Capture Tooling (Browser-Based Fetch)
+
+**Problem**: During analysis sessions, many source URLs are unfetchable via simple HTTP — JS-rendered pages, soft paywalls, large PDFs, and sites that block non-browser user agents. In a recent session, 2 of 6 article fetches failed entirely (iNews, Guardian blocked), 1 timed out (WaPo), and 1 PDF exceeded size limits (Campaign Legal Center). The `reference/captured/` convention exists in data repos but capture is currently manual.
+
+**Context**: The data repo already stores captured sources (e.g., `reference/captured/deanwball-2026-clawed.html` with a corresponding `.extracted.json`). What's missing is a CLI command to automate this.
+
+**Desired UX**:
+```bash
+# Capture a URL to reference/captured/ with auto-naming
+rc-db source capture https://www.example.com/article \
+  --source-id "example-2026-article"
+
+# Captures HTML (rendered via headless browser), saves to:
+#   reference/captured/example-2026-article.html
+# Optionally extracts text:
+#   reference/captured/example-2026-article.extracted.json
+
+# For PDFs:
+rc-db source capture https://example.com/report.pdf \
+  --source-id "example-2026-report"
+# Saves PDF directly, optionally extracts text via pdftotext/pymupdf
+```
+
+**Key considerations**:
+- **playwright-cli** (or `playwright` Python package) for JS rendering — handles most JS-heavy sites, tracker dashboards, Substack, etc.
+- Won't solve hard paywalls (NYT, WaPo subscriber content) — those remain manual
+- Should integrate with `rc-db source add` to register the source in the DB with the captured artifact path
+- Optional text extraction step (readability/trafilatura for HTML, pymupdf for PDF)
+- Dependency weight: playwright is heavy (~100MB browsers). Should be an optional extra (`pip install realitycheck[capture]`) not a core dep
+- Could also expose as a plugin command (`/capture <url>`) for in-session use
+
+**Relationship to existing work**:
+- `reference/captured/` convention already exists and is used by analysis workflows
+- Source YAML files already reference `captured_artifact` paths
+- The `/check` workflow's Stage 2 verification could invoke this for primary document capture
+
+**Scope**: Medium — new command, optional dependency, extraction pipeline. Not blocking but would meaningfully improve analysis throughput.
+
+**Status**: Planning — queue after CLI output ergonomics.
+
+---
+
 ## Token Usage Capture (Backfill + Default Automation)
 
 **Plan**: [PLAN-token-usage.md](PLAN-token-usage.md)

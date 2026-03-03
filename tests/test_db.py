@@ -4070,3 +4070,90 @@ class TestReasoningCLI:
         # Should show both trails
         assert "REASON-2026-001" in result.stdout or "0.60" in result.stdout
         assert "REASON-2026-002" in result.stdout or "0.75" in result.stdout
+
+
+class TestEmbeddingStripping:
+    """Tests for embedding/distance stripping from JSON output."""
+
+    def _setup_claim(self, env):
+        """Init DB and add a test claim, return env."""
+        cwd = Path(__file__).parent.parent
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "init"],
+            env=env, capture_output=True, cwd=cwd,
+        )
+        subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "add",
+             "--id", "TEST-2026-001",
+             "--text", "Embedding strip test claim",
+             "--type", "[F]",
+             "--domain", "TECH",
+             "--evidence-level", "E3"],
+            env=env, capture_output=True, cwd=cwd,
+        )
+
+    def test_claim_list_json_strips_embedding_by_default(self, temp_db_path: Path):
+        """claim list JSON output strips embedding field by default."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._setup_claim(env)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "list"],
+            env=env, capture_output=True, text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(result)
+        data = json.loads(result.stdout)
+        assert len(data) > 0
+        for record in data:
+            assert "embedding" not in record, "embedding should be stripped by default"
+
+    def test_claim_list_json_full_includes_embedding(self, temp_db_path: Path):
+        """claim list --full JSON output includes embedding field."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._setup_claim(env)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "list", "--full"],
+            env=env, capture_output=True, text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(result)
+        data = json.loads(result.stdout)
+        assert len(data) > 0
+        for record in data:
+            assert "embedding" in record, "embedding should be present with --full"
+
+    def test_claim_get_json_strips_embedding_by_default(self, temp_db_path: Path):
+        """claim get JSON output strips embedding field by default."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._setup_claim(env)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "get",
+             "TEST-2026-001"],
+            env=env, capture_output=True, text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(result)
+        data = json.loads(result.stdout)
+        assert "embedding" not in data, "embedding should be stripped by default"
+
+    def test_claim_get_json_full_includes_embedding(self, temp_db_path: Path):
+        """claim get --full JSON output includes embedding field."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._setup_claim(env)
+
+        result = subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", "claim", "get",
+             "TEST-2026-001", "--full"],
+            env=env, capture_output=True, text=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        assert_cli_success(result)
+        data = json.loads(result.stdout)
+        assert "embedding" in data, "embedding should be present with --full"
