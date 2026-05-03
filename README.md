@@ -30,6 +30,7 @@ See [realitycheck-data](https://github.com/lhl/realitycheck-data) for a public e
 - **[OpenAI Codex](https://github.com/openai/codex)** (optional) - For skills integration
 - **[Amp](https://ampcode.com)** (optional) - For skills integration
 - **[OpenCode](https://opencode.ai)** (optional) - For skills integration
+- **[Pi](https://github.com/anthropics/pi)** (optional) - For skills integration
 
 ## Installation
 
@@ -372,7 +373,7 @@ Load the realitycheck skill
 Or reference skills in prompts:
 
 ```
-Using the realitycheck-check skill, analyze https://example.com/article
+Using the check skill, analyze https://example.com/article
 ```
 
 ### Available Skills
@@ -380,12 +381,42 @@ Using the realitycheck-check skill, analyze https://example.com/article
 | Skill | Description |
 |-------|-------------|
 | `realitycheck` | Main entry point |
-| `realitycheck-check` | Full analysis workflow |
-| `realitycheck-search` | Semantic search |
-| `realitycheck-validate` | Data validation |
-| `realitycheck-stats` | Database statistics |
+| `check` | Full analysis workflow |
+| `rc-search` | Semantic search |
+| `rc-validate` | Data validation |
+| `rc-stats` | Database statistics |
 
 See `integrations/opencode/README.md` for full documentation.
+
+## Pi Skills
+
+[Pi](https://github.com/anthropics/pi) (pi-agent) is a terminal-native AI coding agent. Reality Check includes skills that integrate with Pi's skill system.
+
+### Install Skills
+
+```bash
+make install-skills-pi
+```
+
+### Usage
+
+Invoke skills with `/skill:`:
+
+```
+/skill:check https://example.com/article
+/skill:rc-search "AI claims"
+/skill:rc-stats
+```
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| `realitycheck` | Main entry point |
+| `check` | Full analysis workflow |
+| `rc-search` | Semantic search |
+| `rc-validate` | Data validation |
+| `rc-stats` | Database statistics |
 
 ## Keeping Integrations Updated
 
@@ -466,7 +497,8 @@ realitycheck/                 # Framework repo (this)
 │   ├── claude/               # Claude Code plugin + skills
 │   ├── codex/                # OpenAI Codex skills
 │   ├── amp/                  # Amp skills
-│   └── opencode/             # OpenCode skills
+│   ├── opencode/             # OpenCode skills
+│   └── pi/                   # Pi (pi-agent) skills
 ├── methodology/              # Analysis templates
 │   ├── evidence-hierarchy.md
 │   ├── claim-taxonomy.md

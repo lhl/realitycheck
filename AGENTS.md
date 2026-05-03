@@ -104,7 +104,8 @@ Rules:
 - Treat `docs/` as the source of truth and always prioritize keeping them up to date
 - `docs/PLAN-separation.md` - Architecture and implementation plan
 - `docs/IMPLEMENTATION.md` - Progress tracking (punchlist + worklog)
-- `docs/DEPLOY.md` - Release checklist (PyPI + GitHub)
+- `docs/DEPLOY.md` - Release quick reference
+- `docs/PUBLISH.md` - Full release punch list (PyPI + GitHub)
 - `docs/CHANGELOG.md` - Release notes
 - When reporting stats/counts (tests, claims, churn, LOC, coverage), scope them to a specific commit/tag and record the exact command(s) used
 - When making changes: update docs, run tests, then commit

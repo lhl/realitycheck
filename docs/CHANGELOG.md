@@ -6,6 +6,20 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
+### Added
+
+- Pi (pi-agent) skill integration with 9 skills, Makefile install/uninstall targets, and `pi.md.j2` wrapper template
+- `needs_web` flag in skills.yaml for conditional web access sections in pi skills
+- Per-skill `name` override support in assemble.py (used to keep `check` unprefixed)
+- `ref.*` template variable for correct cross-skill references (replaces raw `invocation_prefix` concatenation)
+- `docs/PUBLISH.md` — consolidated release punch list (merges DEPLOY.md + PYPI.md patterns)
+
+### Changed
+
+- Standardized all skill names to `rc-*` prefix across all integrations (amp, claude, codex, opencode, pi) to avoid collisions with generic names; `check` and `realitycheck` keep their short names
+- Moved YAML frontmatter to byte 0 in amp, claude, and pi wrapper templates (Codex/OpenCode already correct)
+- `docs/DEPLOY.md` simplified to quick reference, pointing to `docs/PUBLISH.md` for full checklist
+
 ## 0.3.3 - 2026-02-20
 
 **Build fix** — plugin.json version was not synced during v0.3.2 release; install-skills-all now auto-assembles to prevent future mismatches.
