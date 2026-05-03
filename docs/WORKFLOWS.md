@@ -866,7 +866,7 @@ This runs:
 > /rc-search AI costs
 > /rc-validate
 > /rc-export yaml claims
-> /rc-stats
+> /rc-stats          # skill command (CLI equivalent: rc-db stats)
 ```
 
 ## Environment Variables

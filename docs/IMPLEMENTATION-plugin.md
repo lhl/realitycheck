@@ -6,7 +6,7 @@ This document tracks the Claude Code plugin implementation for Reality Check.
 
 The Reality Check plugin provides slash commands for the Claude Code CLI, enabling:
 - Full analysis workflows (`/check`, `/realitycheck`)
-- Database operations (`/rc-stats`, `/rc-search`, `/rc-validate`, `/rc-export`)
+- Database operations (`/rc-stats`, `/rc-search`, `/rc-validate`, `/rc-export`) — each mapped to `rc-db <subcommand>` under the hood
 - Manual analysis (`/rc-analyze`, `/rc-extract`)
 
 ## Plugin Architecture
