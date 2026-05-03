@@ -1,0 +1,62 @@
+{#- Pi skill wrapper template -#}
+{#- Pi follows the Agent Skills standard (agentskills.io) -#}
+{#- Variables: name, description, title, template, related, argument_hint, needs_web -#}
+---
+name: {{ name }}
+description: {{ description }}
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
+---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
+# {{ title }}
+
+{{ description }}
+
+{% if argument_hint %}
+## Usage
+
+```
+/skill:{{ name }} {{ argument_hint }}
+```
+
+{% endif %}
+{% include "skills/" ~ template %}
+
+{% if needs_web %}
+---
+
+## Web Access
+
+This workflow may require web fetch and/or web search. Use whatever web
+tools are available in your environment.
+
+If you have **no web tools installed**, fall back to:
+
+```bash
+curl -L -sS "URL" | rc-html-extract - --format json
+```
+
+We recommend installing one of these pi web packages:
+
+```bash
+pi install npm:pi-web-access        # web search + fetch + video, zero-config (most popular)
+pi install npm:pi-smart-fetch       # best content extraction, browser-like TLS
+pi install npm:@the-forge-flow/camoufox-pi  # stealth browser for bot-protected pages
+```
+
+{% endif %}
+{% if related %}
+---
+
+## Related Skills
+
+{% for r in related %}
+- `/skill:{{ r }}`
+{% endfor %}
+{% endif %}

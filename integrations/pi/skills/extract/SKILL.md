@@ -1,21 +1,24 @@
 ---
 name: extract
 description: Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources.
-argument-hint: "<source>"
-allowed-tools: ["WebFetch", "Read", "Write", "Bash(curl -L -sS * | rc-html-extract *)", "Bash(rc-html-extract *)"]
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
 <!-- Source: integrations/_templates/ + _config/skills.yaml -->
 <!-- Regenerate: make assemble-skills -->
 
-# /extract - Quick Claim Extraction
+# Quick Claim Extraction
+
 Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or supporting sources.
 
 ## Usage
 
 ```
-/extract <source>
+/skill:extract <source>
 ```
 
 Extract claims from a source without performing full 3-stage analysis. Use for quick claim harvesting or when sources are supporting evidence rather than primary subjects.
@@ -89,11 +92,32 @@ Use this hierarchy to rate **strength of evidential support** for claims.
 - Quick extractions should be labeled with `Analysis Depth: quick` in the analysis file
 - Minimum requirements: Metadata, Legends, Claim Summary table, Claims YAML
 - Full Stage 2 evaluation tables (verification, counterevidence, tensions, persuasion) are optional for quick extractions
-- If a source proves more significant, upgrade to full analysis with `/check --continue`
+- If a source proves more significant, upgrade to full analysis with `/skill:check --continue`
 
 ---
 
-## Related Commands
+## Web Access
 
-- `/check`
-- `/analyze`
+This workflow may require web fetch and/or web search. Use whatever web
+tools are available in your environment.
+
+If you have **no web tools installed**, fall back to:
+
+```bash
+curl -L -sS "URL" | rc-html-extract - --format json
+```
+
+We recommend installing one of these pi web packages:
+
+```bash
+pi install npm:pi-web-access        # web search + fetch + video, zero-config (most popular)
+pi install npm:pi-smart-fetch       # best content extraction, browser-like TLS
+pi install npm:@the-forge-flow/camoufox-pi  # stealth browser for bot-protected pages
+```
+
+---
+
+## Related Skills
+
+- `/skill:check`
+- `/skill:analyze`

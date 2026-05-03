@@ -1,6 +1,10 @@
 ---
-name: realitycheck-stats
+name: stats
 description: Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
@@ -10,12 +14,6 @@ description: Show statistics about the Reality Check database including counts f
 # Database Statistics
 
 Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
-
-## When This Skill Activates
-
-- "Show database stats"
-- "How many claims"
-- "Database statistics"
 
 Show statistics about the Reality Check database.
 
@@ -62,11 +60,11 @@ By Evidence Level:
 
 - Stats are computed from the live LanceDB database
 - Use this to get a quick overview of the knowledge base
-- For detailed exploration, use `$search`
+- For detailed exploration, use `/skill:search`
 
 ---
 
 ## Related Skills
 
-- `realitycheck-search`
-- `realitycheck-validate`
+- `/skill:search`
+- `/skill:validate`

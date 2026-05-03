@@ -1,13 +1,13 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
 ---
 name: stats
 description: Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
 argument-hint: ""
 allowed-tools: ["Bash(uv run python scripts/db.py stats)", "Bash(rc-db stats)"]
 ---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
 
 # /stats - Database Statistics
 Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.

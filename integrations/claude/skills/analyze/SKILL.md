@@ -1,13 +1,13 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
 ---
 name: analyze
 description: Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
 argument-hint: "<url_or_source_id>"
 allowed-tools: ["WebFetch", "Read", "Write", "Bash(uv run python scripts/db.py *)", "Bash(curl -L -sS * | rc-html-extract *)", "Bash(rc-html-extract *)"]
 ---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
 
 # /analyze - Manual 3-Stage Analysis
 Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.

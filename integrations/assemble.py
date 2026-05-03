@@ -34,7 +34,7 @@ CHECK_CORE_PATH = REPO_ROOT / "methodology" / "workflows" / "check-core.md"
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 PLUGIN_JSON_PATH = SCRIPT_DIR / "claude" / "plugin" / ".claude-plugin" / "plugin.json"
 
-INTEGRATIONS = ["amp", "claude", "codex", "opencode"]
+INTEGRATIONS = ["amp", "claude", "codex", "opencode", "pi"]
 
 
 def load_config() -> dict:
@@ -145,8 +145,9 @@ def render_skill(
         "description": skill_config.get("description", ""),
         "template": skill_config.get("template", f"{skill_key}.md.j2"),
         "related": skill_config.get("related", []),
+        "needs_web": skill_config.get("needs_web", False),
         # Integration-specific
-        "invocation_prefix": "/" if integration == "claude" else "$",
+        "invocation_prefix": {"claude": "/", "pi": "/skill:"}.get(integration, "$"),
         "amp_prefix": defaults.get("amp", {}).get("name_prefix", "realitycheck-"),
     }
 

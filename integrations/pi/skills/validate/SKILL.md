@@ -1,21 +1,24 @@
 ---
 name: validate
 description: Validate Reality Check database integrity and referential consistency. Run after adding data or before committing.
-argument-hint: "[--strict] [--json]"
-allowed-tools: ["Bash(uv run python scripts/validate.py *)", "Bash(rc-validate *)"]
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
 <!-- Source: integrations/_templates/ + _config/skills.yaml -->
 <!-- Regenerate: make assemble-skills -->
 
-# /validate - Data Validation
+# Data Validation
+
 Validate Reality Check database integrity and referential consistency. Run after adding data or before committing.
 
 ## Usage
 
 ```
-/validate [--strict] [--json]
+/skill:validate [--strict] [--json]
 ```
 
 Validate Reality Check database integrity and referential consistency.
@@ -63,7 +66,7 @@ Status: OK (1 warning)
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/check`
-- `/stats`
+- `/skill:check`
+- `/skill:stats`

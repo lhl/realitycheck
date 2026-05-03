@@ -1,6 +1,10 @@
 ---
-name: realitycheck-synthesize
+name: synthesize
 description: Create a cross-source synthesis across multiple source analyses and claims. Use after checking multiple sources or when producing a higher-level, decision-oriented view.
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
@@ -11,18 +15,17 @@ description: Create a cross-source synthesis across multiple source analyses and
 
 Create a cross-source synthesis across multiple source analyses and claims. Use after checking multiple sources or when producing a higher-level, decision-oriented view.
 
-## When This Skill Activates
+## Usage
 
-- "Synthesize these sources"
-- "Compare and contrast these analyses"
-- "Write a synthesis across sources"
-- "What should we believe overall"
+```
+/skill:synthesize <topic> [source-ids/claim-ids in prompt]
+```
 
 Create a **cross-source synthesis** across multiple source analyses and existing claims.
 
-Use this after running `$check` on multiple sources (or when you already have relevant source analyses and want a higher-level conclusion).
+Use this after running `/skill:check` on multiple sources (or when you already have relevant source analyses and want a higher-level conclusion).
 
-Note: For multi-source prompts, `$check` should typically produce the synthesis automatically; `$synthesize` is the standalone/iterative version of that workflow.
+Note: For multi-source prompts, `/skill:check` should typically produce the synthesis automatically; `/skill:synthesize` is the standalone/iterative version of that workflow.
 
 ## Prerequisites
 
@@ -100,7 +103,7 @@ Write a synthesis document to:
 2. **Define the question** - What is this synthesis trying to answer?
 3. **Collect inputs**
    - Prefer existing source analyses in `analysis/sources/`
-   - If a relevant source has no analysis yet, run `$check` first (or document the gap)
+   - If a relevant source has no analysis yet, run `/skill:check` first (or document the gap)
 4. **Build a cross-source map**
    - Points of agreement (which claims converge?)
    - Points of disagreement (where do they conflict, and why?)
@@ -160,8 +163,8 @@ The `inputs_source_ids` and `inputs_analysis_ids` fields enable end-to-end cost 
 
 ## Related Skills
 
-- `realitycheck-check`
-- `realitycheck-search`
-- `realitycheck-validate`
-- `realitycheck-export`
-- `realitycheck-stats`
+- `/skill:check`
+- `/skill:search`
+- `/skill:validate`
+- `/skill:export`
+- `/skill:stats`

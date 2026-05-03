@@ -1,6 +1,10 @@
 ---
-name: realitycheck-check
+name: check
 description: Full Reality Check analysis - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis.
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
@@ -11,12 +15,11 @@ description: Full Reality Check analysis - fetch source, perform 3-stage analysi
 
 Full Reality Check analysis - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis.
 
-## When This Skill Activates
+## Usage
 
-- "Analyze this article for claims"
-- "Reality check this URL"
-- "Run a check on"
-- "Perform a full analysis"
+```
+/skill:check <url> [--domain DOMAIN] [--quick] [--no-register] [--continue]
+```
 
 The flagship Reality Check command for rigorous source analysis.
 
@@ -100,14 +103,14 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
 
 ## Multi-source Requests (Compare / Contrast)
 
-If the prompt includes **multiple sources** (multiple URLs/repos/papers) or explicitly asks for **compare/contrast**, `$check` is responsible for the **full** multi-source workflow **end-to-end**:
+If the prompt includes **multiple sources** (multiple URLs/repos/papers) or explicitly asks for **compare/contrast**, `/skill:check` is responsible for the **full** multi-source workflow **end-to-end**:
 
 1. Run the source-analysis workflow **once per source** (one `analysis/sources/<source-id>.md` per source)
 2. Then, **in the same run**, also write a single cross-source synthesis at `analysis/syntheses/<synth-id>.md`
 
 The synthesis should link back to the relevant source analyses and resolve (or clearly frame) points of agreement and disagreement.
 
-Use `$synthesize` as a standalone command when you want to:
+Use `/skill:synthesize` as a standalone command when you want to:
 - create a synthesis later from existing source analyses
 - update/refine an existing synthesis without re-running checks
 
@@ -952,9 +955,30 @@ When using `--continue` on an existing analysis:
 
 ---
 
+## Web Access
+
+This workflow may require web fetch and/or web search. Use whatever web
+tools are available in your environment.
+
+If you have **no web tools installed**, fall back to:
+
+```bash
+curl -L -sS "URL" | rc-html-extract - --format json
+```
+
+We recommend installing one of these pi web packages:
+
+```bash
+pi install npm:pi-web-access        # web search + fetch + video, zero-config (most popular)
+pi install npm:pi-smart-fetch       # best content extraction, browser-like TLS
+pi install npm:@the-forge-flow/camoufox-pi  # stealth browser for bot-protected pages
+```
+
+---
+
 ## Related Skills
 
-- `realitycheck-synthesize`
-- `realitycheck-search`
-- `realitycheck-validate`
-- `realitycheck-stats`
+- `/skill:synthesize`
+- `/skill:search`
+- `/skill:validate`
+- `/skill:stats`

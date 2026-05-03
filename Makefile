@@ -3,8 +3,8 @@
 .PHONY: help test test-all init clean
 .PHONY: release-metadata release-metadata-check
 .PHONY: assemble-skills check-skills
-.PHONY: install-skills-all install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
-.PHONY: uninstall-skills-all uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode
+.PHONY: install-skills-all install-skills-amp install-skills-claude install-skills-codex install-skills-opencode install-skills-pi
+.PHONY: uninstall-skills-all uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode uninstall-skills-pi
 .PHONY: install-plugin-claude uninstall-plugin-claude
 
 help:
@@ -16,12 +16,14 @@ help:
 	@echo "    install-skills-claude    Install Claude Code skills (~/.claude/skills/)"
 	@echo "    install-skills-codex     Install Codex skills"
 	@echo "    install-skills-opencode  Install OpenCode skills (~/.config/opencode/skills/)"
+	@echo "    install-skills-pi        Install Pi skills (~/.pi/agent/skills/)"
 	@echo ""
 	@echo "    uninstall-skills-all     Remove skills from all integrations"
 	@echo "    uninstall-skills-amp     Remove Amp skills"
 	@echo "    uninstall-skills-claude  Remove Claude Code skills"
 	@echo "    uninstall-skills-codex   Remove Codex skills"
 	@echo "    uninstall-skills-opencode Remove OpenCode skills"
+	@echo "    uninstall-skills-pi      Remove Pi skills"
 	@echo ""
 	@echo "  Plugin (Claude Code only):"
 	@echo "    install-plugin-claude    Install Claude plugin (--plugin-dir)"
@@ -55,11 +57,11 @@ check-skills:
 # =============================================================================
 
 # Install all (assemble first to ensure generated files match current version)
-install-skills-all: assemble-skills install-skills-amp install-skills-claude install-skills-codex install-skills-opencode
+install-skills-all: assemble-skills install-skills-amp install-skills-claude install-skills-codex install-skills-opencode install-skills-pi
 	@echo ""
 	@echo "All skills installed. Restart your tools to use them."
 
-uninstall-skills-all: uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode
+uninstall-skills-all: uninstall-skills-amp uninstall-skills-claude uninstall-skills-codex uninstall-skills-opencode uninstall-skills-pi
 	@echo ""
 	@echo "All skills removed."
 
@@ -153,6 +155,33 @@ uninstall-skills-opencode:
 	done
 
 # =============================================================================
+# Pi
+PI_SKILLS_SRC := $(CURDIR)/integrations/pi/skills
+PI_SKILLS_DST := $(HOME)/.pi/agent/skills
+PI_SKILLS := check synthesize analyze extract search validate export stats realitycheck
+
+install-skills-pi:
+	@echo "Installing Reality Check skills for Pi..."
+	@mkdir -p $(PI_SKILLS_DST)
+	@for skill in $(PI_SKILLS); do \
+		if [ -L "$(PI_SKILLS_DST)/$$skill" ]; then rm "$(PI_SKILLS_DST)/$$skill"; fi; \
+		if [ -d "$(PI_SKILLS_SRC)/$$skill" ]; then \
+			ln -s "$(PI_SKILLS_SRC)/$$skill" "$(PI_SKILLS_DST)/$$skill"; \
+			echo "  Installed: $$skill"; \
+		fi; \
+	done
+	@echo "Skills installed to $(PI_SKILLS_DST)"
+	@echo "Restart Pi or run /reload to use them."
+
+uninstall-skills-pi:
+	@echo "Removing Pi skills..."
+	@for skill in $(PI_SKILLS); do \
+		if [ -L "$(PI_SKILLS_DST)/$$skill" ]; then \
+			rm "$(PI_SKILLS_DST)/$$skill"; \
+			echo "  Removed: $$skill"; \
+		fi; \
+	done
+
 # Claude Plugin (separate from skills)
 # =============================================================================
 

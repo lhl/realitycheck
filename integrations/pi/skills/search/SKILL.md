@@ -1,6 +1,10 @@
 ---
-name: realitycheck-search
+name: search
 description: Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
@@ -11,11 +15,11 @@ description: Search claims and sources using natural language queries. Use when 
 
 Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
 
-## When This Skill Activates
+## Usage
 
-- "Search for claims about"
-- "Find related claims"
-- "Look up claims"
+```
+/skill:search <query> [--domain DOMAIN] [--limit N]
+```
 
 Search claims and sources using natural language queries.
 
@@ -66,5 +70,5 @@ rc-db search "economic transition" --type claim
 
 ## Related Skills
 
-- `realitycheck-stats`
-- `realitycheck-validate`
+- `/skill:stats`
+- `/skill:validate`

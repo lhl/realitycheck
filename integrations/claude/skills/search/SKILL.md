@@ -1,13 +1,13 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
 ---
 name: search
 description: Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.
 argument-hint: "QUERY [--domain DOMAIN] [--limit N]"
 allowed-tools: ["Bash(uv run python scripts/db.py search *)", "Bash(rc-db search *)"]
 ---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
 
 # /search - Semantic Search
 Search claims and sources using natural language queries. Use when looking for related claims or finding existing analysis.

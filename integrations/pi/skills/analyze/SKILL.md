@@ -1,6 +1,10 @@
 ---
-name: realitycheck-analyze
+name: analyze
 description: Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
@@ -11,11 +15,11 @@ description: Perform a full 3-stage analysis following the Reality Check methodo
 
 Perform a full 3-stage analysis following the Reality Check methodology. Use for manual analysis without automatic database registration.
 
-## When This Skill Activates
+## Usage
 
-- "Analyze this source"
-- "Do a 3-stage analysis"
-- "Manual analysis of"
+```
+/skill:analyze <url_or_source_id>
+```
 
 Perform a full 3-stage analysis following the Reality Check methodology. Use this for manual analysis when you want to review claims before registering them.
 
@@ -147,11 +151,32 @@ rc-db source add --id "..." --title "..." --type "..." --author "..." --year YYY
 rc-db claim add --id "..." --text "..." --type "[F]" --domain "..." --evidence-level "E2" --credence 0.XX --source-ids "..."
 ```
 
-Or use `$check` for fully automated analysis + registration.
+Or use `/skill:check` for fully automated analysis + registration.
+
+---
+
+## Web Access
+
+This workflow may require web fetch and/or web search. Use whatever web
+tools are available in your environment.
+
+If you have **no web tools installed**, fall back to:
+
+```bash
+curl -L -sS "URL" | rc-html-extract - --format json
+```
+
+We recommend installing one of these pi web packages:
+
+```bash
+pi install npm:pi-web-access        # web search + fetch + video, zero-config (most popular)
+pi install npm:pi-smart-fetch       # best content extraction, browser-like TLS
+pi install npm:@the-forge-flow/camoufox-pi  # stealth browser for bot-protected pages
+```
 
 ---
 
 ## Related Skills
 
-- `realitycheck-check`
-- `realitycheck-extract`
+- `/skill:check`
+- `/skill:extract`

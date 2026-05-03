@@ -1,6 +1,10 @@
 ---
-name: realitycheck-export
+name: export
 description: Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation.
+license: Apache-2.0
+compatibility: pi
+metadata:
+  project: realitycheck
 ---
 
 <!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
@@ -11,11 +15,11 @@ description: Export Reality Check data to YAML or Markdown formats for backup, s
 
 Export Reality Check data to YAML or Markdown formats for backup, sharing, or documentation.
 
-## When This Skill Activates
+## Usage
 
-- "Export claims to YAML"
-- "Generate a summary report"
-- "Export the database"
+```
+/skill:export <format> <type> [--id ID] [-o OUTPUT]
+```
 
 Export Reality Check data to YAML or Markdown formats.
 
@@ -79,5 +83,5 @@ claims:
 
 ## Related Skills
 
-- `realitycheck-stats`
-- `realitycheck-validate`
+- `/skill:stats`
+- `/skill:validate`

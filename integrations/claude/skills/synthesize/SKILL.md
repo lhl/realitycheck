@@ -1,13 +1,13 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
 ---
 name: synthesize
 description: Create a cross-source synthesis across multiple source analyses and claims. Use after checking multiple sources or when producing a higher-level, decision-oriented view.
 argument-hint: "<topic> [source-ids/claim-ids in prompt]"
 allowed-tools: ["Read", "Write", "Bash(uv run python scripts/db.py *)", "Bash(rc-db *)", "Bash(uv run python scripts/export.py *)", "Bash(rc-export *)", "Bash(uv run python scripts/validate.py *)", "Bash(rc-validate *)"]
 ---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
 
 # /synthesize - Cross-Source Synthesis
 Create a cross-source synthesis across multiple source analyses and claims. Use after checking multiple sources or when producing a higher-level, decision-oriented view.

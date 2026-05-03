@@ -1,13 +1,13 @@
-<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
-<!-- Source: integrations/_templates/ + _config/skills.yaml -->
-<!-- Regenerate: make assemble-skills -->
-
 ---
 name: check
 description: Full Reality Check analysis - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis.
 argument-hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
 allowed-tools: ["WebFetch", "WebSearch", "Read", "Write", "Bash(uv run python scripts/db.py *)", "Bash(uv run python scripts/validate.py *)", "Bash(rc-db *)", "Bash(rc-validate *)", "Bash(curl -L -sS * | rc-html-extract *)", "Bash(rc-html-extract *)"]
 ---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
 
 # /check - Full Analysis Workflow
 Full Reality Check analysis - fetch source, perform 3-stage analysis, extract claims, register to database, and validate. The flagship command for rigorous source analysis.
