@@ -33,4 +33,5 @@ allowed-tools: {{ allowed_tools | tojson }}
 {% for r in related %}
 - `/{{ r }}`
 {% endfor %}
+
 {% endif %}

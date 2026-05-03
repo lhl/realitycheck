@@ -105,16 +105,30 @@ def setup_jinja_env() -> Environment:
     return env
 
 
-def get_skill_name(skill_key: str, integration: str, defaults: dict) -> str:
-    """Get the skill name with integration-specific prefix."""
+def get_skill_name(
+    skill_key: str, integration: str, defaults: dict,
+    skill_config: dict | None = None,
+) -> str:
+    """Get the skill name with integration-specific prefix.
+
+    Per-skill ``name`` in the integration config takes precedence over
+    the default prefix.
+    """
+    if skill_config:
+        override = skill_config.get(integration, {}).get("name")
+        if override is not None:
+            return override
     prefix = defaults.get(integration, {}).get("name_prefix", "")
     return f"{prefix}{skill_key}"
 
 
-def get_output_path(skill_key: str, integration: str, defaults: dict) -> Path:
+def get_output_path(
+    skill_key: str, integration: str, defaults: dict,
+    skill_config: dict | None = None,
+) -> Path:
     """Get the output path for a generated skill."""
     skill_dir = defaults.get(integration, {}).get("skill_dir", f"{integration}/skills")
-    name = get_skill_name(skill_key, integration, defaults)
+    name = get_skill_name(skill_key, integration, defaults, skill_config)
     return SCRIPT_DIR / skill_dir / name / "SKILL.md"
 
 
@@ -124,6 +138,7 @@ def render_skill(
     skill_key: str,
     skill_config: dict,
     defaults: dict,
+    all_skills: dict | None = None,
 ) -> str:
     """Render a skill for a specific integration."""
     # Get wrapper template for this integration
@@ -136,19 +151,32 @@ def render_skill(
         return ""
 
     # Build context for template
-    name = get_skill_name(skill_key, integration, defaults)
+    name = get_skill_name(skill_key, integration, defaults, skill_config)
     integration_config = skill_config.get(integration, {})
+
+    # Resolve related skill keys to their prefixed names
+    related_keys = skill_config.get("related", [])
+    related_names = []
+    for rk in related_keys:
+        rk_config = (all_skills or {}).get(rk)
+        related_names.append(get_skill_name(rk, integration, defaults, rk_config))
+
+    # Build skill reference lookup: ref.check → "/check", ref.synthesize → "/rc-synthesize"
+    invocation_prefix = {"claude": "/", "pi": "/skill:"}.get(integration, "$")
+    ref = {}
+    for sk, sc in (all_skills or {}).items():
+        ref[sk] = invocation_prefix + get_skill_name(sk, integration, defaults, sc)
 
     context = {
         "name": name,
         "title": skill_config.get("title", skill_key.title()),
         "description": skill_config.get("description", ""),
         "template": skill_config.get("template", f"{skill_key}.md.j2"),
-        "related": skill_config.get("related", []),
+        "related": related_names,
         "needs_web": skill_config.get("needs_web", False),
         # Integration-specific
-        "invocation_prefix": {"claude": "/", "pi": "/skill:"}.get(integration, "$"),
-        "amp_prefix": defaults.get("amp", {}).get("name_prefix", "realitycheck-"),
+        "invocation_prefix": invocation_prefix,
+        "ref": ref,
     }
 
     # Merge integration-specific config
@@ -230,9 +258,16 @@ def generate_check_core(
         print("Warning: skills/check.md.j2 not found", file=sys.stderr)
         return False
 
-    # Minimal context for standalone rendering
+    # Minimal context for standalone rendering (use Claude-style names for docs)
+    config = load_config()
+    defaults = config.get("defaults", {})
+    all_skills = config.get("skills", {})
+    ref = {}
+    for sk, sc in all_skills.items():
+        ref[sk] = "/" + get_skill_name(sk, "claude", defaults, sc)
     context = {
-        "invocation_prefix": "/",  # Use Claude-style for docs
+        "invocation_prefix": "/",
+        "ref": ref,
     }
 
     try:
@@ -344,12 +379,12 @@ def main():
                 continue
 
             # Render the skill
-            content = render_skill(env, integration, skill_key, skill_config, defaults)
+            content = render_skill(env, integration, skill_key, skill_config, defaults, skills)
             if not content:
                 continue
 
             # Get output path
-            output_path = get_output_path(skill_key, integration, defaults)
+            output_path = get_output_path(skill_key, integration, defaults, skill_config)
 
             # Write (or check) the skill
             changed = write_skill(

@@ -68,7 +68,7 @@ uninstall-skills-all: uninstall-skills-amp uninstall-skills-claude uninstall-ski
 # Amp
 AMP_SKILLS_SRC := $(CURDIR)/integrations/amp/skills
 AMP_SKILLS_DST := $(HOME)/.config/agents/skills
-AMP_SKILLS := realitycheck-check realitycheck-synthesize realitycheck-analyze realitycheck-extract realitycheck-search realitycheck-validate realitycheck-export realitycheck-stats
+AMP_SKILLS := check rc-synthesize rc-analyze rc-extract rc-search rc-validate rc-export rc-stats
 
 install-skills-amp:
 	@echo "Installing Reality Check skills for Amp..."
@@ -94,7 +94,7 @@ uninstall-skills-amp:
 # Claude Code
 CLAUDE_SKILLS_SRC := $(CURDIR)/integrations/claude/skills
 CLAUDE_SKILLS_DST := $(HOME)/.claude/skills
-CLAUDE_SKILLS := check synthesize analyze extract search validate export stats realitycheck
+CLAUDE_SKILLS := check rc-synthesize rc-analyze rc-extract rc-search rc-validate rc-export rc-stats realitycheck
 
 install-skills-claude:
 	@echo "Installing Reality Check skills for Claude Code..."
@@ -130,7 +130,7 @@ uninstall-skills-codex:
 # OpenCode
 OPENCODE_SKILLS_SRC := $(CURDIR)/integrations/opencode/skills
 OPENCODE_SKILLS_DST := $(HOME)/.config/opencode/skills
-OPENCODE_SKILLS := realitycheck realitycheck-check realitycheck-synthesize realitycheck-analyze realitycheck-extract realitycheck-search realitycheck-validate realitycheck-export realitycheck-stats
+OPENCODE_SKILLS := realitycheck check rc-synthesize rc-analyze rc-extract rc-search rc-validate rc-export rc-stats
 
 install-skills-opencode:
 	@echo "Installing Reality Check skills for OpenCode..."
@@ -158,7 +158,7 @@ uninstall-skills-opencode:
 # Pi
 PI_SKILLS_SRC := $(CURDIR)/integrations/pi/skills
 PI_SKILLS_DST := $(HOME)/.pi/agent/skills
-PI_SKILLS := check synthesize analyze extract search validate export stats realitycheck
+PI_SKILLS := check rc-synthesize rc-analyze rc-extract rc-search rc-validate rc-export rc-stats realitycheck
 
 install-skills-pi:
 	@echo "Installing Reality Check skills for Pi..."

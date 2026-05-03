@@ -5,19 +5,19 @@
 # Global defaults per integration
 defaults:
   amp:
-    name_prefix: "realitycheck-"  # e.g., realitycheck-check
+    name_prefix: "rc-"  # e.g., rc-analyze
     skill_dir: "amp/skills"
   claude:
-    name_prefix: ""  # e.g., check
+    name_prefix: "rc-"  # e.g., rc-analyze
     skill_dir: "claude/skills"
   codex:
-    name_prefix: ""  # e.g., check
+    name_prefix: "rc-"  # e.g., rc-analyze
     skill_dir: "codex/skills"
   opencode:
-    name_prefix: "realitycheck-"  # e.g., realitycheck-check
+    name_prefix: "rc-"  # e.g., rc-analyze
     skill_dir: "opencode/skills"
   pi:
-    name_prefix: ""  # e.g., check (invoked as /skill:check)
+    name_prefix: "rc-"  # e.g., rc-analyze
     skill_dir: "pi/skills"
 
 # Skill definitions
@@ -30,6 +30,7 @@ skills:
     related: ["synthesize", "search", "validate", "stats"]
 
     amp:
+      name: check
       triggers:
         - "Analyze this article for claims"
         - "Reality check this URL"
@@ -37,6 +38,7 @@ skills:
         - "Perform a full analysis"
 
     claude:
+      name: check
       argument_hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
       allowed_tools:
         - "WebFetch"
@@ -51,12 +53,15 @@ skills:
         - "Bash(rc-html-extract *)"
 
     codex:
+      name: check
       invocation: "$check <url>"
 
     opencode:
+      name: check
       argument_hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
 
     pi:
+      name: check
       argument_hint: "<url> [--domain DOMAIN] [--quick] [--no-register] [--continue]"
 
   synthesize:

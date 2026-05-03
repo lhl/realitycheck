@@ -100,7 +100,7 @@ If the prompt includes **multiple sources** (multiple URLs/repos/papers) or expl
 
 The synthesis should link back to the relevant source analyses and resolve (or clearly frame) points of agreement and disagreement.
 
-Use `/synthesize` as a standalone command when you want to:
+Use `/rc-synthesize` as a standalone command when you want to:
 - create a synthesis later from existing source analyses
 - update/refine an existing synthesis without re-running checks
 

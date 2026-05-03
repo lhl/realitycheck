@@ -2,9 +2,9 @@
 
 Create a **cross-source synthesis** across multiple source analyses and existing claims.
 
-Use this after running `{{ invocation_prefix }}check` on multiple sources (or when you already have relevant source analyses and want a higher-level conclusion).
+Use this after running `{{ ref.check }}` on multiple sources (or when you already have relevant source analyses and want a higher-level conclusion).
 
-Note: For multi-source prompts, `{{ invocation_prefix }}check` should typically produce the synthesis automatically; `{{ invocation_prefix }}synthesize` is the standalone/iterative version of that workflow.
+Note: For multi-source prompts, `{{ ref.check }}` should typically produce the synthesis automatically; `{{ ref.synthesize }}` is the standalone/iterative version of that workflow.
 
 {% include "partials/prerequisites.md.j2" %}
 
@@ -36,7 +36,7 @@ Write a synthesis document to:
 2. **Define the question** - What is this synthesis trying to answer?
 3. **Collect inputs**
    - Prefer existing source analyses in `analysis/sources/`
-   - If a relevant source has no analysis yet, run `{{ invocation_prefix }}check` first (or document the gap)
+   - If a relevant source has no analysis yet, run `{{ ref.check }}` first (or document the gap)
 4. **Build a cross-source map**
    - Points of agreement (which claims converge?)
    - Points of disagreement (where do they conflict, and why?)

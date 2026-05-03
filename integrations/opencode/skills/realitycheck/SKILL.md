@@ -52,11 +52,11 @@ pip install realitycheck
 
 ## Related Skills
 
-- `realitycheck-check` - Full analysis with all options
-- `realitycheck-analyze` - Manual 3-stage analysis
-- `realitycheck-extract` - Quick claim extraction
-- `realitycheck-search` - Search existing claims
-- `realitycheck-validate` - Validate database integrity
-- `realitycheck-export` - Export data to YAML/Markdown
-- `realitycheck-stats` - Show database statistics
-- `realitycheck-synthesize` - Cross-source synthesis
+- `check` - Full analysis with all options
+- `rc-analyze` - Manual 3-stage analysis
+- `rc-extract` - Quick claim extraction
+- `rc-search` - Search existing claims
+- `rc-validate` - Validate database integrity
+- `rc-export` - Export data to YAML/Markdown
+- `rc-stats` - Show database statistics
+- `rc-synthesize` - Cross-source synthesis

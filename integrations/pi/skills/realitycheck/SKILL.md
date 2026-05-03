@@ -18,9 +18,9 @@ export).
 ```
 /skill:realitycheck <url>       # Full analysis workflow
 /skill:check <url>              # Same thing (canonical name)
-/skill:stats                    # Database statistics
-/skill:search "query"            # Semantic search
-/skill:validate                 # Data integrity check
+/skill:rc-stats                 # Database statistics
+/skill:rc-search "query"        # Semantic search
+/skill:rc-validate              # Data integrity check
 ```
 
 ## Workflow
@@ -68,10 +68,10 @@ pi install npm:@the-forge-flow/camoufox-pi  # stealth browser
 ## Related Skills
 
 - `/skill:check` - Full analysis with all options
-- `/skill:analyze` - Manual 3-stage analysis
-- `/skill:extract` - Quick claim extraction
-- `/skill:search` - Find related claims
-- `/skill:validate` - Check database integrity
-- `/skill:export` - Export data to YAML/Markdown
-- `/skill:stats` - Show database statistics
-- `/skill:synthesize` - Cross-source synthesis
+- `/skill:rc-analyze` - Manual 3-stage analysis
+- `/skill:rc-extract` - Quick claim extraction
+- `/skill:rc-search` - Find related claims
+- `/skill:rc-validate` - Check database integrity
+- `/skill:rc-export` - Export data to YAML/Markdown
+- `/skill:rc-stats` - Show database statistics
+- `/skill:rc-synthesize` - Cross-source synthesis

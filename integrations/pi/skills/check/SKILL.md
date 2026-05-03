@@ -110,7 +110,7 @@ If the prompt includes **multiple sources** (multiple URLs/repos/papers) or expl
 
 The synthesis should link back to the relevant source analyses and resolve (or clearly frame) points of agreement and disagreement.
 
-Use `/skill:synthesize` as a standalone command when you want to:
+Use `/skill:rc-synthesize` as a standalone command when you want to:
 - create a synthesis later from existing source analyses
 - update/refine an existing synthesis without re-running checks
 
@@ -978,7 +978,7 @@ pi install npm:@the-forge-flow/camoufox-pi  # stealth browser for bot-protected 
 
 ## Related Skills
 
-- `/skill:synthesize`
-- `/skill:search`
-- `/skill:validate`
-- `/skill:stats`
+- `/skill:rc-synthesize`
+- `/skill:rc-search`
+- `/skill:rc-validate`
+- `/skill:rc-stats`

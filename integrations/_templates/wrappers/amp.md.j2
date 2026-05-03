@@ -1,5 +1,5 @@
 {#- Amp skill wrapper template -#}
-{#- Variables: name, description, triggers, title, template, related -#}
+{#- Variables: name, description, triggers, title, template, related (pre-resolved) -#}
 ---
 name: {{ name }}
 description: {{ description }}
@@ -9,7 +9,7 @@ description: {{ description }}
 <!-- Source: integrations/_templates/ + _config/skills.yaml -->
 <!-- Regenerate: make assemble-skills -->
 
-# {{ title | default(name | replace('realitycheck-', '') | title) }}
+# {{ title | default(name | replace('rc-', '') | title) }}
 
 {{ description }}
 
@@ -29,6 +29,6 @@ description: {{ description }}
 ## Related Skills
 
 {% for r in related %}
-- `{{ amp_prefix }}{{ r }}`
+- `{{ r }}`
 {% endfor %}
 {% endif %}

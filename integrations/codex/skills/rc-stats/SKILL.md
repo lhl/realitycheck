@@ -1,0 +1,74 @@
+---
+name: rc-stats
+description: "Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions."
+---
+
+<!-- GENERATED FILE - DO NOT EDIT DIRECTLY -->
+<!-- Source: integrations/_templates/ + _config/skills.yaml -->
+<!-- Regenerate: make assemble-skills -->
+
+# Database Statistics (Codex)
+
+Show statistics about the Reality Check database including counts for claims, sources, chains, and predictions.
+
+## Invocation
+
+```
+$stats
+```
+
+Note: Codex reserves `/...` for built-in commands. Use `$rc-stats` instead.
+
+Show statistics about the Reality Check database.
+
+## Usage
+
+```bash
+rc-db stats
+# or: uv run python scripts/db.py stats
+```
+
+## Output
+
+```
+Reality Check Database Statistics
+=================================
+
+Claims:      42
+Sources:     15
+Chains:       3
+Predictions:  8
+Definitions:  5
+
+By Domain:
+  TECH:     18 claims
+  LABOR:    12 claims
+  ECON:      8 claims
+  GOV:       4 claims
+
+By Type:
+  [T] Theory:      15
+  [F] Fact:        12
+  [H] Hypothesis:   8
+  [P] Prediction:   5
+  [A] Assumption:   2
+
+By Evidence Level:
+  E2: 14
+  E3: 12
+  E4: 10
+  E5:  6
+```
+
+## Notes
+
+- Stats are computed from the live LanceDB database
+- Use this to get a quick overview of the knowledge base
+- For detailed exploration, use `$rc-search`
+
+---
+
+## Related Skills
+
+- `$rc-search`
+- `$rc-validate`
