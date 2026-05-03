@@ -6,19 +6,25 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
+## 0.3.4 - 2026-05-03
+
+**Pi integration & skill naming** — adds Pi (pi-agent) as a supported integration, standardizes all skill names to `rc-*` prefix across all integrations to avoid collisions, and consolidates the release checklist.
+
 ### Added
 
 - Pi (pi-agent) skill integration with 9 skills, Makefile install/uninstall targets, and `pi.md.j2` wrapper template
-- `needs_web` flag in skills.yaml for conditional web access sections in pi skills
-- Per-skill `name` override support in assemble.py (used to keep `check` unprefixed)
+- `needs_web` flag in skills.yaml for conditional web access sections (check, analyze, extract)
+- Per-skill `name` override support in assemble.py (used to keep `check` unprefixed across all integrations)
 - `ref.*` template variable for correct cross-skill references (replaces raw `invocation_prefix` concatenation)
 - `docs/PUBLISH.md` — consolidated release punch list (merges DEPLOY.md + PYPI.md patterns)
+- `--full` flag for JSON export to include embeddings (default: stripped)
 
 ### Changed
 
-- Standardized all skill names to `rc-*` prefix across all integrations (amp, claude, codex, opencode, pi) to avoid collisions with generic names; `check` and `realitycheck` keep their short names
+- Standardized all skill names to `rc-*` prefix across all five integrations (amp, claude, codex, opencode, pi) to avoid collisions with generic names like `analyze`, `search`, `validate`; `check` and `realitycheck` keep their short names
 - Moved YAML frontmatter to byte 0 in amp, claude, and pi wrapper templates (Codex/OpenCode already correct)
 - `docs/DEPLOY.md` simplified to quick reference, pointing to `docs/PUBLISH.md` for full checklist
+- JSON export now strips embeddings by default for smaller output
 
 ## 0.3.3 - 2026-02-20
 
