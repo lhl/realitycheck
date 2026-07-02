@@ -40,7 +40,11 @@ The synthesis should link back to relevant source analyses in:
    - Points of disagreement (where do they conflict, and why?)
    - Conclusions with calibrated credence + key uncertainties
    - Link claim IDs and source analysis files wherever possible
-4. **(Optional) Register an argument chain**
+4. **Neutral Analyst Prose Pass**
+   - Apply this pass to the analyst's prose, not source text, direct quotes, titles, quoted slogans, or persuasion/rhetoric examples.
+   - Remove rhetorical setup, marketing language, vague intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+   - Preserve source wording when it is evidence for rhetoric, framing, or persuasion; label it as source language instead of adopting it as the analyst's voice.
+5. **(Optional) Register an argument chain**
    - If the synthesis centers on a specific argument chain, register it and point `--analysis-file` at the synthesis document:
 
 ```bash
@@ -52,15 +56,15 @@ The synthesis should link back to relevant source analyses in:
   --analysis-file "analysis/syntheses/<synth-id>.md"
 ```
 
-5. **Validate**
+6. **Validate**
 
 ```bash
 "${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh"
 ```
 
-6. **Update README**
+7. **Update README**
    - Add a row to the "Syntheses" table (kept above "Source Analyses") in your data repo `README.md`.
-7. **Commit and push**
+8. **Commit and push**
    - If you ran a DB write command (e.g., `chain add`), the plugin hook may auto-commit.
    - Otherwise, commit your `analysis/` + `README.md` changes manually.
 

@@ -110,13 +110,39 @@ Write a synthesis document to:
 5. **Write the synthesis**
    - Link each major claim back to source analyses (when available)
    - Resolve conflicts where possible; otherwise record open questions + what would resolve them
-6. **(Optional) Register an argument chain**
+6. **Neutral Analyst Prose Pass**
+   - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+7. **(Optional) Register an argument chain**
    - Use `rc-db chain add ... --analysis-file "analysis/syntheses/<synth-id>.md" --claims "ID1,ID2,..."` for the central claim chain
-7. **Complete Tracking** - Finalize token usage with synthesis attribution
-8. **Update README**
+8. **Complete Tracking** - Finalize token usage with synthesis attribution
+9. **Update README**
    - Add the synthesis to the "Syntheses" table (kept **above** "Source Analyses")
-9. **Commit and push**
+10. **Commit and push**
    - Commit changes to `analysis/` and `README.md` (and any generated exports), then push
+
+## Neutral Analyst Prose Pass
+
+Before finalizing an analysis or synthesis, run a short pass over the
+analyst-authored prose.
+
+**Scope**:
+- Applies to the analyst's prose: summaries, thesis statements, evidence
+  assessments, credence reasoning, synthesis notes, and recommendations.
+- Does not apply to source text, direct quotes, titles, quoted slogans, or
+  sections that intentionally analyze rhetoric/persuasion techniques.
+- Preserve source wording when it is evidence for rhetoric, framing, or
+  persuasion. Label it as source language instead of adopting it as the
+  analyst's voice.
+
+**Rewrite rules**:
+- State facts, claim IDs, dates, sources, methods, search results, evidence
+  levels, credences, falsifiers, and open questions directly.
+- Remove rhetorical setup, marketing language, reassurance frames, vague
+  intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+- Replace vague quantifiers (`many`, `several`, `various`) with counts, IDs,
+  bounded scopes, or `unknown`.
+- Do not change claim IDs, evidence levels, credences, source-backed facts, or
+  quotes unless the analysis records why.
 
 ## Token Usage Tracking (Synthesis Mode)
 

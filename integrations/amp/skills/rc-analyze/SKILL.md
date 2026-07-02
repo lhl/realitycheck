@@ -103,6 +103,32 @@ To retrieve and parse source content:
 
 ---
 
+## Neutral Analyst Prose Pass
+
+Before finalizing an analysis or synthesis, run a short pass over the
+analyst-authored prose.
+
+**Scope**:
+- Applies to the analyst's prose: summaries, thesis statements, evidence
+  assessments, credence reasoning, synthesis notes, and recommendations.
+- Does not apply to source text, direct quotes, titles, quoted slogans, or
+  sections that intentionally analyze rhetoric/persuasion techniques.
+- Preserve source wording when it is evidence for rhetoric, framing, or
+  persuasion. Label it as source language instead of adopting it as the
+  analyst's voice.
+
+**Rewrite rules**:
+- State facts, claim IDs, dates, sources, methods, search results, evidence
+  levels, credences, falsifiers, and open questions directly.
+- Remove rhetorical setup, marketing language, reassurance frames, vague
+  intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+- Replace vague quantifiers (`many`, `several`, `various`) with counts, IDs,
+  bounded scopes, or `unknown`.
+- Do not change claim IDs, evidence levels, credences, source-backed facts, or
+  quotes unless the analysis records why.
+
+---
+
 ## Evidence Hierarchy
 
 Use this hierarchy to rate **strength of evidential support** for claims.

@@ -43,6 +43,15 @@ Perform a full 3-stage analysis of a source following the Reality Check methodol
 - Map interventions: what would change these claims?
 - Synthesize: where does this fit in the broader landscape?
 
+### Neutral Analyst Prose Pass
+- Apply this pass to the analyst's prose, not to source text, direct quotes,
+  titles, quoted slogans, or persuasion/rhetoric examples.
+- Remove rhetorical setup, marketing language, vague intensifiers, hedge stacks,
+  and conclusion recaps from analyst prose.
+- Preserve source wording when it is evidence for rhetoric, framing, or
+  persuasion; label it as source language instead of adopting it as the
+  analyst's voice.
+
 ## Output
 
 The analysis will:

@@ -2,6 +2,13 @@
 
 Three-stage methodology for rigorous source analysis.
 
+<!--
+Before finalizing, run a neutral analyst prose pass over analyst-authored text.
+This does not apply to source text, direct quotes, titles, quoted slogans, or
+the Persuasion Techniques section when it is analyzing rhetoric. Preserve source
+wording when it is evidence; do not adopt that wording as the analyst's voice.
+-->
+
 ---
 
 ## Source Metadata

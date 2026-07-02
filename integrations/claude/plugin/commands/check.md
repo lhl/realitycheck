@@ -35,12 +35,18 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 1. **Fetch** - Use `WebFetch` to retrieve source content
 2. **Metadata** - Extract title, author, date, type, generate source-id
 3. **Analysis** - Perform 3-stage analysis (see methodology)
-4. **Extract** - Format claims as YAML (see methodology)
-5. **Register** - Add source and claims to database
-6. **Audit Log** - Append in-document Analysis Log + register `analysis_logs` row
-7. **Validate** - Run integrity checks
-8. **README** - Update data project analysis index
-9. **Report** - Generate summary
+4. **Neutral Analyst Prose Pass** - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+5. **Extract** - Format claims as YAML (see methodology)
+6. **Register** - Add source and claims to database
+7. **Audit Log** - Append in-document Analysis Log + register `analysis_logs` row
+8. **Validate** - Run integrity checks
+9. **README** - Update data project analysis index
+10. **Report** - Generate summary
+
+The neutral prose pass applies to the analysis voice, not the content being
+analyzed. Do not remove direct quotes, source wording, titles, quoted slogans,
+or examples in persuasion/rhetoric analysis; label those as source language
+instead of adopting them as the analyst's framing.
 
 If the prompt includes **multiple sources** (compare/contrast), produce the per-source analyses **and** write a single synthesis document in `analysis/syntheses/` as part of the same `/reality:check` run. Use `/reality:synthesize` later for standalone/iterative syntheses.
 

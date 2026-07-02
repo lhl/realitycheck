@@ -2,6 +2,13 @@
 
 Cross-cutting analysis across multiple sources and claims.
 
+<!--
+Before finalizing, run a neutral analyst prose pass over analyst-authored text.
+This does not apply to source text, direct quotes, titles, quoted slogans, or
+sections that analyze rhetoric/persuasion. Preserve source wording when it is
+evidence; do not adopt that wording as the analyst's voice.
+-->
+
 ---
 
 ## Synthesis Metadata

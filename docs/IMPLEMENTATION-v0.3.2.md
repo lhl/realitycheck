@@ -243,6 +243,16 @@ No open decisions remain for coder handoff. Resolved scope choices for v0.3.2:
   - `uv run pytest` → `435 passed, 2 warnings` (existing `datetime.utcnow()` deprecation warning path)
   - `uv build --wheel` and wheel inspection confirm integration assets are included.
 
+### 2026-07-03: Pi sync coverage follow-up
+
+- Added Pi (`~/.pi/agent/skills`) to `scripts/integration_sync.py` so existing Pi installs are refreshed by `rc-db integrations sync` and first-run auto-sync after a framework version change.
+- Added `tests/test_integration_sync.py::test_sync_updates_existing_pi_managed_symlink`.
+- Extended managed symlink detection to recognize wheel-installed `site-packages/integrations/...` targets as well as source checkouts named `realitycheck`.
+- Local Pi install checked and updated: current symlinks use `check`, `rc-*`, and `realitycheck`; stale generic Reality Check symlinks were removed.
+- Validation:
+  - `uv run pytest tests/test_integration_sync.py -q` -> `15 passed`
+  - `uv run python scripts/db.py integrations sync --dry-run` -> `0 installed, 3 updated, 12 unchanged, 22 skipped` (dry run)
+
 ### 2026-02-16: parser hardening + explicit backups
 
 - Hardened formatter/validator markdown table parsing to reduce false negatives and fail-open states:

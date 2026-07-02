@@ -43,13 +43,17 @@ Write a synthesis document to:
 5. **Write the synthesis**
    - Link each major claim back to source analyses (when available)
    - Resolve conflicts where possible; otherwise record open questions + what would resolve them
-6. **(Optional) Register an argument chain**
+6. **Neutral Analyst Prose Pass**
+   - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+7. **(Optional) Register an argument chain**
    - Use `rc-db chain add ... --analysis-file "analysis/syntheses/<synth-id>.md" --claims "ID1,ID2,..."` for the central claim chain
-7. **Complete Tracking** - Finalize token usage with synthesis attribution
-8. **Update README**
+8. **Complete Tracking** - Finalize token usage with synthesis attribution
+9. **Update README**
    - Add the synthesis to the "Syntheses" table (kept **above** "Source Analyses")
-9. **Commit and push**
+10. **Commit and push**
    - Commit changes to `analysis/` and `README.md` (and any generated exports), then push
+
+{% include "partials/neutral-prose-pass.md.j2" %}
 
 ## Token Usage Tracking (Synthesis Mode)
 

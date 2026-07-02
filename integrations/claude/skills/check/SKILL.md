@@ -85,16 +85,17 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
    - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"
    - **Review gate**: do not mark `[REVIEWED]` if any crux `[F]` claim remains `?`
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
-7. **Extract** - Format claims as YAML
-8. **Register** - Add source and claims to database
-9. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
-10. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
-11. **Validate** - Run integrity checks
-12. **README** - Update data project analysis index
-13. **File Inbox** - Move/archive inbox items to permanent locations
-14. **Commit** - Stage and commit changes to data repo
-15. **Push** - Push to remote
-16. **Report** - Generate summary
+7. **Neutral Analyst Prose Pass** - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+8. **Extract** - Format claims as YAML
+9. **Register** - Add source and claims to database
+10. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
+11. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+12. **Validate** - Run integrity checks
+13. **README** - Update data project analysis index
+14. **File Inbox** - Move/archive inbox items to permanent locations
+15. **Commit** - Stage and commit changes to data repo
+16. **Push** - Push to remote
+17. **Report** - Generate summary
 
 ---
 
@@ -167,6 +168,32 @@ For multi-source requests, produce:
 - Claim Summary table (all claims)
 - Claims to Register (YAML)
 - Credence in Analysis (0.0-1.0)
+
+---
+
+## Neutral Analyst Prose Pass
+
+Before finalizing an analysis or synthesis, run a short pass over the
+analyst-authored prose.
+
+**Scope**:
+- Applies to the analyst's prose: summaries, thesis statements, evidence
+  assessments, credence reasoning, synthesis notes, and recommendations.
+- Does not apply to source text, direct quotes, titles, quoted slogans, or
+  sections that intentionally analyze rhetoric/persuasion techniques.
+- Preserve source wording when it is evidence for rhetoric, framing, or
+  persuasion. Label it as source language instead of adopting it as the
+  analyst's voice.
+
+**Rewrite rules**:
+- State facts, claim IDs, dates, sources, methods, search results, evidence
+  levels, credences, falsifiers, and open questions directly.
+- Remove rhetorical setup, marketing language, reassurance frames, vague
+  intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+- Replace vague quantifiers (`many`, `several`, `various`) with counts, IDs,
+  bounded scopes, or `unknown`.
+- Do not change claim IDs, evidence levels, credences, source-backed facts, or
+  quotes unless the analysis records why.
 
 ---
 

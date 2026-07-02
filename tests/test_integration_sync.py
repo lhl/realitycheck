@@ -47,6 +47,56 @@ def test_sync_updates_existing_managed_symlink(tmp_path, monkeypatch):
     ).resolve()
 
 
+def test_sync_updates_existing_pi_managed_symlink(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+
+    old_root = tmp_path / "roots" / "realitycheck" / "old"
+    new_root = tmp_path / "roots" / "realitycheck" / "new"
+    _make_skill_tree(old_root, "pi", ["rc-analyze"])
+    _make_skill_tree(new_root, "pi", ["rc-analyze"])
+
+    pi_dest = home / ".pi" / "agent" / "skills"
+    pi_dest.mkdir(parents=True)
+    (pi_dest / "rc-analyze").symlink_to(
+        old_root / "integrations" / "pi" / "skills" / "rc-analyze"
+    )
+
+    monkeypatch.setattr(integration_sync, "_resolve_framework_root", lambda: new_root)
+
+    result = integration_sync.sync_integrations(install_missing=False, quiet=True)
+    assert result["updated"] == 1
+    assert (pi_dest / "rc-analyze").resolve() == (
+        new_root / "integrations" / "pi" / "skills" / "rc-analyze"
+    ).resolve()
+
+
+def test_sync_updates_existing_site_packages_managed_symlink(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+
+    old_root = tmp_path / "old-venv" / "lib" / "python3.12" / "site-packages"
+    new_root = tmp_path / "new-venv" / "lib" / "python3.12" / "site-packages"
+    _make_skill_tree(old_root, "codex", ["check"])
+    _make_skill_tree(new_root, "codex", ["check"])
+
+    codex_dest = home / ".codex" / "skills"
+    codex_dest.mkdir(parents=True)
+    (codex_dest / "check").symlink_to(
+        old_root / "integrations" / "codex" / "skills" / "check"
+    )
+
+    monkeypatch.setattr(integration_sync, "_resolve_framework_root", lambda: new_root)
+
+    result = integration_sync.sync_integrations(install_missing=False, quiet=True)
+    assert result["updated"] == 1
+    assert (codex_dest / "check").resolve() == (
+        new_root / "integrations" / "codex" / "skills" / "check"
+    ).resolve()
+
+
 def test_sync_default_does_not_install_missing_skill_when_integration_present(
     tmp_path, monkeypatch
 ):

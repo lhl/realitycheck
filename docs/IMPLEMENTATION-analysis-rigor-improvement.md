@@ -285,6 +285,13 @@ See [PLAN-analysis-rigor-improvement.md § Decision Log](PLAN-analysis-rigor-imp
 
 ## Worklog
 
+### 2026-07-03: Neutral analyst prose pass
+
+- Added a workflow-level Neutral Analyst Prose Pass to shared analysis and synthesis templates.
+- Scope is explicit: the pass applies to analyst-authored prose, not source text, direct quotes, titles, quoted slogans, or sections that analyze rhetoric/persuasion techniques.
+- Regenerated integration skills and `methodology/workflows/check-core.md` with `make assemble-skills`.
+- Validation: `make check-skills` -> `Generated: 41 files, 0 changed`.
+
 ### 2026-01-31: All decisions (D1–D10) resolved
 
 Collaborative decision session with human reviewer, Claude Opus 4.5, and Codex input. Key outcomes:

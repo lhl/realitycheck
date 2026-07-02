@@ -22,16 +22,17 @@ The flagship Reality Check command for rigorous source analysis.
    - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"
    - **Review gate**: do not mark `[REVIEWED]` if any crux `[F]` claim remains `?`
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
-7. **Extract** - Format claims as YAML
-8. **Register** - Add source and claims to database
-9. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
-10. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
-11. **Validate** - Run integrity checks
-12. **README** - Update data project analysis index
-13. **File Inbox** - Move/archive inbox items to permanent locations
-14. **Commit** - Stage and commit changes to data repo
-15. **Push** - Push to remote
-16. **Report** - Generate summary
+7. **Neutral Analyst Prose Pass** - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+8. **Extract** - Format claims as YAML
+9. **Register** - Add source and claims to database
+10. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
+11. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+12. **Validate** - Run integrity checks
+13. **README** - Update data project analysis index
+14. **File Inbox** - Move/archive inbox items to permanent locations
+15. **Commit** - Stage and commit changes to data repo
+16. **Push** - Push to remote
+17. **Report** - Generate summary
 
 ---
 
@@ -104,6 +105,10 @@ For multi-source requests, produce:
 - Claim Summary table (all claims)
 - Claims to Register (YAML)
 - Credence in Analysis (0.0-1.0)
+
+---
+
+{% include "partials/neutral-prose-pass.md.j2" %}
 
 ---
 

@@ -17,6 +17,7 @@ rc-db integrations install claude    # symlinks/copies Claude Code plugin + skil
 rc-db integrations install codex     # installs Codex skills
 rc-db integrations install amp       # installs Amp skills
 rc-db integrations install opencode  # installs OpenCode skills
+rc-db integrations install pi        # installs Pi skills
 rc-db integrations install --all     # install all available integrations
 
 # Show what's installed and where
@@ -28,14 +29,14 @@ rc-db integrations sync              # already exists (v0.3.2)
 
 **Key considerations**:
 - Discover the installed package's integration assets via `importlib.resources` or `pkg_resources` (not hardcoded paths)
-- Each integration has different target directories (Claude: `~/.claude/plugins/` or project `.claude/`; Codex: `$CODEX_HOME/skills/`; Amp: `~/.amp/skills/`; OpenCode: `~/.opencode/skills/`)
+- Each integration has different target directories (Claude: `~/.claude/plugins/` or project `.claude/`; Codex: `$CODEX_HOME/skills/`; Amp: `~/.config/agents/skills/`; OpenCode: `~/.config/opencode/skills/`; Pi: `~/.pi/agent/skills/`)
 - Symlinks vs copies: symlinks are nicer for auto-update on `pip install --upgrade`, but may not work on all platforms or if installed in an isolated tool venv
 - Should work for both `pip install` and source-checkout users (detect which mode we're in)
 - Existing `integration_sync.py` handles the sync/update case; this extends it with initial install from wheel assets
 - Consider whether `install` should be a new subcommand or an extension of existing `sync --install-missing`
 
 **Relationship to existing work**:
-- `integration_sync.py` (v0.3.2) already handles refreshing existing symlinks and `--install-missing` for integrations that are partially set up
+- `integration_sync.py` already handles refreshing existing symlinks and `--install-missing` for integrations that are partially set up
 - The Makefile `install-skills-*` targets do the right thing for source checkouts; this is the pip-install equivalent
 - The `uv tool install` TODO (below) is related but orthogonal — that's about CLI isolation, this is about getting skills into editors
 

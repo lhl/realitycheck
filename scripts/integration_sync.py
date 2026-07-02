@@ -16,6 +16,7 @@ SKILL_DESTINATIONS: dict[str, Path] = {
     "claude": Path(".claude/skills"),
     "codex": Path(".codex/skills"),
     "opencode": Path(".config/opencode/skills"),
+    "pi": Path(".pi/agent/skills"),
 }
 
 CLAUDE_PLUGIN_DESTINATION = Path(".claude/plugins/local/reality")
@@ -71,7 +72,9 @@ def _parts_contain_subpath(parts: tuple[str, ...], subpath: tuple[str, ...]) -> 
 def _is_managed_target_path(path_text: str, subpath: tuple[str, ...]) -> bool:
     normalized = _normalize_path_text(path_text)
     parts = tuple(part for part in PurePosixPath(normalized).parts if part and part != ".")
-    return "realitycheck" in parts and _parts_contain_subpath(parts, subpath)
+    if not _parts_contain_subpath(parts, subpath):
+        return False
+    return "realitycheck" in parts or "site-packages" in parts
 
 
 def _is_managed_skill_symlink(path: Path, integration: str, skill_name: str) -> bool:

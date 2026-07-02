@@ -514,6 +514,24 @@ Reviewer suggestions are inputs to investigation, not evidence. Represent them a
 - `reasoning_trails.status=proposed` for suggested credence changes
 - convert to `active` only after ingesting/linking the cited evidence; otherwise `retracted`
 
+### Neutral Analyst Prose Pass
+
+Before finalizing an analysis or synthesis, run a short pass over the
+analyst-authored prose.
+
+This applies to summaries, thesis statements, evidence assessments, credence
+reasoning, synthesis notes, and recommendations. It does **not** apply to source
+text, direct quotes, titles, quoted slogans, or sections that intentionally
+analyze rhetoric/persuasion techniques. Preserve source wording when it is
+evidence for rhetoric, framing, or persuasion; label it as source language
+instead of adopting it as the analyst's voice.
+
+The pass should remove rhetorical setup, marketing language, reassurance frames,
+vague intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+Replace vague quantifiers such as `many`, `several`, and `various` with counts,
+IDs, bounded scopes, or `unknown`. Do not change claim IDs, evidence levels,
+credences, source-backed facts, or quotes unless the analysis records why.
+
 ## Analysis Audit Log Workflow
 
 After completing an analysis (and registering the source/claims), record an audit log entry:

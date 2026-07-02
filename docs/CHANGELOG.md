@@ -6,6 +6,15 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
+### Added
+
+- Neutral Analyst Prose Pass in analysis/synthesis workflows and generated skills. The pass applies to analyst-authored prose only, not source text, quotes, titles, or rhetoric/persuasion examples being analyzed.
+
+### Fixed
+
+- Integration sync now includes Pi (`~/.pi/agent/skills`) so `rc-db integrations sync` and first-run auto-sync can refresh existing Pi skill symlinks after a package upgrade.
+- Integration sync recognizes managed symlinks that point into wheel-installed `site-packages/integrations/...` assets, not only source checkouts named `realitycheck`.
+
 ## 0.3.4 - 2026-05-03
 
 **Pi integration & skill naming** — adds Pi (pi-agent) as a supported integration, standardizes all skill names to `rc-*` prefix across all integrations to avoid collisions, and consolidates the release checklist.
