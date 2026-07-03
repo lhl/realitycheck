@@ -2539,7 +2539,7 @@ class TestUpdateAnalysisLog:
         """Update only specified fields, leave others unchanged."""
         from db import add_source, add_analysis_log, update_analysis_log, get_analysis_log
 
-        add_source(sample_source, initialized_db)
+        add_source(sample_source, initialized_db, generate_embedding=False)
 
         log_id = add_analysis_log({
             "source_id": sample_source["id"],
@@ -2565,7 +2565,7 @@ class TestUpdateAnalysisLog:
         """Update modifies in place, does not create new rows."""
         from db import add_source, add_analysis_log, update_analysis_log, list_analysis_logs
 
-        add_source(sample_source, initialized_db)
+        add_source(sample_source, initialized_db, generate_embedding=False)
 
         log_id = add_analysis_log({
             "source_id": sample_source["id"],

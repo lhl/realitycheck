@@ -6,6 +6,10 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
+## 0.3.5 - 2026-07-04
+
+**Analysis style guardrails & Pi sync hardening** — adds a neutral analyst prose pass to analysis workflows and fixes packaged integration sync for Pi/wheel installs.
+
 ### Added
 
 - Neutral Analyst Prose Pass in analysis/synthesis workflows and generated skills. The pass applies to analyst-authored prose only, not source text, quotes, titles, or rhetoric/persuasion examples being analyzed.
@@ -14,6 +18,12 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 - Integration sync now includes Pi (`~/.pi/agent/skills`) so `rc-db integrations sync` and first-run auto-sync can refresh existing Pi skill symlinks after a package upgrade.
 - Integration sync recognizes managed symlinks that point into wheel-installed `site-packages/integrations/...` assets, not only source checkouts named `realitycheck`.
+
+### Tested
+
+- `REALITYCHECK_EMBED_SKIP=1 uv run pytest -q` -> `443 passed, 17 skipped`
+- `uvx --from twine twine check dist/*` -> passed for wheel and sdist
+- `uvx --isolated --from dist/realitycheck-0.3.5-py3-none-any.whl rc-db --help` -> passed
 
 ## 0.3.4 - 2026-05-03
 

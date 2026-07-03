@@ -107,7 +107,7 @@ def test_embed_text_raises_on_dim_mismatch(monkeypatch: pytest.MonkeyPatch) -> N
             return [0.1, 0.2]  # length 2
 
     monkeypatch.setattr(db, "EMBEDDING_DIM", 3)
-    db._embedder = DummyEmbedder()
+    monkeypatch.setattr(db, "get_embedder", lambda: DummyEmbedder())
 
     with pytest.raises(ValueError, match="Embedding dim mismatch"):
         db.embed_text("hello")
