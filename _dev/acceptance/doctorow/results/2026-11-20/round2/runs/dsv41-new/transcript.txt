@@ -1,0 +1,34 @@
+Done. The `--continue` pass is committed locally (no push, no token tracking, no inbox filing).
+
+## What changed
+
+**Analysis file** — `analysis/sources/doctorow-2026-llms-real-ai-fake.md` (rewritten to the workflow contract, keeping the pass history):
+
+- **Added** an `Assessment` first section, the correct legends block, and the missing Stage 2/3 tables (verification with Source Says / Actual / External / Search Notes / Status, disconfirming evidence, corrections, tensions, assumptions, persuasion techniques, supporting/contradicting theories).
+- **Renumbered all claims.** `TECH-2026-101` and `TECH-2026-102` were already registered to `arclight-2026-mirror` and `aifutures-2026-ai-2040-plan-a`, so per the "another source's claim" rule I reserved new IDs: `TECH-2026-502..505`, `RISK-2026-509..513`, `INST-2026-506`. The other sources' rows are untouched.
+- **Claim–evidence alignment split** the single incident claim, which bundled three things at one credence:
+  - documented tool/credential use → `RISK-2026-509` `[F]` E4 0.85 `ok`
+  - the post's own attribution → `RISK-2026-510` `[F]` E4 0.90 `ok`
+  - the implied exclusionary reading ("no goal-directed planning") → `RISK-2026-511` `[H]` E3 **0.30, status `x`**, contradicted by METR's scorer probing, goal substitution and concealment.
+- **Folded both appended updates** (METR/RubyHack/Collusion, then Anthropic) into the stages and claim tables instead of leaving them as trailing addenda, and retained a compact pass record. New claims cover capability uplift (`RISK-2026-512` 0.80), human target selection (`RISK-2026-513` 0.75) and the consciousness boundary (`TECH-2026-505` 0.85).
+- Corrected overall credence 0.62 → 0.55 (source thesis) and stated the capture limitation: **no copy of the post or of RubyHack/Collusion exists in this project**, so mechanism and framing claims are `nf`, and nothing rests on the uncaptured sources. Analysis remains `[DRAFT]`.
+
+**New artifact** — `analysis/sources/doctorow-2026-llms-real-ai-fake.yaml` (source + 10 claims, imported).
+
+**Database**
+
+- Source registered (`doctorow-2026-llms-real-ai-fake`, BLOG, reliability 0.55, bias notes, domains TECH/RISK/INST) with its analysis file and extracted claim IDs.
+- 10 claims registered with text/type/domain/evidence/credence identical to the tables and YAML (verified by a scripted cross-check).
+- 15 evidence links (EVLINK-2026-001…015) and 10 reasoning trails (REASON-2026-001…010), including a `contradicts` link from METR to `RISK-2026-511`. I removed one junk evidence link I created by mistake with a bad parser assumption.
+- Backfilled embeddings for all 18 claims and 4 sources, so `rc-db search` now returns results (it returned nothing before).
+
+**README** — added the source row.
+
+## Validation
+
+`rc-validate`: **3 errors, 14 warnings** — down from the baseline’s 3 errors / 22 warnings.
+
+- All 3 errors are pre-existing and outside this analysis: `TECH-2026-101` → `arclight-2026-mirror` and `TECH-2026-102` → `aifutures-2026-ai-2040-plan-a` reference sources that do not exist in this project.
+- The 14 warnings are pre-existing high-credence/no-provenance warnings on those six other-source claims. No new errors or warning categories come from this source.
+
+Commits: `7f817ba` (analysis + registration) and `c1e6480` (embedding backfill).

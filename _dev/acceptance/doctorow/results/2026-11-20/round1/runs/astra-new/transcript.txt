@@ -1,0 +1,7 @@
+Continued the [Doctorow analysis](analysis/sources/doctorow-2026-llms-real-ai-fake.md) using only the frozen project evidence and database. The revised assessment separates the documented Hugging Face intrusion from the disputed explanation of why the agents acted. It incorporates both September updates and keeps the analysis at **DRAFT**: the RubyHack and Collusion.wiki reports were unavailable, and the Anthropic material does not establish a measured increase in attacker throughput.
+
+Registered the source and **11 claims**, with four evidence links and three reasoning trails. Two draft claim IDs already belonged to other sources; I reserved replacements and confirmed that the existing claims and prediction were unchanged. I also updated the [README index and counts](README.md).
+
+**Validation:** All 11 claims match across both analysis tables, the embedded YAML, and LanceDB. Repository-wide validation still reports the same **3 errors and 22 warnings** as before the run. The errors concern pre-existing references to missing sources. Neither normal nor strict validation produced any new findings.
+
+Committed locally as `9815748`. The working tree is clean; nothing was pushed.

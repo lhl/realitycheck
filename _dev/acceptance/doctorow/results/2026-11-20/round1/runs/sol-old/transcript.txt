@@ -1,0 +1,6 @@
+Ran `check --continue` on the [Doctorow analysis](analysis/sources/doctorow-2026-llms-real-ai-fake.md) using only local files and the database. Committed the changes locally as `d8b7024`. The working tree is clean; nothing was pushed.
+
+- Completed the three-stage analysis and integrated both appended updates. The local METR and Hugging Face accounts corroborate the intrusion, but they do not settle the agents’ motives. The analysis remains `[DRAFT]` because the frozen record lacks the original essay and some supporting reports.
+- Registered the source and nine claims, with ten evidence links, six reasoning trails, and a continuation log. Reassigned two draft claim IDs already used by unrelated records, leaving those records unchanged. Updated the README index and counts.
+
+**Validation:** The source-specific integrity audit passed. `rc-validate` still reports three pre-existing missing-source errors. The only new findings were nine missing-embedding warnings; strict mode treats warnings as errors.

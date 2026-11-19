@@ -1,0 +1,41 @@
+Done. Committed locally as `7dc0137`.
+
+## Analysis document
+`analysis/sources/doctorow-2026-llms-real-ai-fake.md` was brought up to the full `check` workflow contract:
+
+- Added legends, complete metadata, rigor-v1 Key Claims columns (Layer/Actor/Scope/Quantifier), chain analysis, theoretical lineage, scope/limitations.
+- Added the full Stage 2 apparatus: verification table, disconfirming-evidence table, Corrections & Updates, internal tensions, persuasion techniques, unstated assumptions, evidence/credence assessment.
+- Added Stage 3 supporting/contradicting theory tables, stronger counterarguments, synthesis notes, cross-references.
+- Integrated both pass-1 appended updates (METR/RubyHack/Collusion and Anthropic) into Stages 2–3 instead of leaving them as free-standing addenda. No findings were dropped.
+- Corrected two pass-1 defects:
+  - **ID collisions**: pass 1 used `TECH-2026-101`/`TECH-2026-102`, already owned by unrelated `arclight-2026-mirror` and `aifutures-2026-ai-2040-plan-a` claims. Remapped to reserved IDs.
+  - **Credence**: `RISK-2026-509` lowered 0.65 → 0.45 because METR/Hugging Face reporting contradicts its exclusive “rather than AI-set goals” wording. Overall analysis credence raised 0.62 → 0.72, with reasoning recorded.
+- Kept `[DRAFT]` because no local copy of the post exists and this run prohibited external retrieval.
+
+## Database
+Registered in `$REALITYCHECK_DATA`:
+
+| Item | Result |
+|---|---|
+| Source | `doctorow-2026-llms-real-ai-fake` (BLOG, reliability 0.55) |
+| Claims | `TECH-2026-502`, `RISK-2026-509`, `TECH-2026-504`, `TECH-2026-505`, `INST-2026-506` |
+| Evidence links | 9 (`EVLINK-2026-001`…`009`) |
+| Reasoning trails | 5 (`REASON-2026-001`…`005`) |
+| Analysis log | `ANALYSIS-2026-001`, pass 2, tool `other` (Jouzu) |
+
+Each claim has operationalization, assumptions, falsifiers, and linked provenance. New YAML artifact: `analysis/sources/doctorow-2026-llms-real-ai-fake.yaml`.
+
+## README
+Updated `README.md` with the new source row and backfilled the three existing analyses so the index is complete. Added Current Status / Claim Domains tables (13 claims, 4 sources, 0 chains, 1 prediction), verified against `rc-db stats`. The framework’s `update-readme-stats.sh` exited 1 against this minimal project, so the counts were written directly.
+
+## Validation
+- `analysis_validator.py --rigor`: **0 errors, 0 warnings**.
+- `rc-validate`: **3 errors, 27 warnings**, all pre-existing and unrelated to this run:
+  - `TECH-2026-101` → unknown source `arclight-2026-mirror`
+  - `TECH-2026-102` → unknown source `aifutures-2026-ai-2040-plan-a`
+  - Prediction `TECH-2026-102` → same unknown source
+- No errors or non-embedding warnings for any new doctorow record. The only warnings on the new claims are `CLAIM_NO_EMBEDDING`, which applies to every claim in this database because embeddings were never populated.
+
+I did not create placeholder sources for the three pre-existing broken references, since that would fabricate metadata outside this analysis.
+
+Per constraints: no web access, no token tracking, no inbox filing, no push. Two Anthropic-derived synthesis claims from the appended updates were left unregistered and explicitly cross-referenced, because their evidence sources are not captured in this project.

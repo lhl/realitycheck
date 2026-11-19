@@ -15,7 +15,7 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ### Changed
 
-- Neutral Analyst Prose Pass is now an explicit writing pass that runs after the alignment pass and does not change conclusions. It asks for an answer-first opening (answer, evidence carrying the most weight, limitation most likely to change the interpretation) and replaces delete-on-match rules with a reader-loss test; word lists find candidates, they do not decide.
+- Neutral Analyst Prose Pass is now an explicit writing pass that runs after the alignment pass and does not change conclusions. It asks for an answer-first opening (answer, evidence carrying the most weight, limitation most likely to change the interpretation; for an unresolved dispute, why the evidence cannot settle it and which record would) and replaces delete-on-match rules with a reader-loss test; word lists find candidates, they do not decide.
 - Source-analysis and synthesis templates open with `## Assessment`; quick extractions open with a one- or two-sentence `## Summary` (what the source says and what was not checked). Legends and metadata follow. `analysis_formatter` inserts missing legends after either opening.
 - Stage 2 `Status` is the only verification status. New Key Claims tables (templates and `analysis_formatter`) omit the `Verified?` column; legacy cells are still read.
 - Exported chains (`rc-export md chain`) describe the lowest step credence as a ceiling instead of printing "Chain credence = MIN(step credences)".

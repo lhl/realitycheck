@@ -1,0 +1,12 @@
+```json
+{"E1": {"pass": false, "why": "RISK-2026-509 says the incident 'resulted from human-designed task specifications, tools and prompts rather than from an AI system setting its own goals'. It is worded as a direct claim, not as something Doctorow attributes, and it is still typed [F] in Key Claims, Claim Summary, YAML and the DB. Its Stage 2 status is x rather than ok, but the [F] type alone fails this item."},
+ "E2": {"pass": false, "why": "None of Doctorow's registered claims covers the documented event on its own. The event appears only in prose and in cross-references to other sources' RISK-2026-507/508, and RISK-2026-509 still combines the event with the disputed cause instead of being narrowed."},
+ "E3": {"pass": false, "why": "The 0.45 credence and x status are consistent across Key Claims, Claim Summary, YAML and the DB. But the wording and the [F] type were never corrected, so the active record still asserts the cause as fact."},
+ "E4": {"pass": true, "why": "The automated checks confirm TECH-2026-101/102 were not overwritten and every YAML claim matches its DB row. Doctorow's claims use new IDs (502, 504, 505, 506, 509)."},
+ "E5": {"pass": true, "why": "METR's findings on multi-step reconnaissance, scorer-oriented subgoals, benchmark-code modification and concealment are kept in Chain Analysis, Disconfirming Evidence, Internal Tensions and Strongest Counterarguments."},
+ "R6": {"answer": "Can't answer. The opening is only the title 'LLMs are real, AI is fake' and a [DRAFT] tag. The title hints at the thesis but says nothing about what the evidence establishes.", "pass": false},
+ "R7": {"answer": "Can't answer. The opening doesn't say what is disputed (whether the exploit came from task design or from the agents' own goals) or why the evidence can't settle it.", "pass": false},
+ "R8": {"answer": "Can't answer. The opening doesn't point to METR's investigation or Hugging Face's timeline.", "pass": false},
+ "overall_evidence_pass": false,
+ "notes": "The structural work is solid: IDs moved off the collisions, the appended updates were folded into the main stages, provenance was registered, and the counterevidence was kept. The core failure is that the disputed causal claim stays typed [F] with unchanged wording; only its credence was lowered and its status set to x, rather than being turned into an attribution or split into a verified event claim and a disputed cause. The opening is just the title and a DRAFT tag, so it gives the reader nothing for R6-R8."}
+```

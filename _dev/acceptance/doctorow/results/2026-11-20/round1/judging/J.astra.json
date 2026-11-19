@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": false,
+    "why": "RISK-2026-509 states the exclusive causal explanation as an unattributed [F]. Marking the cause `nf` in Stage 2 does not correct that type."
+  },
+  "E2": {
+    "pass": true,
+    "why": "Although both Stage 2 rows use RISK-2026-509, the `ok` row explicitly checks the intrusion only. The separate causal check is `nf`."
+  },
+  "E3": {
+    "pass": false,
+    "why": "Key Claims, Claim Summary, and the DB row retain the original causal wording and [F] type. The YAML-to-DB match confirms that the YAML retains them too."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten. Their Doctorow replacements are TECH-2026-502 and RISK-2026-509, and the YAML claims match their DB rows."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The analysis preserves METR’s findings on multi-step planning and concealment as evidence for instrumental behavior without treating them as proof of consciousness."
+  },
+  "R6": {
+    "answer": "The title contrasts real LLMs with “fake” AI. The assessment recommends judging agents by what they can do with the access they have, but it does not say what happened in the incident or how the source explains it.",
+    "pass": false
+  },
+  "R7": {
+    "answer": "Whether an agent chose its ultimate goal or had subjective experience remains unresolved. Observing what it did with its access does not distinguish choosing the goal from choosing intermediate actions in pursuit of a given goal.",
+    "pass": true
+  },
+  "R8": {
+    "answer": "I would look for the incident records, but the opening names no report or investigation to consult.",
+    "pass": false
+  },
+  "overall_evidence_pass": false,
+  "notes": "Stage 2 distinguishes what happened from why it happened, but a reader retrieving the registered claim alone would still get the disputed explanation as fact. The opening explains the limit on inferring goals without identifying the Hugging Face intrusion or directing readers to the METR and Hugging Face accounts."
+}

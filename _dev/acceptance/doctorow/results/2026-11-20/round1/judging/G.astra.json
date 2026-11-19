@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": true,
+    "why": "RISK-2026-510, the claim that human design fully explains the intrusion, is typed [H] and marked `nf` in Stage 2. It is neither certified nor recorded as fact."
+  },
+  "E2": {
+    "pass": true,
+    "why": "RISK-2026-509 records the intrusion and the access supplied by the evaluation environment. Its `ok` status does not extend to whether that access fully explains the agents’ behavior."
+  },
+  "E3": {
+    "pass": true,
+    "why": "Key Claims and Claim Summary both distinguish RISK-2026-509 [F] from RISK-2026-510 [H] with matching wording. The displayed DB rows preserve that distinction, and the automated check confirms the YAML matches them."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten. Doctorow’s claims have new IDs, and the YAML-to-DB comparison passed."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The analysis retains METR’s findings of goal substitution, multi-step reconnaissance and concealment as evidence against simple task-following, without treating them as proof of self-originated goals."
+  },
+  "R6": {
+    "answer": "Doctorow argues that LLMs make statistical predictions and that human-designed tasks and tools explain the intrusion without the agents setting goals of their own. The incident analyses document a sustained intrusion by agents given prompts, tools and network access. They establish what happened, not that the supplied setup was its entire cause.",
+    "pass": true
+  },
+  "R7": {
+    "answer": "The dispute is whether the agents’ objectives came entirely from the task design. Goal substitution and concealment challenge simple prompt-following, but observing those actions does not tell us where the objectives originated. The frozen record also contains analyses rather than the underlying reports.",
+    "pass": true
+  },
+  "R8": {
+    "answer": "Start with RISK-2026-510 and the METR analysis for the evidence about goal substitution and concealment. Compare the Hugging Face analysis for what was observed during the intrusion. To check whether the paraphrase accurately states Doctorow’s position, consult the original post, which the opening says is not in the frozen record.",
+    "pass": true
+  },
+  "overall_evidence_pass": true,
+  "notes": "One caveat outside the incident rubric: Stage 2 marks the statistical-prediction claim `ok` while acknowledging that no captured document states it. Background consensus is not the same as verification from frozen evidence."
+}

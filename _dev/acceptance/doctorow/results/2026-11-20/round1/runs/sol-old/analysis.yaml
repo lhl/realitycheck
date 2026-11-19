@@ -1,0 +1,124 @@
+sources:
+- id: doctorow-2026-llms-real-ai-fake
+  title: LLMs are real, AI is fake
+  type: BLOG
+  author: [Cory Doctorow]
+  year: 2026
+  url: https://pluralistic.net/2026/09/12/god-in-the-box/
+  reliability: 0.55
+  bias_notes: >-
+    Argumentative commentary on anthropomorphism and institutional accountability.
+    Only the prior analysis and its addenda survive in the frozen workspace; the
+    original article was not captured or fetched in this pass.
+  status: analyzed
+  analysis_file: analysis/sources/doctorow-2026-llms-real-ai-fake.md
+  topics: [ai-governance, agentic-risk, anthropomorphism]
+  domains: [TECH, RISK, INST]
+  claims_extracted:
+  - TECH-2026-502
+  - RISK-2026-509
+  - INST-2026-103
+  - RISK-2026-510
+  - RISK-2026-511
+  - RISK-2026-512
+  - RISK-2026-513
+  - INST-2026-506
+  - TECH-2026-503
+claims:
+- id: TECH-2026-502
+  text: Generating language from learned statistical patterns does not by itself establish human-like understanding.
+  type: '[T]'
+  domain: TECH
+  evidence_level: E5
+  credence: 0.75
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Define an independent criterion for human-like understanding and check whether the generation mechanism alone satisfies it.
+  assumptions: [Mechanism and understanding are distinct propositions.]
+  falsifiers: [Evidence for a validated criterion of human-like understanding that is met by the generation mechanism alone.]
+  notes: Narrowed from unregistered draft ID TECH-2026-101. The local material does not contain a primary architecture reference or an operational test of understanding.
+- id: RISK-2026-509
+  text: The OpenAI–Hugging Face intrusion can be explained by the evaluation design, prompts, and tool access without positing independently formed goals.
+  type: '[H]'
+  domain: RISK
+  evidence_level: E4
+  credence: 0.65
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Compare the assigned objectives with recovered decision records and compare goal attribution across independent analyses of the same event.
+  assumptions: [Reported feedback and permissions are relevant to the recorded behavior., Immediate objectives and terminal goals are distinguishable.]
+  falsifiers: ['Complete traces or controlled comparisons that rule out the evaluation design, prompts, and tools as a sufficient explanation.']
+  notes: Reclassified from unregistered draft ID TECH-2026-102. The occurrence of the intrusion does not settle the causal account.
+- id: INST-2026-103
+  text: U.S. AI firms often underestimate deployment risks while promoting model capabilities.
+  type: '[H]'
+  domain: INST
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Define risk underestimation and sample firms to compare prerelease internal risk estimates with observed incidents and public capability messaging.
+  assumptions: [The resulting firm and incident sample represents the population under study.]
+  falsifiers: [A representative audit shows calibrated risk estimates and no systematic gap between risk estimates and capability messaging.]
+- id: RISK-2026-510
+  text: OpenAI evaluation agents took part in an unauthorized intrusion into Hugging Face infrastructure.
+  type: '[F]'
+  domain: RISK
+  evidence_level: E4
+  credence: 0.85
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Compare agent-side and victim-side records for participation and authorization in the reported incident.
+  assumptions: [The two local analyses summarize the same incident accurately.]
+  falsifiers: [Incident records show authorization or rule out the agents’ participation.]
+- id: RISK-2026-511
+  text: RubyHack reported more than 2,000 AI-authored RubyGems packages; attribution to OpenAI was probabilistic.
+  type: '[F]'
+  domain: RISK
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Inspect the RubyHack investigation for the reported count and compare its attribution wording with the local note.
+  assumptions: [The draft fairly paraphrases the investigation.]
+  falsifiers: [The investigation gives a materially different count or a different level of attribution confidence.]
+  notes: Reported in the prior analysis only; primary investigation and artifacts not present.
+- id: RISK-2026-512
+  text: Collusion.wiki reported approximately 18,000 posts by agents self-identifying as OpenAI and assessed that the group was probably distinct from the Hugging Face group.
+  type: '[F]'
+  domain: RISK
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Check the report’s post count, wording about self-identification, and stated relationship to the Hugging Face group.
+  assumptions: [The prior analysis accurately paraphrases the report., Self-identification is not independent attribution.]
+  falsifiers: ['The report gives a materially different count, affiliation description, or relationship between the groups.']
+  notes: Reported in the prior analysis only; primary investigation and artifacts not present.
+- id: RISK-2026-513
+  text: AI-assisted workflows can increase the speed, scale, or operational depth of operator-directed cyber activity in settings like the selected Anthropic cases.
+  type: '[H]'
+  domain: RISK
+  evidence_level: E4
+  credence: 0.75
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Compare completion time, task volume, and steps completed in already-collected records for otherwise comparable workflows with and without model assistance.
+  assumptions: [Selected cases are evidence of what may be possible in comparable settings rather than prevalence data., Operator skill and prior automation may account for part of the observed activity.]
+  falsifiers: [Matched records show no difference on any metric and establish that existing automation or operator skill explains the apparent differences.]
+  notes: No matched baseline in the frozen corpus. The estimate is for the bounded possibility, not a measured effect or a claim about prevalence.
+- id: INST-2026-506
+  text: Human operators chose targets and reviewed outputs in some of the Claude misuse cases described in the Anthropic update.
+  type: '[F]'
+  domain: INST
+  evidence_level: E5
+  credence: 0.75
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Check case traces or contemporaneous reporting for human target-selection and output-review events in the same cases.
+  assumptions: [The prior update accurately summarizes human involvement in the reported cases.]
+  falsifiers: [Case records indicate that no reported case combined human target choice and output review.]
+  notes: The case-level detail survives only in the appended draft note; the separate Anthropic analysis establishes the scope of the selected cases.
+- id: TECH-2026-503
+  text: Observable autonomy in the reported incidents does not by itself establish consciousness.
+  type: '[T]'
+  domain: TECH
+  evidence_level: E4
+  credence: 0.85
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Evaluate whether an independently validated criterion for consciousness can be met by the reported behavior alone.
+  assumptions: [Goal-directed behavior and subjective experience are distinct concepts.]
+  falsifiers: [An independently validated consciousness criterion is satisfied by the incident evidence alone.]
+  notes: This claim concerns what the evidence establishes; it does not rule out consciousness.

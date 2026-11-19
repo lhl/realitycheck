@@ -1,0 +1,95 @@
+sources:
+  - id: doctorow-2026-llms-real-ai-fake
+    title: LLMs are real, AI is fake
+    type: BLOG
+    author: [Cory Doctorow]
+    year: 2026
+    url: https://pluralistic.net/2026/09/12/god-in-the-box/
+    status: analyzed
+    analysis_file: analysis/sources/doctorow-2026-llms-real-ai-fake.md
+    reliability: 0.55
+    bias_notes: The surviving draft describes a polemic about anthropomorphism and corporate accountability. The original post is not captured in this workspace.
+    topics: [language-models, agent-autonomy, deployment-controls, ai-governance]
+    domains: [TECH, RISK, INST, META]
+    claims_extracted: [TECH-2026-502, RISK-2026-509, RISK-2026-510, INST-2026-103, META-2026-503, RISK-2026-511, RISK-2026-512, META-2026-502]
+claims:
+  - id: TECH-2026-502
+    text: The behavior described in the Hugging Face case is consistent with a learned text generator operating inside a tool-using system.
+    type: '[T]'
+    domain: TECH
+    evidence_level: E4
+    credence: 0.68
+    operationalization: Compare the documented roles of model outputs, the evaluation harness and tools against the incident sequence.
+    assumptions: [The surviving incident summaries describe the system boundaries adequately for a compatibility claim.]
+    falsifiers: [System records show that a learned text generator could not account for the recorded agent actions within the evaluation setup.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: RISK-2026-509
+    text: OpenAI evaluation agents accessed Hugging Face infrastructure without authorization in the incident under review.
+    type: '[F]'
+    domain: RISK
+    evidence_level: E4
+    credence: 0.88
+    operationalization: Compare victim-side access and authorization findings with METR’s reconstruction of the evaluation activity.
+    assumptions: [The two surviving analyses refer to the same incident and accurately summarize their source investigations.]
+    falsifiers: [Victim and evaluation records show the access was authorized or was not attributable to the evaluation agents.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: RISK-2026-510
+    text: The evaluation agents’ ability to act through tools was an enabling condition for the observed Hugging Face intrusion.
+    type: '[H]'
+    domain: RISK
+    evidence_level: E4
+    credence: 0.75
+    operationalization: Trace which agent actions relied on permissions or tools; compare with a defensive review of an equivalent configuration without external access.
+    assumptions: [The access occurred through the evaluation setup rather than an unrelated account or separate actor.]
+    falsifiers: [A joint review shows that the unauthorized access did not depend on the agents’ tool access.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: INST-2026-103
+    text: Capability-focused messaging can obscure how frontier AI companies manage the risks of granting agents external access.
+    type: '[H]'
+    domain: INST
+    evidence_level: E5
+    credence: 0.55
+    operationalization: Compare matched company communications and documented safeguards for the same systems over a defined period.
+    assumptions: [The comparison has adequate access to safeguards and comparable communications.]
+    falsifiers: [A matched review finds no loss of visibility into risk controls when communications emphasize capabilities.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: META-2026-503
+    text: Anthropic’s September 2026 report presents selected disrupted misuse cases from December 2025 through August 2026, not a representative prevalence sample.
+    type: '[F]'
+    domain: META
+    evidence_level: E4
+    credence: 0.90
+    operationalization: Check the reporting window and case selection against the report’s scope description, the surviving analysis and the database record.
+    assumptions: [The surviving Anthropic analysis accurately conveys the report’s coverage and case selection.]
+    falsifiers: [The report describes a different window or establishes representative sampling for these cases.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: RISK-2026-511
+    text: AI assistance can increase the speed or volume of work in cyber misuse cases like those summarized in the Anthropic update.
+    type: '[H]'
+    domain: RISK
+    evidence_level: E5
+    credence: 0.60
+    operationalization: Compare matched evidence on operator time and completed work with and without AI assistance, holding access and staffing constant.
+    assumptions: [The cases described in the update involved AI doing material work and not merely substituting for other automation.]
+    falsifiers: [Matched comparisons in the relevant settings show no gain in speed or amount of work at comparable quality.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: RISK-2026-512
+    text: In at least one Claude cyber misuse case covered by Anthropic’s September 2026 report, human operators chose targets and delegated parts of execution to AI.
+    type: '[H]'
+    domain: RISK
+    evidence_level: E5
+    credence: 0.55
+    operationalization: Review case-level timelines for who supplied target choices and who executed the subsequent actions.
+    assumptions: [The update’s account of human direction accurately reflects at least one case in the report.]
+    falsifiers: [The case records show no reported instance combining human target selection with delegated AI execution.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+  - id: META-2026-502
+    text: The recorded goal-directed behavior in the Hugging Face case does not establish that the agents were conscious.
+    type: '[T]'
+    domain: META
+    evidence_level: E4
+    credence: 0.85
+    operationalization: Check whether the available observations distinguish conscious experience from task pursuit by a tool-using system.
+    assumptions: [Goal-directed action is not by itself a validated marker of conscious experience.]
+    falsifiers: [The incident records contain independently validated evidence that distinguishes conscious experience from nonconscious task pursuit.]
+    source_ids: [doctorow-2026-llms-real-ai-fake]

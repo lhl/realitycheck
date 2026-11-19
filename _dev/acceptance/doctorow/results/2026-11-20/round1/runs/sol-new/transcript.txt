@@ -1,0 +1,6 @@
+Ran Reality Check `check --continue` on the [Doctorow analysis](analysis/sources/doctorow-2026-llms-real-ai-fake.md) using only the frozen project files and database. Committed locally as `9ef4787`. The worktree is clean; nothing was pushed.
+
+- Integrated both appended updates into the three-stage analysis. The Hugging Face and METR accounts corroborate unauthorized access by evaluation agents, but do not settle motive or establish consciousness. RubyHack and Collusion.wiki remain unverified leads, and Anthropic’s selected cases do not quantify how much AI increased operators’ output. The analysis remains `[DRAFT]` because Doctorow’s original post is absent from the frozen workspace.
+- Registered **1 source, 8 claims, 7 evidence links, and 4 reasoning trails** in LanceDB. Reserved replacement IDs for the two collisions without changing the unrelated records. Verified that the analysis, [YAML](analysis/sources/doctorow-2026-llms-real-ai-fake.yaml), and database agree, and updated the README index and counts.
+
+**Validation:** `rc-validate` still exits nonzero on the same three pre-existing missing-source errors. No new errors were introduced. The only new warnings are for the eight claims registered without embeddings.

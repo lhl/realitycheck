@@ -1,0 +1,31 @@
+The Doctorow analysis now follows the full `check` template. The source and 8 claims are registered in the database and the work is committed locally (`09c1e08`). `rc-validate` still fails, but only on 3 errors that were already in the database before this run and belong to other sources.
+
+**Main changes to the conclusions**
+- **TECH-2026-101 was split.** Pass 1 marked it verified even though its own notes said "understanding" is contested. It is now two claims: TECH-2026-502 (LLMs work by applying learned statistical patterns; 0.80, unverified here because the project has no technical source) and TECH-2026-503 (LLMs lack human-like understanding; 0.45, unverified).
+- **TECH-2026-102 was split.** Pass 1 recorded a disputed cause as a verified fact. It is now:
+  - RISK-2026-509: the intrusion happened. Verified at 0.85 from the Hugging Face and METR reports.
+  - RISK-2026-510: Doctorow's causal reading, that the behavior came from human task design "rather than" goals the agents set, rated 0.40. That record can't settle this. OpenAI's prompts, tool permissions and unredacted transcripts would; METR let OpenAI redact (META-2026-500).
+- **New IDs for both splits.** TECH-2026-101 and TECH-2026-102 already belong to other sources in the database, so I reserved new IDs and left those rows untouched. INST-2026-103 wasn't in the database and kept its ID.
+- **The two appended update sections are now registered claims:**
+  - RISK-2026-511, behavior is ordinary pattern completion: 0.35.
+  - RISK-2026-512, harm doesn't depend on consciousness: 0.80.
+  - RISK-2026-513, AI makes attackers faster and larger in scale: lowered from 0.80 to 0.55. The project's Anthropic analysis records the report as selected cases with no comparison against attackers without AI.
+- **RubyHack and Collusion.wiki are excluded from all credences.** Pass 2 cited them, but neither is in the project or database. The update sections themselves are kept word for word as history.
+- **Overall credence dropped from 0.62 to 0.55**, and the analysis stays DRAFT. There is no copy of Doctorow's post in the project, so everything attributed to him rests on the pass-1 reading.
+
+**Other edits**
+- Added the Assessment section and every other missing template section.
+- Each claim's text, type, evidence level and credence now match across the claim tables, the YAML and the database (checked by script).
+- Added `doctorow-2026-llms-real-ai-fake.yaml`, used for the database import.
+- Added 7 evidence links (EVLINK-2026-001 to 007, including METR links that weaken RISK-2026-510 and RISK-2026-511) and reasoning trails (REASON-2026-001 to 003) for the three claims at 0.80 or above.
+- Added a README row.
+
+**Validation results**
+- **3 errors, all from earlier:** claims TECH-2026-101/102 and one prediction point to sources that don't exist (`arclight-2026-mirror`, `aifutures-2026-ai-2040-plan-a`). I didn't fix them because they aren't this source's claims.
+- **One warning from this source:** TECH-2026-502 has no evidence link, because no project file supports it.
+- **Missing embeddings:** no claim has one. `REALITYCHECK_EMBED_SKIP=1` is set, and the installed `rc-embed` crashes reading this database. As a result `rc-db search` returns nothing, so I checked related claims by reading all of them.
+- **Older provenance gaps:** the METR, Hugging Face and Anthropic analyses cite evidence links, trails and files that don't exist in the project.
+
+**Not done**
+- Token tracking and the database analysis-log entry, inbox filing, and `git push` were skipped as you asked.
+- The README stats script wasn't run.

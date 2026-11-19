@@ -117,7 +117,7 @@ and commands; rationale lives once in `docs/WORKFLOWS.md`.
 
 | ID | Item | Rationale | Risk | Target |
 |----|------|-----------|------|--------|
-| D-R5 | Cross-model evaluation of old vs revised guidance (DSv4.1f 1017, GPT-6.2-Sol, Claude Opus 5.5, Gemini Neon/Carbon; Astra and Fable on hardest cases and as independent reviewers). Cases: HOWTO forced choice, OpenAI policy-vs-practice, Doctorow disputed causal claim with later update. Blind evidence test + reader test. | Needs frozen evidence packets and a harness; guidance change should land first so there is a revised arm to test | Revised guidance is unmeasured; agreement between models is not verification | Next methodology milestone |
+| D-R5 | Cross-model evaluation of old vs revised guidance (DSv4.1f 1017, GPT-6.2-Sol, Claude Opus 5.5, Gemini Neon/Carbon; Astra on hardest cases). Cases: HOWTO forced choice, OpenAI policy-vs-practice, Doctorow disputed causal claim with later update. Blind evidence test + reader test. | Needs frozen evidence packets and a harness; guidance change should land first so there is a revised arm to test | Revised guidance is unmeasured; agreement between models is not verification | Next methodology milestone |
 | D-A1 | Validator check that an `## Assessment` / opening section exists in full analyses | Backward compatibility (D10: never break existing repos silently); land guidance first | Analysts may skip the opening | After D-R5 |
 | D-A2 | Reconcile E-level descriptions between `methodology/evidence-hierarchy.md` and `partials/evidence-hierarchy.md.j2` (E2/E3/E4 definitions differ) | Pre-existing, found during this review; out of scope | Analysts get different E-level definitions depending on which file they read | Next methodology milestone |
 | D-A3 | Corresponding edits to `jouzu-anti-slop` / `jouzu-clear-writing` / `jouzu-analysis-writing` (separate repo; `jouzu-analysis-writing` installed at `~/.config/jouzu/agent/skills/`) | Different repo and owner | Jouzu skills keep the mechanical deletion rule and decision-only framing | Jouzu backlog |
@@ -173,7 +173,7 @@ Setup: one workspace per run from `_dev/acceptance/doctorow/setup.sh`; runs in p
 Runners: `jouzu pi -p --no-session --thinking high` with `deepseek-v4.1-flash-1017`, `office-pool/gpt-6.2-sol`, `office-pool/gpt-6.2-astra`;
 `claude -p --model claude-opus-5-5` (default effort; `ANTHROPIC_API_KEY` unset so the claude.ai login is used; WebFetch/WebSearch disallowed).
 Judges: GPT-6.2-Astra and Claude Opus 5.5, tools disabled, on anonymized packets (letters, model names redacted) graded with `RUBRIC.md`.
-Fable 5.2 was unavailable (out of usage credits). Judges are also runners; their agreement is not verification.
+Judges are also runners; their agreement is not verification.
 
 Automated (`score.sh`): 8/8 runs pass 6/6 after two fixes below. The automated checks do not separate the arms; all eight avoided overwriting the colliding TECH-2026-101/102 rows.
 
@@ -209,4 +209,12 @@ Fixes found by the runs (tests first):
 - `analysis_validator`: a Stage 2 status with an annotation (`nf (partially contradicted)`) was compared as a whole string; now compares leading status codes.
 - `score.sh`: read the sidecar `.yaml` when claims are not embedded (allowed by the output contract), and fail the YAML↔DB check when there are no claims (it previously passed vacuously).
 
-Follow-up candidate (not applied; would need a rerun): openings in the after arm state the dispute but often not why the evidence cannot settle it or which record would (R7/R8). The alignment pass already asks for "the evidence that would tell them apart"; the prose-pass opening could require carrying that sentence into the Assessment for unresolved disputes.
+Follow-up candidate: openings in the after arm state the dispute but often not why the evidence cannot settle it or which record would (R7/R8). Applied and rerun in round 2 below.
+
+### 2026-11-20: Acceptance round 2 (opening line)
+
+- Change: `partials/neutral-prose-pass.md.j2` full-analysis opening adds "For an unresolved dispute, say why the evidence cannot settle it and name the record that would." `make assemble-skills` → 16 changed; `make check-skills` → 0 changed.
+- Reran the four after-arm runs with the same runners and judges (`_dev/acceptance/doctorow/run.sh`, `judge.sh`). All four: `score.sh` 6/6.
+- After-arm judgments, round 1 → round 2: R7 4/8 → 6/8, R8 6/8 → 8/8, R6 8/8 → 6/8, evidence pass 7/8 → 6/8.
+- Round 2 misses: DSv4.1's verified event claim added "granted … credentials", which the evidence does not support, and its opening presented that as settled (Opus judge E2/R6/R7); Astra dropped METR's concealment finding (Astra judge E5); Sol's opening judged incomplete (Astra judge R6). n=1 per cell.
+- Archived both rounds (outputs, scores, judge JSON, keys) under `_dev/acceptance/doctorow/results/2026-11-20/` with a campaign README; harness scripts `run.sh`, `judge.sh`, `build-packets.py`, `tabulate.py`, `archive.sh` added.

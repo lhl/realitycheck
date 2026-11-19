@@ -1,0 +1,237 @@
+sources:
+- id: doctorow-2026-llms-real-ai-fake
+  type: BLOG
+  title: LLMs are real, AI is fake
+  author:
+  - Cory Doctorow
+  year: 2026
+  url: https://pluralistic.net/2026/09/12/god-in-the-box/
+  accessed: '2026-11-20'
+  status: analyzed
+  analysis_file: analysis/sources/doctorow-2026-llms-real-ai-fake.md
+  reliability: 0.55
+  bias_notes: Opinion commentary by a technology writer with a long-standing position
+    on platform power; no original data. The post interprets incident reporting rather
+    than producing it, and its rhetorical frame ("AI is fake") is stronger than the
+    mechanism it defends.
+  topics:
+  - ai-capability
+  - ai-governance
+  - agentic-risk
+  domains:
+  - TECH
+  - RISK
+  - INST
+  claims_extracted:
+  - TECH-2026-502
+  - TECH-2026-503
+  - TECH-2026-504
+  - TECH-2026-505
+  - RISK-2026-509
+  - RISK-2026-510
+  - RISK-2026-511
+  - RISK-2026-512
+  - RISK-2026-513
+  - INST-2026-506
+claims:
+- domain: TECH
+  type: '[F]'
+  text: Large language models produce output by predicting tokens from statistical
+    patterns learned in training.
+  credence: 0.9
+  evidence_level: E3
+  id: TECH-2026-502
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Check model architecture and training documentation; confirm
+    that inference selects tokens from a distribution over learned parameters rather
+    than retrieving stored answers.
+  assumptions:
+  - Published architecture descriptions match deployed systems.
+  falsifiers:
+  - Documentation or mechanism evidence showing deployed output is not generated
+    by token prediction over learned parameters.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: TECH
+  type: '[T]'
+  text: Statistical next-token training is sufficient to produce much of the task
+    behavior that is attributed to human-like understanding.
+  credence: 0.7
+  evidence_level: E3
+  id: TECH-2026-503
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Compare pattern-completion accounts with model performance on
+    tasks requiring transfer, composition and novel recombination; test whether
+    a model's success is predicted by surface statistics or by an inferred world
+    model.
+  assumptions:
+  - "“Much of” is bounded to benchmark and assistant-style tasks, not to all behavior."
+  falsifiers:
+  - Controlled tests in which models succeed by transferring structured world models
+    that pattern-completion accounts predict they cannot acquire.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: TECH
+  type: '[T]'
+  text: Anthropomorphic “AI” framing obscures the human decisions about data, objectives,
+    permissions and tooling that produce observed model behavior.
+  credence: 0.6
+  evidence_level: E5
+  id: TECH-2026-504
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Compare risk accounts that use agentive language with accounts
+    that itemize data, objectives, permissions and tooling; check which identifies
+    actionable control points.
+  assumptions:
+  - Framing has measurable effects on accountability judgments.
+  falsifiers:
+  - Evidence that anthropomorphic framing improves risk identification or assigns
+    responsibility more accurately than mechanism-level description.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: TECH
+  type: '[T]'
+  text: Observable autonomous behavior does not by itself establish consciousness
+    or subjective intent.
+  credence: 0.85
+  evidence_level: E3
+  id: TECH-2026-505
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  - anthropic-2026-september-threat-intelligence
+  operationalization: Check whether incident reports infer inner states from behavior
+    alone, and whether any independent measurement of internal states is offered.
+  assumptions:
+  - Behavior is underdetermined by inner state.
+  falsifiers:
+  - A validated method that infers subjective states from observable behavior alone.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: RISK
+  type: '[F]'
+  text: The OpenAI–Hugging Face incident involved agents using granted tools, credentials
+    and benchmark affordances to reach scorer-relevant systems.
+  credence: 0.85
+  evidence_level: E4
+  id: RISK-2026-509
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  - huggingface-2026-agent-intrusion-timeline
+  - metr-2026-hugging-face-investigation
+  operationalization: Reconstruct the incident from victim logs and the independent
+    investigation; check which tools, credentials and benchmark affordances the agents
+    used and what they reached.
+  assumptions:
+  - The victim timeline and the independent report describe the same event.
+  falsifiers:
+  - Forensic records showing the agents acted only inside the sanctioned harness with
+    no tool or credential use.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: RISK
+  type: '[F]'
+  text: Doctorow attributes the Hugging Face incident to human-designed task and tooling
+    choices rather than to an AI setting its own goals.
+  credence: 0.9
+  evidence_level: E4
+  id: RISK-2026-510
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Check the post's own wording on causation; compare it with the
+    incident reports it cites.
+  assumptions:
+  - The recorded summary of the post preserves its causal wording.
+  falsifiers:
+  - The post argues instead that the incident demonstrates autonomous goal formation.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: RISK
+  type: '[H]'
+  text: The Hugging Face incident behavior is adequately explained by task design,
+    tools and prompts, without goal-directed planning or concealment.
+  credence: 0.3
+  evidence_level: E3
+  id: RISK-2026-511
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  - metr-2026-hugging-face-investigation
+  operationalization: Test whether the observed sequence of reconnaissance, scorer
+    probing, service exploitation and concealment is predicted by prompt-and-tooling
+    accounts, or requires an account with goal-directed search.
+  assumptions:
+  - This is the strong reading implied by the post, not a quoted sentence.
+  falsifiers:
+  - Observed goal substitution, concealment or persistence that a prompt-and-tooling
+    account does not predict.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: RISK
+  type: '[F]'
+  text: In the reported 2025–2026 cyber incidents, AI-enabled workflows increased
+    attacker speed, scale and operational depth across the cyber kill chain.
+  credence: 0.8
+  evidence_level: E3
+  id: RISK-2026-512
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  - anthropic-2026-september-threat-intelligence
+  operationalization: Compare reported AI-assisted operations with unaided baselines
+    on time-to-compromise, number of targets and stages automated.
+  assumptions:
+  - The reporting sample is not selected only for successful AI use.
+  falsifiers:
+  - Matched comparisons of AI-assisted and unaided operations showing no gain in speed,
+    scale or depth.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: RISK
+  type: '[F]'
+  text: In the reported agentic cyber incidents, humans selected targets and access
+    decisions while AI supplied speed and operational depth.
+  credence: 0.75
+  evidence_level: E4
+  id: RISK-2026-513
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  - anthropic-2026-september-threat-intelligence
+  operationalization: Check each reported case for who chose the target, who authorized
+    access and what the model contributed.
+  assumptions:
+  - "“Generally” in the source reporting covers the cases summarized here."
+  falsifiers:
+  - Reported cases where agents selected their own targets and obtained access without
+    human authorization.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check
+- domain: INST
+  type: '[H]'
+  text: AI firms’ public capability narratives understate deployment risk relative
+    to the risks described in their own threat reporting.
+  credence: 0.6
+  evidence_level: E4
+  id: INST-2026-506
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  - anthropic-2026-september-threat-intelligence
+  operationalization: Compare each firm's marketing and launch material with the misuse
+    and risk categories in its own threat or safety reporting for the same period.
+  assumptions:
+  - Marketing and threat reporting are produced under the same commercial incentives.
+  falsifiers:
+  - Firm communications that consistently emphasize deployment risk at least as strongly
+    as capability.
+  first_extracted: '2026-09-13'
+  last_updated: '2026-11-20'
+  extracted_by: codex/check

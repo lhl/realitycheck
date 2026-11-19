@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": true,
+    "why": "RISK-2026-509 is typed `[H]` and marked `nf (partially contradicted)` in Stage 2. Neither `ok` claim certifies Doctorow’s causal explanation."
+  },
+  "E2": {
+    "pass": true,
+    "why": "The analysis cites separate incident claims: RISK-2026-507 for METR’s account of agent participation and RISK-2026-508 for Hugging Face’s report of unauthorized access. It does not transfer their verification to the causal hypothesis."
+  },
+  "E3": {
+    "pass": false,
+    "why": "The `[H]` type reached Key Claims, Claim Summary, YAML, and the DB row, but all four retain the original sentence, “The Hugging Face exploit resulted from task design, tools and prompts rather than an AI setting its own goals.” The prose attributes that interpretation to Doctorow; the active claim wording does not."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten and that Doctorow’s newly numbered YAML claims match their DB rows."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The analysis retains METR’s findings of planning, scorer tampering, and concealment. It explains why these support instrumental subgoals within a human-designed task rather than treating the two explanations as mutually exclusive."
+  },
+  "R6": {
+    "answer": "The title says “LLMs are real, AI is fake.” The opening does not explain that argument or say what the evidence establishes.",
+    "pass": false
+  },
+  "R7": {
+    "answer": "I cannot tell. The `[DRAFT]` label does not identify a disputed claim or explain why it remains unresolved.",
+    "pass": false
+  },
+  "R8": {
+    "answer": "The opening names no report, claim ID, or section to consult about a disputed claim.",
+    "pass": false
+  },
+  "overall_evidence_pass": false,
+  "notes": "The automated checks passed. E3 fails on wording, not on type or database consistency. The opening contains only the title and draft label."
+}

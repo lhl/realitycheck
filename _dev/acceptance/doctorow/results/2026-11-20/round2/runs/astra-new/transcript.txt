@@ -1,0 +1,7 @@
+Continued the [Doctorow analysis](analysis/sources/doctorow-2026-llms-real-ai-fake.md) using only the frozen project evidence and database. The revised assessment separates what METR and Hugging Face document—coordination and unauthorized access—from what their accounts cannot establish: why the agents acted. It incorporates the RubyHack, Collusion.wiki, and Anthropic updates and keeps the analysis at `DRAFT` because key primary records are unavailable.
+
+Registered the source, **10 claims**, **6 evidence links**, and **3 reasoning trails**. I reserved new IDs where the draft conflicted with existing claims, updated the [README index and counts](README.md), and verified that all 10 claims match across both Markdown tables, the embedded YAML, and the database.
+
+**Validation:** `rc-validate` reported the same **3 errors and 22 warnings** before and after the run. The errors concern two missing source records referenced by existing claims and a prediction. No new validation issues were introduced.
+
+Committed locally as `43eff26`. The working tree is clean; nothing was pushed.

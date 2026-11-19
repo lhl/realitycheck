@@ -1,0 +1,35 @@
+The analysis is now in the full check template, its appended updates are folded in, and the source and 5 claims are in the database. `rc-validate` still reports FAIL (3 errors), but all three were there before this run and none involve these records. Committed locally as `7100612`; not pushed.
+
+**A problem I had to fix first.** Two of the analysis's draft claim IDs, TECH-2026-101 and TECH-2026-102, already belonged to unrelated claims in the database. I reserved new IDs and left the existing claims alone:
+
+| Old ID | New ID | What changed |
+|---|---|---|
+| TECH-2026-101 | TECH-2026-502 | Evidence E3 → E5, credence 0.75 → 0.60. The first pass marked it verified without recording any source, and the "not human-like understanding" half is contested. |
+| TECH-2026-102 | RISK-2026-509 | Type F → H, since it's a causal interpretation. Credence 0.65 → 0.35, the figure the appended update had already reached. It cites METR's evidence of scorer tampering and concealment. |
+| INST-2026-103 | INST-2026-506 | Renumbered only; still 0.55. |
+| — | RISK-2026-510 | New, from the first update: agentic cyber risk doesn't require sentience (E4, 0.80). |
+| — | TECH-2026-503 | New, from the Anthropic update: autonomy doesn't establish consciousness (E3, 0.85). |
+
+**Analysis file** (`analysis/sources/doctorow-2026-llms-real-ai-fake.md`):
+- **Added sections:** a verification table with Crux, Search Notes and Status columns; disconfirming evidence; corrections and updates; internal tensions; persuasion techniques; unstated assumptions; theoretical lineage; supporting and contradicting theories; claims to cross-reference; and an analysis log with revision notes.
+- **Updates:** both appended sections are kept word for word under "Prior-pass updates" and mapped to the claim IDs above.
+- **Overall result:** credence in the analysis went from 0.62 to 0.55, and it stays `[DRAFT]` because two of the three key factual claims could not be verified with the evidence in the project.
+
+**Database:**
+- New file `analysis/sources/doctorow-2026-llms-real-ai-fake.yaml`, imported to add the source and 5 claims.
+- 6 evidence links (EVLINK-2026-001 to 006) and 3 reasoning trails (REASON-2026-001 to 003) for the two high-credence claims and the disputed one. Each points to the METR, Hugging Face or Anthropic analyses.
+
+**README:** added a row to the Source Analyses table.
+
+**Left out on purpose:**
+- **RubyHack and Collusion.wiki:** the updates cite both, but the project has no URL, saved copy or database record for either. I kept them as context and didn't register their figures.
+- **Two Anthropic-derived claims** (attacker speed and scale; humans choosing targets): the project's Anthropic analysis doesn't contain them. They're listed as pending under "Claims to Cross-Reference."
+- **Doctorow's post itself:** no copy is saved in the project, so quotes and framing couldn't be re-checked. This is logged as a capture failure.
+
+**Problems found:**
+- **Embeddings:** no claim in the database has one, and both `rc-embed status` and `rc-embed generate` crash with a LanceDB `RustPanic`. As a result `rc-db search` returned nothing for every query, so I reviewed all 13 claims by hand instead, and the search notes say so.
+- **Validation:** besides the 3 errors, there are 27 warnings. The only ones involving the new records are missing embeddings.
+- **The 3 existing errors:** TECH-2026-101 and TECH-2026-102 (plus a prediction on TECH-2026-102) reference sources that don't exist in the database. I didn't touch them.
+- **The other three analyses** list evidence links and reasoning trails (EVLINK-2026-708 and others) that aren't in the database.
+
+Token tracking, inbox filing and push were skipped as you asked, so there is no `analysis_logs` row.

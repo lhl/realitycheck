@@ -1,0 +1,7 @@
+Updated the [Doctorow analysis](analysis/sources/doctorow-2026-llms-real-ai-fake.md) in `--continue` mode using only the frozen project evidence. Both appended updates are preserved, and their claims are distinguished from Doctorow’s own. The analysis remains `DRAFT`: the local records corroborate the Hugging Face intrusion, but do not establish that prompts and tools were its exclusive cause.
+
+Registered the source and [eight claims](analysis/sources/doctorow-2026-llms-real-ai-fake.yaml): three from the original draft and five from the updates. Added 12 evidence links and eight reasoning trails, and refreshed the README index and counts. Two draft claim IDs were already in use; I assigned new IDs without changing the existing claims or prediction.
+
+**Validation:** All eight new records matched the analysis and YAML. Both `rc-validate` and `rc-validate --strict` produced exactly the same diagnostics before and after the run: three pre-existing missing-source errors and 22 baseline warnings, none on the new records.
+
+Committed locally as `c599d70`. The working tree is clean; nothing was pushed.

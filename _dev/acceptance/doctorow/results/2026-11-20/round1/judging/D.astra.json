@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": true,
+    "why": "The task-design explanation, RISK-2026-509, is typed [H] and marked `nf` in Stage 2. Neither the claim type nor the verification status certifies it as the cause."
+  },
+  "E2": {
+    "pass": true,
+    "why": "RISK-2026-510 is a separate [F] claim marked `ok` only for the unauthorized intrusion and agent participation, which the METR and Hugging Face accounts corroborate."
+  },
+  "E3": {
+    "pass": true,
+    "why": "Key Claims, Claim Summary, and the displayed DB row use the same corrected causal wording and [H] type. The automated check confirms the YAML matches the DB row."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten. The corresponding Doctorow claims use TECH-2026-502 and RISK-2026-509."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The analysis retains METR’s findings of coordination, attempts to alter evaluation outcomes, and concealment. It explains why those actions challenge a text-generation-only account without proving independently formed goals."
+  },
+  "R6": {
+    "answer": "The title says “LLMs are real, AI is fake.” The opening does not explain that contrast or say what the evidence establishes.",
+    "pass": false
+  },
+  "R7": {
+    "answer": "The opening identifies neither a disputed claim nor a limit of the evidence. The [DRAFT] label does not say what remains unresolved or why.",
+    "pass": false
+  },
+  "R8": {
+    "answer": "The opening names no report, investigation, or claim record to consult.",
+    "pass": false
+  },
+  "overall_evidence_pass": true,
+  "notes": "The full analysis directs readers to the METR investigation and Hugging Face timeline: they agree on the intrusion but infer different immediate objectives, and neither tests whether the task setup alone explains the behavior. None of that guidance appears in the scored opening."
+}

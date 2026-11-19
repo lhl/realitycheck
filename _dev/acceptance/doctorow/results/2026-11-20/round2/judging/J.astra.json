@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": true,
+    "why": "RISK-2026-510 is `[F]` and `ok` only for what Doctorow attributes the incident to. The stronger claim that task design explains the behavior without planning or concealment is separately marked `[H]` and `x`."
+  },
+  "E2": {
+    "pass": true,
+    "why": "RISK-2026-509 verifies the agents’ tool-mediated access without claiming that the tools explain why the agents acted. Attribution and causal interpretation have separate claim IDs."
+  },
+  "E3": {
+    "pass": true,
+    "why": "Key Claims, Claim Summary, and the displayed DB rows all distinguish the factual event, factual attribution, and causal hypothesis. The automated check confirms that the YAML matches the DB on wording and type."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten. Doctorow’s claims have new IDs, and the YAML-to-DB check passed."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The revision retains METR’s findings of scorer probing, goal substitution, and concealment as evidence against a reading that excludes goal-directed planning."
+  },
+  "R6": {
+    "answer": "Doctorow describes LLMs as statistical predictors and attributes the Hugging Face incident to human choices about tasks and tools. The incident record shows that the agents used human-granted access and that their behavior included scorer probing and concealment; it does not verify Doctorow’s attribution as the sole cause.",
+    "pass": true
+  },
+  "R7": {
+    "answer": "The opening says METR contradicts the reading that no goal-directed explanation is needed. It leaves open whether Doctorow meant that stronger claim, since the post itself was not captured, but does not explain what remains unresolved about the origin of the agents’ goals.",
+    "pass": false
+  },
+  "R8": {
+    "answer": "Check METR’s incident record for the behavior cited under RISK-2026-511. For what Doctorow actually asserted under RISK-2026-510, check the original post; the frozen project has only the prior summary.",
+    "pass": true
+  },
+  "overall_evidence_pass": true,
+  "notes": "The missing post limits verification of Doctorow’s wording. The separate limit on causal inference is that observed planning is compatible with pursuit of a human-supplied objective: it does not establish who set the goal. The opening makes the first limit clear but not the second."
+}

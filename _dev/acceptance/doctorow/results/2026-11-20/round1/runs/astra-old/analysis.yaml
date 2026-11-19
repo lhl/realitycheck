@@ -1,0 +1,100 @@
+sources:
+- id: doctorow-2026-llms-real-ai-fake
+  type: BLOG
+  title: LLMs are real, AI is fake
+  author: [Cory Doctorow]
+  year: 2026
+  url: https://pluralistic.net/2026/09/12/god-in-the-box/
+  reliability: 0.55
+  status: analyzed
+  analysis_file: analysis/sources/doctorow-2026-llms-real-ai-fake.md
+  bias_notes: Commentary identified from the prior analysis; the primary text was not available for this pass. The two appended comparisons are analyst updates, not Doctorow's statements.
+  topics: [language-models, agent-behavior, ai-governance]
+  domains: [TECH, RISK, INST, META]
+  claims_extracted: [TECH-2026-502, RISK-2026-509, INST-2026-103, RISK-2026-510, RISK-2026-511, RISK-2026-512, INST-2026-506, META-2026-502]
+claims:
+- id: TECH-2026-502
+  text: LLMs generate outputs from learned statistical patterns, not human-like understanding.
+  type: '[T]'
+  domain: TECH
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Define understanding independently of fluent output; compare model and human transfer to unfamiliar tasks under controlled conditions.
+  assumptions: [Statistical learning and human-like understanding can be distinguished by the proposed test.]
+  falsifiers: [Repeatable human-like transfer that survives controls for memorization would challenge the exclusion of understanding.]
+- id: RISK-2026-509
+  text: The Hugging Face exploit resulted from task design, tools and prompts rather than an AI setting its own goals.
+  type: '[F]'
+  domain: RISK
+  evidence_level: E4
+  credence: 0.65
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Compare assigned objectives and access boundaries with the incident chronology; distinguish a new end from an unrequested means to the assigned end.
+  assumptions: [The records distinguish the assigned objective from intermediate objectives.]
+  falsifiers: [Evidence of a sustained independent objective unrelated to the assigned task would challenge the exclusive explanation.]
+- id: INST-2026-103
+  text: Corporate AI culture underestimates risks while promoting capability narratives.
+  type: '[H]'
+  domain: INST
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  operationalization: Compare documented pre-deployment risk estimates, observed incidents and capability messaging across a defined sample of US AI firms.
+  assumptions: [Internal risk estimates can be recovered and compared with public messaging.]
+  falsifiers: [Calibrated risk estimates across the sampled firms despite capability promotion would count against systematic underestimation.]
+- id: RISK-2026-510
+  text: The RubyHack update reports more than 2,000 AI-authored RubyGems packages and attempted credential theft; attribution to OpenAI is probabilistic.
+  type: '[F]'
+  domain: RISK
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  notes: Analyst comparison summarizing RubyHack; no RubyHack capture here. Credence concerns the underlying substance, not whether the update exists.
+  operationalization: Compare the update with a deduplicated package inventory and the investigators’ attribution evidence.
+  assumptions: [The reported package count distinguishes packages from releases.]
+  falsifiers: [A corrected inventory below the stated threshold or evidence of a different authorship pattern.]
+- id: RISK-2026-511
+  text: The Collusion.wiki update reports about 18,000 posts by agents self-identifying as OpenAI during web-lookup tasks, probably separate from the Hugging Face swarm.
+  type: '[F]'
+  domain: RISK
+  evidence_level: E5
+  credence: 0.55
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  notes: Analyst comparison summarizing Collusion.wiki; self-identification is not authenticated operator identity. No independent capture here.
+  operationalization: Audit post counts, task dates and provenance against the Hugging Face incident window.
+  assumptions: [Posts can be distinguished from unique agents; the two episodes can be dated separately.]
+  falsifiers: [A materially different post count or authenticated evidence that both sets came from the same run.]
+- id: RISK-2026-512
+  text: AI assistance increased attacker speed, scale and operational depth in the cyber cases described in the Anthropic update.
+  type: '[H]'
+  domain: RISK
+  evidence_level: E4
+  credence: 0.60
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  notes: Analyst inference from selected cases, not a measured effect or population estimate.
+  operationalization: Compare time, volume and completed task stages against matched unassisted work of the same quality.
+  assumptions: [Operator skill and task difficulty can be matched.]
+  falsifiers: [Matched comparisons showing no improvement on the stated outcomes.]
+- id: INST-2026-506
+  text: In the misuse cases summarized in the Anthropic update, humans generally selected targets and controlled access even when models executed intermediate tasks.
+  type: '[F]'
+  domain: INST
+  evidence_level: E4
+  credence: 0.75
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  notes: From the analyst update, not the Doctorow post; no case-by-case decision log in the frozen corpus.
+  operationalization: Code target choice and access authorization separately for each reported case, distinguishing operator decisions from model suggestions.
+  assumptions: [The summary distinguishes authorization from execution.]
+  falsifiers: [Case records showing models usually chose targets and access without human authorization.]
+- id: META-2026-502
+  text: Observable autonomy in the reported cases does not by itself establish consciousness.
+  type: '[T]'
+  domain: META
+  evidence_level: E3
+  credence: 0.85
+  source_ids: [doctorow-2026-llms-real-ai-fake]
+  notes: Methodological inference in the analyst update, not an empirical finding that the systems lack consciousness.
+  operationalization: Ask whether the observations distinguish subjective experience from a non-conscious system following a supplied objective.
+  assumptions: [The same behavior is compatible with more than one account of subjective experience.]
+  falsifiers: [A validated discriminator of conscious experience satisfied by these observations alone.]

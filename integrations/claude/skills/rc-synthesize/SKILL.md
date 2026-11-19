@@ -173,7 +173,8 @@ Put the opening directly below the title, before legends and metadata.
 - **Full analysis or synthesis** (`## Assessment`): the answer to the reader's
   question, the evidence that carries the most weight (with claim IDs), and the
   limitation most likely to change the interpretation. Mention a coverage or
-  capture gap only if it could reverse the answer.
+  capture gap only if it could reverse the answer. For an unresolved dispute,
+  say why the evidence cannot settle it and name the record that would.
 - **Quick extraction** (`## Summary`): what the source says and the most
   important thing the extraction did not check, in one or two sentences. No
   verdict, counterargument, or limitations paragraph.

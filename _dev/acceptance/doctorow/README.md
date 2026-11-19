@@ -17,27 +17,19 @@ The live data repo is only read. Each run gets its own workspace and database.
 ## Run
 
 ```bash
+H=_dev/acceptance/doctorow
 # one workspace per model and arm (new = current skills, old = v0.3.5)
-_dev/acceptance/doctorow/setup.sh "$RUNS/dsv41-new" new
-_dev/acceptance/doctorow/setup.sh "$RUNS/dsv41-old" old
+$H/setup.sh "$RUNS/dsv41-new" new
+$H/setup.sh "$RUNS/dsv41-old" old
+# run: model key is dsv41 | sol | astra | opus (see run.sh for exact model IDs)
+$H/run.sh "$RUNS/dsv41-new" dsv41
 ```
 
-Run the agent in `OUT/project` with `OUT/bin` first on `PATH`,
-`REALITYCHECK_DATA=OUT/project/data/realitycheck.lance`,
-`REALITYCHECK_EMBED_SKIP=1`, and the prompt in `OUT/TASK.md`. Headless jouzu
-(model IDs from `jouzu pi --list-models`):
-
-```bash
-OUT="$RUNS/dsv41-new"
-cd "$OUT/project" && PATH="$OUT/bin:$PATH" \
-  REALITYCHECK_DATA="$OUT/project/data/realitycheck.lance" REALITYCHECK_EMBED_SKIP=1 \
-  jouzu pi -p --no-session --model deepseek-v4.1-flash-1017 --thinking high "$(cat "$OUT/TASK.md")" \
-  > "$OUT/transcript.txt" 2>&1
-```
-
-Use the same pattern for `gpt-6.2-sol` and `gpt-6.2-astra`, through `jouzu acp`
-from an ACP host, or with `claude -p --model claude-opus-5-5` for Claude Code.
-Use the same thinking level for both arms of a model.
+`run.sh` runs the agent in `OUT/project` with `OUT/bin` first on `PATH`,
+`REALITYCHECK_DATA` set to the workspace database, and `OUT/TASK.md` as the
+prompt. It writes `transcript.txt` and `run-status.txt`. jouzu runs use
+`--thinking high`; Claude Code runs unset `ANTHROPIC_API_KEY` (to use the
+claude.ai login) and disallow WebFetch/WebSearch.
 
 ## Score
 
@@ -50,3 +42,16 @@ untouched baseline scores 3/6 (the two collision checks and the YAML parse).
 Grade the rest with `RUBRIC.md`, blind to model and arm. Agreement between
 models is not verification; the judge checks against the evidence files in
 `OUT/project/analysis/sources/`.
+
+## Judge and archive
+
+```bash
+python $H/build-packets.py "$RUNS" "$PACKETS" $H/RUBRIC.md   # anonymized packets + key.json
+$H/judge.sh "$PACKETS" astra; $H/judge.sh "$PACKETS" opus      # <letter>.<judge>.json
+$H/archive.sh "$RUNS" "$PACKETS" $H/results/<date>/<round>     # reviewable subset
+```
+
+Archives keep per-run analysis, sidecar YAML, a patch against the baseline,
+transcript, score, and the judge JSON plus `key.json`. They omit the LanceDB
+folders, nested `.git`, and the packets (rebuild with `build-packets.py`).
+Results for the 2026-11-20 campaign are in `results/2026-11-20/`.

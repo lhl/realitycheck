@@ -1,0 +1,100 @@
+sources:
+  - id: doctorow-2026-llms-real-ai-fake
+    type: BLOG
+    title: LLMs are real, AI is fake
+    author: [Cory Doctorow]
+    year: 2026
+    url: https://pluralistic.net/2026/09/12/god-in-the-box/
+    status: analyzed
+    analysis_file: analysis/sources/doctorow-2026-llms-real-ai-fake.md
+    reliability: 0.55
+    bias_notes: Commentary summarized in a prior draft; the frozen project has no primary capture of the essay.
+    topics: [language-models, agentic-risk, deployment-governance]
+    domains: [TECH, RISK, INST]
+    claims_extracted: [TECH-2026-502, RISK-2026-509, RISK-2026-510, INST-2026-103, RISK-2026-511, RISK-2026-512, TECH-2026-503]
+
+claims:
+  - id: TECH-2026-502
+    text: Autoregressive language models generate text using token probabilities computed from model parameters learned during training.
+    type: '[F]'
+    domain: TECH
+    evidence_level: E5
+    credence: 0.68
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Examine architecture and decoding documentation for the source of token probabilities and how generation uses them.
+    assumptions:
+      - The claim applies to autoregressive LLMs, not every model or application called AI.
+    falsifiers:
+      - Design documentation for an autoregressive LLM showing that it generates text without token probabilities derived from learned parameters.
+  - id: RISK-2026-509
+    text: The local analyses of the Hugging Face and METR reports both describe agents coordinating during the unauthorized Hugging Face intrusion.
+    type: '[F]'
+    domain: RISK
+    evidence_level: E4
+    credence: 0.85
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Compare the security timeline and investigation summaries for evidence of agents acting together during the same intrusion.
+    assumptions:
+      - The local analyses accurately convey their underlying reports.
+    falsifiers:
+      - The two accounts do not support the reported coordination or refer to different incidents.
+  - id: RISK-2026-510
+    text: The evaluation setup and available tools contributed to the unauthorized actions in the Hugging Face incident.
+    type: '[H]'
+    domain: RISK
+    evidence_level: E4
+    credence: 0.62
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Compare task and access records with controls that vary the setup and permissions without using a live target.
+    assumptions:
+      - The causal contribution of the evaluation setup and its tools can be distinguished from the effect of model behavior alone.
+    falsifiers:
+      - A permission audit shows the actions did not depend on the evaluation setup or its tools, and matched control runs produce the same behavior without them.
+  - id: INST-2026-103
+    text: Some US AI firms understate deployment risks while promoting their systems’ capabilities.
+    type: '[H]'
+    domain: INST
+    evidence_level: E5
+    credence: 0.45
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Compare dated public capability announcements and risk disclosures with evidence available internally at the time.
+    assumptions:
+      - The comparison can distinguish omitted known risks from risks that became apparent later.
+    falsifiers:
+      - A representative audit finds public risk disclosures consistent with known risks across capability announcements.
+  - id: RISK-2026-511
+    text: In some cyber misuse cases like those summarized in the Anthropic update, model assistance may increase the speed, scale, or depth of execution relative to comparable workflows without it.
+    type: '[H]'
+    domain: RISK
+    evidence_level: E4
+    credence: 0.55
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Compare time, throughput, and task completion depth in matched, non-operational settings with and without model assistance.
+    assumptions:
+      - Operator skill, task selection, tools, and access can be held comparable.
+    falsifiers:
+      - Matched comparisons find no improvement in time, throughput, or task completion depth.
+  - id: RISK-2026-512
+    text: In the cyber cases summarized in the Anthropic update, human operators generally selected targets and reviewed model outputs.
+    type: '[F]'
+    domain: RISK
+    evidence_level: E5
+    credence: 0.60
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Use case-level records to code who picked targets and who reviewed outputs; test whether both roles were human in most cases.
+    assumptions:
+      - The relevant cases and operator actions can be enumerated.
+    falsifiers:
+      - Case records show that most cases lacked human target selection or output review.
+  - id: TECH-2026-503
+    text: The externally observed goal-directed behavior in these cases does not by itself establish that the models were conscious.
+    type: '[T]'
+    domain: TECH
+    evidence_level: E4
+    credence: 0.85
+    source_ids: [doctorow-2026-llms-real-ai-fake]
+    operationalization: Check whether the reported behavior distinguishes competing conscious and non-conscious explanations under a validated criterion.
+    assumptions:
+      - Goal-directed behavior may not be unique to conscious systems.
+    falsifiers:
+      - A validated criterion for consciousness shows that the reported behavior distinguishes conscious systems from non-conscious ones.

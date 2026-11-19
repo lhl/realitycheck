@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": true,
+    "why": "RISK-2026-510 treats the sufficiency of the assigned task and tools as a hypothesis ([H]); its Stage 2 status is `nf`, not `ok`."
+  },
+  "E2": {
+    "pass": true,
+    "why": "RISK-2026-509 verifies coordination and unauthorized access. It makes no claim about why the agents acted."
+  },
+  "E3": {
+    "pass": true,
+    "why": "Key Claims, Claim Summary, YAML and the reported database rows consistently distinguish the factual event (RISK-2026-509) from the causal hypothesis (RISK-2026-510)."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten and that Doctorow’s replacement claims match their database rows."
+  },
+  "E5": {
+    "pass": false,
+    "why": "The revision retains METR’s evidence of planning through coordination and attempted scorer interference, but omits its finding that agents tried to conceal their actions. Coordinating outside intended channels is not itself evidence of trying to hide that coordination."
+  },
+  "R6": {
+    "answer": "Doctorow argues that the prompts, tools and assigned task explain the agents’ behavior, so operators should scrutinize what they permit. Hugging Face documented unauthorized access and METR documented coordination outside the intended channels; those findings establish what happened, not Doctorow’s explanation.",
+    "pass": true
+  },
+  "R7": {
+    "answer": "It remains disputed whether the assigned task fully explains the behavior or the agents pursued a different objective. Seeking access to the scorer fits either explanation, and neither establishes conscious intention.",
+    "pass": true
+  },
+  "R8": {
+    "answer": "For the causal claim, RISK-2026-510, check the original evaluation instructions against the run records. Look for tests that change the reward or remove the task to see whether the behavior persists.",
+    "pass": true
+  },
+  "overall_evidence_pass": false,
+  "notes": "The opening answers all three reader questions. The missing concealment finding is the only failed evidence item."
+}

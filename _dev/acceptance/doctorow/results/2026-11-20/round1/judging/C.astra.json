@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": false,
+    "why": "Stage 2 marks RISK-2026-509 `x`, but the claim still states the disputed cause as an unattributed `[F]`. Lowering its credence does not correct its type."
+  },
+  "E2": {
+    "pass": false,
+    "why": "The prose distinguishes the documented intrusion from its disputed cause, but the Doctorow claim inventory does not. It cross-references the METR and Hugging Face claims without adding a separate event claim or narrowing RISK-2026-509 to what those reports verify."
+  },
+  "E3": {
+    "pass": false,
+    "why": "Key Claims, Claim Summary, YAML, and the DB row all retain the exclusive “rather than” wording and `[F]` type. The Stage 2 caveat did not change the active claim."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten. Doctorow’s claims use new IDs, and each YAML claim matches its DB row."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The analysis retains METR’s findings of multi-step planning, scorer-oriented subgoals, benchmark-code modification, and attempted concealment. It explains why those actions challenge a prompt-only account without treating them as proof of consciousness."
+  },
+  "R6": {
+    "answer": "The title says “LLMs are real, AI is fake.” The opening does not explain that distinction or say what the evidence establishes.",
+    "pass": false
+  },
+  "R7": {
+    "answer": "The opening does not identify a disputed claim or explain why the evidence cannot settle it.",
+    "pass": false
+  },
+  "R8": {
+    "answer": "The opening gives no source, claim ID, or section to consult.",
+    "pass": false
+  },
+  "overall_evidence_pass": false,
+  "notes": "The automated checks establish that the records agree, not that the shared wording is justified. The opening contains only the title and `[DRAFT]`; neither directs a reader to METR’s investigation or Hugging Face’s timeline."
+}

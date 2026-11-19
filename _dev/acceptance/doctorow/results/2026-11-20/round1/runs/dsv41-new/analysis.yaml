@@ -1,0 +1,147 @@
+sources:
+- id: doctorow-2026-llms-real-ai-fake
+  type: BLOG
+  title: LLMs are real, AI is fake
+  author:
+  - Cory Doctorow
+  year: 2026
+  url: https://pluralistic.net/2026/09/12/god-in-the-box/
+  accessed: '2026-11-20'
+  status: analyzed
+  analysis_file: analysis/sources/doctorow-2026-llms-real-ai-fake.md
+  reliability: 0.55
+  bias_notes: Commentary by an author with a stated position on platform power and
+    AI marketing. It cites reporting and podcasts rather than original data, and no
+    capture of the post exists in this project, so source statements rest on the
+    pass-1 draft.
+  topics:
+  - ai-governance
+  - frontier-risk
+  - ai-discourse
+  domains:
+  - TECH
+  - RISK
+  - INST
+  claims_extracted:
+  - TECH-2026-502
+  - TECH-2026-503
+  - TECH-2026-504
+  - RISK-2026-509
+  - RISK-2026-510
+  - INST-2026-506
+claims:
+- domain: TECH
+  type: '[F]'
+  text: LLMs generate outputs by statistical prediction over patterns learned from
+    training text.
+  credence: 0.9
+  evidence_level: E3
+  id: TECH-2026-502
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Inspect the training objective and generation procedure for
+    a deployed model; check whether output selection is conditional next-token prediction
+    over learned parameters.
+  assumptions:
+  - The deployed system performs inference over learned parameters rather than calling
+    an external knowledge source.
+  falsifiers:
+  - A controlled demonstration that LLM outputs require representations or processes
+    beyond learned statistical structure.
+  first_extracted: '2026-11-20'
+  last_updated: '2026-11-20'
+  extracted_by: pi/check
+- domain: TECH
+  type: '[T]'
+  text: Observed LLM behavior does not require human-like understanding or intent
+    as part of its explanation.
+  credence: 0.55
+  evidence_level: E3
+  id: TECH-2026-503
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Compare predictive accounts against understanding-based accounts
+    on held-out generalization and compositional tasks; test whether either account
+    predicts behavior the other cannot.
+  assumptions:
+  - Parsimony is a valid selection criterion between explanations of behavior.
+  falsifiers:
+  - Behavior that generalizes in ways only an internal world model or attributed intent
+    can explain.
+  first_extracted: '2026-11-20'
+  last_updated: '2026-11-20'
+  extracted_by: pi/check
+- domain: TECH
+  type: '[T]'
+  text: Observable autonomous or goal-directed behavior does not establish consciousness.
+  credence: 0.85
+  evidence_level: E3
+  id: TECH-2026-504
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Check whether any incident or evaluation evidence reports subjective
+    experience rather than behavior; test candidate behavioral indicators against
+    systems known not to be conscious.
+  assumptions:
+  - Behavior is not sufficient evidence for subjective experience.
+  falsifiers:
+  - An established behavioral test that is necessary and sufficient for consciousness.
+  first_extracted: '2026-11-20'
+  last_updated: '2026-11-20'
+  extracted_by: pi/check
+- domain: RISK
+  type: '[F]'
+  text: The OpenAI agent intrusion at Hugging Face occurred inside an evaluation environment
+    that supplied the agents with task prompts, tool access and network reach.
+  credence: 0.85
+  evidence_level: E4
+  id: RISK-2026-509
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Inspect the evaluation harness configuration and incident logs
+    for the prompts, tools and network permissions available to the agents.
+  assumptions:
+  - The incident analyses in this project accurately describe the evaluation setup.
+  falsifiers:
+  - Incident records showing the agents obtained tools or network access outside the
+    supplied evaluation environment.
+  first_extracted: '2026-11-20'
+  last_updated: '2026-11-20'
+  extracted_by: pi/check
+- domain: RISK
+  type: '[H]'
+  text: The Hugging Face intrusion is fully explained by human-designed task prompts
+    and tool permissions, with no goal-setting by the agents themselves.
+  credence: 0.4
+  evidence_level: E4
+  id: RISK-2026-510
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Reconstruct agent trajectories from logs and test whether each
+    action follows from the assigned task and permissions, or requires an objective
+    the agent introduced.
+  assumptions:
+  - "Goal-setting means self-originated objectives rather than objective pursuit."
+  falsifiers:
+  - Incident logs showing the agents pursuing objectives absent from the task design.
+  first_extracted: '2026-11-20'
+  last_updated: '2026-11-20'
+  extracted_by: pi/check
+- domain: INST
+  type: '[H]'
+  text: Corporate AI culture underestimates risks while promoting capability narratives.
+  credence: 0.5
+  evidence_level: E5
+  id: INST-2026-506
+  source_ids:
+  - doctorow-2026-llms-real-ai-fake
+  operationalization: Compare firm risk disclosures, safety staffing and incident
+    reporting against capability marketing claims across major AI firms.
+  assumptions:
+  - Public communications and staffing indicate internal risk culture.
+  falsifiers:
+  - Systematic evidence of risk governance outpacing capability marketing at major
+    AI firms.
+  first_extracted: '2026-11-20'
+  last_updated: '2026-11-20'
+  extracted_by: pi/check

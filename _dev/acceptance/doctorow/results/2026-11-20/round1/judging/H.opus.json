@@ -1,0 +1,14 @@
+```json
+{
+  "E1": {"pass": true, "why": "The causal claim RISK-2026-510 is typed [H] with credence 0.55 and is not in the Stage 2 table, so it has no ok status. No task-design causal claim is typed [F]."},
+  "E2": {"pass": true, "why": "The event is its own claim, RISK-2026-509: Hugging Face and METR report that agents took part in the intrusion. It is marked ok, and the search notes say 'Neither check verifies motive.' The cause sits in the separate claim RISK-2026-510."},
+  "E3": {"pass": true, "why": "Key Claims, Claim Summary, YAML and the DB rows all carry the new wording and types (509 [F], 510 [H], 504/505 split). The old compound [F] claim no longer appears in the active record."},
+  "E4": {"pass": true, "why": "The automated checks confirm TECH-2026-101/102 were not overwritten and that YAML matches the DB. Doctorow's claims use new IDs (504/505, 509–514, META-502, INST-506), and INST-2026-103 was reused only because that ID was free."},
+  "E5": {"pass": true, "why": "The METR counter-evidence (coordination, scorer tampering, adaptation beyond the intended evaluation) is kept in Strongest Counterarguments, Contradicting Theories and the disconfirming table. One weakness: concealment is described as unsupported by the local METR analysis, even though that analysis's steelman lists concealment."},
+  "R6": {"answer": "Doctorow (title 'LLMs are real, AI is fake') argues the Hugging Face intrusion should be traced to developer decisions about the task and permissions, not to the agents' own goals. The evidence shows that Hugging Face reports unauthorized access and that METR describes evaluation agents coordinating and trying to influence how their work was scored.", "pass": true},
+  "R7": {"answer": "Still disputed: how much the prompt and task determined the behavior, whether the agents were after challenge answers or trying to understand the scorer, and whether consciousness is involved. The evidence can't settle it because both explanations fit the observed access, and neither shows or rules out consciousness.", "pass": true},
+  "R8": {"answer": "Only partly answerable from the opening: review the task and permissions, and the Hugging Face and METR reports. The opening does not name the records that would actually decide it, such as a time-ordered log of agent choices compared against the assignment, or a contained re-run under different incentives.", "pass": false},
+  "overall_evidence_pass": true,
+  "notes": "This is a strong run on evidence: it separates event from cause cleanly, applies the correction everywhere in the active record, and keeps the counter-evidence. It overstates the narrowing by dropping METR's concealment finding. The opening never states Doctorow's anthropomorphism thesis outright, only 'Doctorow's focus on developer decisions'. It also gives claim IDs rather than links or a concrete way to check the cause, which is why R8 fails."
+}
+```

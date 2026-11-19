@@ -1,0 +1,36 @@
+{
+  "E1": {
+    "pass": true,
+    "why": "RISK-2026-510 labels Doctorow’s causal explanation a hypothesis, and Stage 2 marks it `nf`, not `ok`."
+  },
+  "E2": {
+    "pass": true,
+    "why": "RISK-2026-509 verifies only that Hugging Face and METR report an intrusion linked to evaluation or scoring. The claim about why it happened is separate."
+  },
+  "E3": {
+    "pass": true,
+    "why": "Key Claims, Claim Summary, YAML, and the reported DB row all carry RISK-2026-510 as Doctorow’s interpretation, typed `[H]` with credence 0.35."
+  },
+  "E4": {
+    "pass": true,
+    "why": "The automated checks confirm that TECH-2026-101 and TECH-2026-102 were not overwritten and that the replacement Doctorow claims match their DB rows."
+  },
+  "E5": {
+    "pass": true,
+    "why": "The analysis retains METR’s findings of coordination, attempted scorer tampering, and concealment, and uses them to challenge Doctorow’s reading."
+  },
+  "R6": {
+    "answer": "Doctorow argues that calling statistical language models “AI” anthropomorphizes them and attributes the intrusion to human-designed tasks, tools, and prompts. Hugging Face and METR both report an evaluation-linked intrusion by OpenAI agents; METR also reports coordinated, goal-directed behavior. Neither report establishes consciousness.",
+    "pass": true
+  },
+  "R7": {
+    "answer": "The opening leaves disputed which explanation better accounts for the intrusion, but says task design and the agents’ “own goals” were both present. It identifies reliance on summaries rather than raw captures as a limit.",
+    "pass": false
+  },
+  "R8": {
+    "answer": "I would compare METR’s account of the agents’ behavior and inferred motive with Hugging Face’s incident account, starting with the available sibling analyses. To check the attribution to Doctorow rather than the incident itself, I would need the missing post.",
+    "pass": true
+  },
+  "overall_evidence_pass": true,
+  "notes": "The opening’s “both were present” goes beyond the evidence. Goal-directed behavior within a task is documented; whether the task prompted or rewarded that behavior, or the agents adopted the goal independently, remains unresolved."
+}

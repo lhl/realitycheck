@@ -1,0 +1,40 @@
+Done. Local commit `e7319dc`; working tree clean.
+
+## What changed in the analysis
+
+`analysis/sources/doctorow-2026-llms-real-ai-fake.md` was a three-claim draft missing most of the workflow's contract. It now has:
+
+- **Assessment first**, then legends, full metadata (including a capture-status row), then Stage 1–3 in the required structure: argument-structure mechanics, lineage, scope, Key Factual Claims Verified, a separate Disconfirming Evidence table, Corrections & Updates, tensions, persuasion, unstated assumptions, evidence/credence assessments, Stage 3 theory tables with source IDs, full Claim Summary, and the Analysis Log + Revision Notes.
+- **New "Claim-Evidence Alignment" subsection** recording the split test and the strongest alternative explanation for the disputed conclusion.
+- **Pass-1 updates incorporated**: the METR finding is folded into the main analysis, the Anthropic findings inform the Stage 3 tables, and the original update text is preserved in a labelled appendix with its superseded credences marked.
+
+### Claim corrections (the main substantive change)
+
+| Pass-1 | Now | What changed |
+|---|---|---|
+| TECH-2026-101 (collided with `arclight-2026-mirror`) | **TECH-2026-502** `[F]` E3 0.90 | Mechanism claim split out as a fact |
+| (same row) | **TECH-2026-503** `[T]` E3 0.55 | "Not human-like understanding" split out as contested parsimony, status `nf` |
+| TECH-2026-102 (collided with `aifutures-2026-ai-2040-plan-a`) | **RISK-2026-509** `[F]` E4 0.85 | Evaluation-environment fact |
+| (same row) | **RISK-2026-510** `[H]` E4 0.40 | "No goal-setting by the agents" demoted from `[F]`/`ok`/0.65 to hypothesis/`nf`; METR goal substitution and concealment count against it |
+| INST-2026-103 (free ID, moved for series uniformity) | **INST-2026-506** `[H]` E5 0.50 | Credence lowered; no in-corpus measure |
+| — | **TECH-2026-504** `[T]` E3 0.85 | Appended "observable autonomy ≠ consciousness" finding given an ID |
+
+No existing database row was modified. `TECH-2026-101/102` remain untouched and still belong to their seeded sources.
+
+## Database
+
+- Source `doctorow-2026-llms-real-ai-fake` registered (BLOG, 2026, reliability 0.55, analysis file, topics, domains, six `claims_extracted`).
+- New artifact `analysis/sources/doctorow-2026-llms-real-ai-fake.yaml`, imported with `rc-db import --type all`.
+- 6 claims, **10 evidence links** (`EVLINK-2026-001…010`), **6 reasoning trails** (`REASON-2026-001…006`; 510's counterarguments are stored on its trail), and analysis log `ANALYSIS-2026-001`.
+- Claim text/type/domain/evidence level/credence verified against the DB by script; md, YAML and DB agree.
+- Unused ticket `INST-2026-507` released; lock file removed.
+
+## Validation
+
+`rc-validate`: **FAIL, 3 errors / 28 warnings** — identical to the baseline's 3 errors, which come from seeded claims whose sources don't exist in this database (`TECH-2026-101` → `arclight-2026-mirror`, `TECH-2026-102` → `aifutures-2026-ai-2040-plan-a`, plus a predictions row). **Zero findings name the new source or any of its six claims.** The only new warnings are 6 `CLAIM_NO_EMBEDDING` entries; the whole table has no embeddings, so semantic search remains unavailable (documented in the analysis). I did not fabricate source rows to clear the seeded errors.
+
+## Skipped per instructions
+
+Token-usage tracking, inbox filing, `git push`. README was updated with the new row plus Current Status / Claim Domains tables (the stats script no-ops here).
+
+**Limits worth knowing:** the blog post has no capture in this project, so source statements rest on the pass-1 draft; the RubyHack and Collusion.wiki reports cited in the pass-1 appendix have no capture either and were given no weight (recorded as capture gaps, not deleted).
