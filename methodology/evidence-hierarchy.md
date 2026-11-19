@@ -72,8 +72,20 @@ A 6-level scale for rating evidence quality and assigning credence.
 
 ## Chain Scoring Rule
 
-> **Chain credence = MIN(step credences)**
+> **Chain credence ≤ MIN(step credences)**
 >
-> Rationale: Weakest link dominates; avoids fake precision.
+> For a conjunctive chain (every step must hold), the least credible step is an
+> upper bound on the credence that all steps hold. It is not an estimate of
+> that credence: five independent steps at 0.8 each hold together with
+> probability of about 0.33, not 0.8.
 
-A theory with many 0.7 credence claims is not itself 0.7 credence. Chain arguments have credence ≤ weakest link.
+- `rc-db chain add` defaults chain credence to the minimum step credence. Pass a
+  lower `--credence` when the steps are independently uncertain.
+- `rc-validate` warns when a chain's credence exceeds its minimum step credence.
+- A chain credence describes this chain. The conclusion may have support from
+  other evidence or other chains; do not report the chain credence as the
+  credence in the conclusion without saying so.
+- Name the weakest dependency and what fails if it breaks. That explanation is
+  more useful to the reader than a precise-looking number.
+
+A theory with many 0.7 credence claims is not itself 0.7 credence.

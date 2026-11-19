@@ -19,20 +19,21 @@ The flagship Reality Check command for rigorous source analysis.
    - **DB-first for crux factuals**: run `rc-db search "<neutral keywords>"` before external search
    - **Web discovery**: use your environment's web search capability (e.g., Claude `WebSearch`, Codex `web.run search_query`)
    - **Minimum verification attempt**: for each crux `[F]` claim, run >=2 distinct queries and record attempts
-   - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"
+   - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"; `ok` means the claim *as worded* is verified
    - **Review gate**: do not mark `[REVIEWED]` if any crux `[F]` claim remains `?`
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
-7. **Neutral Analyst Prose Pass** - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
-8. **Extract** - Format claims as YAML
-9. **Register** - Add source and claims to database
-10. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
-11. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
-12. **Validate** - Run integrity checks
-13. **README** - Update data project analysis index
-14. **File Inbox** - Move/archive inbox items to permanent locations
-15. **Commit** - Stage and commit changes to data repo
-16. **Push** - Push to remote
-17. **Report** - Generate summary
+7. **Claim-Evidence Alignment Pass** (analysis) - Test each crux claim as worded against its evidence; split/narrow/retype unsupported parts; make every surface (summary, tables, YAML) agree
+8. **Neutral Analyst Prose Pass** (writing) - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+9. **Extract** - Format claims as YAML
+10. **Register** - Add source and claims to database
+11. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
+12. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+13. **Validate** - Run integrity checks
+14. **README** - Update data project analysis index
+15. **File Inbox** - Move/archive inbox items to permanent locations
+16. **Commit** - Stage and commit changes to data repo
+17. **Push** - Push to remote
+18. **Report** - Generate summary
 
 ---
 
@@ -105,6 +106,10 @@ For multi-source requests, produce:
 - Claim Summary table (all claims)
 - Claims to Register (YAML)
 - Credence in Analysis (0.0-1.0)
+
+---
+
+{% include "partials/claim-evidence-alignment.md.j2" %}
 
 ---
 
@@ -393,3 +398,5 @@ When using `--continue` on an existing analysis:
    - Address questions or gaps identified in the original pass
    - Cross-reference with newly added claims in the database
 5. **Preserve content**: Append new sections, update claim counts, note what changed
+6. **Propagate changes**: If the new pass changes any claim's wording, type, evidence level, credence, or status, rerun the Claim-Evidence Alignment Pass and revise every surface it lists (opening summary, Key Claims, Key Factual Claims Verified, Claim Summary, YAML, database row). An appended update section does not replace correcting the active claim.
+7. **Then rerun the prose pass** on changed analyst prose, as a separate step

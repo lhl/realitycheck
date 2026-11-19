@@ -514,6 +514,28 @@ Reviewer suggestions are inputs to investigation, not evidence. Represent them a
 - `reasoning_trails.status=proposed` for suggested credence changes
 - convert to `active` only after ingesting/linking the cited evidence; otherwise `retracted`
 
+### Claim-Evidence Alignment Pass
+
+An analysis pass that runs after Stage 3 and before the prose pass. It is
+separate from the prose pass because clearer writing makes an unsupported claim
+more persuasive; the analysis has to be right first.
+
+For each crux claim and each claim with credence >= 0.7, ask: could the cited
+evidence be accurate and this claim, as worded, still be false? If so, split
+the claim (what happened / what the source attributes it to / what the evidence
+can distinguish), narrow its scope, or change its type or credence. In Key
+Factual Claims Verified, `ok` means the claim as worded is verified.
+
+Then check that the claim reads the same everywhere it appears: opening
+summary, Key Claims (`Verified?`), Key Factual Claims Verified (`Status`), Claim
+Summary, Claims to Register YAML, and the database row. Updates and
+`--continue` passes revise all of these; an appended update section does not
+replace correcting the active claim.
+
+The framework's `scripts/analysis_validator.py` warns when a Key Claims
+`Verified?` status code disagrees with the Stage 2 `Status` for the same claim.
+It does not check wording against evidence.
+
 ### Neutral Analyst Prose Pass
 
 Before finalizing an analysis or synthesis, run a short pass over the
@@ -966,7 +988,7 @@ echo 'export REALITYCHECK_DATA="$HOME/github/you/realitycheck-data/data/realityc
 ### Credence Calibration
 - Avoid clustering everything at 0.7-0.8
 - Use the full range based on evidence
-- Chain credence is always <= weakest link
+- Chain credence is at most the weakest step (an upper bound for a conjunctive chain, not an estimate); it is lower when steps are independently uncertain
 
 ### Claim Hygiene
 - Always specify operationalization

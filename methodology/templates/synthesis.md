@@ -3,7 +3,13 @@
 Cross-cutting analysis across multiple sources and claims.
 
 <!--
-Before finalizing, run a neutral analyst prose pass over analyst-authored text.
+Before the prose pass, run the claim-evidence alignment pass (analysis): check
+each conclusion against the evidence it cites. Corroboration of an event is not
+corroboration of its cause; agreement between sources that share an upstream
+source is not independent. Make the assessment, tables, and any registered
+chain agree. See methodology/workflows/check-core.md "Claim-Evidence Alignment Pass".
+
+Then, before finalizing, run a neutral analyst prose pass over analyst-authored text.
 This does not apply to source text, direct quotes, titles, quoted slogans, or
 sections that analyze rhetoric/persuasion. Preserve source wording when it is
 evidence; do not adopt that wording as the analyst's voice.
@@ -78,7 +84,8 @@ For major argument chains, trace the logic:
 
 #### [Chain Name]
 **Thesis**: [final conclusion]
-**Credence**: [MIN of step credences]
+**Chain credence**: [at most the minimum step credence; lower when steps are independently uncertain]
+**Other support for the thesis**: [evidence outside this chain, or "none"]
 
 | Step | Claim | Evidence | Credence | Status |
 |------|-------|----------|----------|--------|
@@ -86,8 +93,8 @@ For major argument chains, trace the logic:
 | 2 | [inference] | E[1-6] | 0.XX | SOLID/CONTESTED/WEAK |
 | → | [conclusion] | - | 0.XX | - |
 
-**Weakest Link**: [which step?]
-**If Link Breaks**: [what happens to conclusion?]
+**Weakest Link**: [which step, and why it is the weakest]
+**If Link Breaks**: [what fails with it; does the thesis survive on other support?]
 
 ---
 

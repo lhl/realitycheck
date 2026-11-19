@@ -3,7 +3,7 @@
 
 | # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
 |---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [ok/x/nf/blocked/? + source] | [what would refute] |
 | 2 | | | | | | | | | | | | |
 | 3 | | | | | | | | | | | | |
 
@@ -18,5 +18,5 @@
 - **Domain**: Primary domain code (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)
 - **Evid**: Evidence level E1-E6
 - **Credence**: Probability estimate 0.00-1.00
-- **Verified?**: Source reference if verified, `?` if unverified
+- **Verified?**: Stage 2 status code (`ok`/`x`/`nf`/`blocked`/`?`), optionally followed by the source reference. Must match the claim's Status in Key Factual Claims Verified
 - **Falsifiable By**: What evidence would refute this claim

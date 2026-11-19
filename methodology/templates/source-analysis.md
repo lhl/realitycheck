@@ -3,7 +3,13 @@
 Three-stage methodology for rigorous source analysis.
 
 <!--
-Before finalizing, run a neutral analyst prose pass over analyst-authored text.
+Before the prose pass, run the claim-evidence alignment pass (analysis): for
+each crux claim, ask whether the cited evidence could be accurate and the claim
+as worded still be false. If so, split, narrow, or retype the claim. Make the
+summary, claim tables, verification status, YAML, and database record agree.
+See methodology/workflows/check-core.md "Claim-Evidence Alignment Pass".
+
+Then, before finalizing, run a neutral analyst prose pass over analyst-authored text.
 This does not apply to source text, direct quotes, titles, quoted slogans, or
 the Persuasion Techniques section when it is analyzing rhetoric. Preserve source
 wording when it is evidence; do not adopt that wording as the analyst's voice.

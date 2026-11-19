@@ -85,20 +85,21 @@ Stop and verify `REALITYCHECK_DATA` is set correctly.
    - **DB-first for crux factuals**: run `rc-db search "<neutral keywords>"` before external search
    - **Web discovery**: use your environment's web search capability (e.g., Claude `WebSearch`, Codex `web.run search_query`)
    - **Minimum verification attempt**: for each crux `[F]` claim, run >=2 distinct queries and record attempts
-   - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"
+   - **Status contract**: use `ok`, `x`, `nf`, `blocked`, `?` in "Key Factual Claims Verified"; `ok` means the claim *as worded* is verified
    - **Review gate**: do not mark `[REVIEWED]` if any crux `[F]` claim remains `?`
 6. **Stage 3: Dialectical** - Steelman, counterarguments, synthesis
-7. **Neutral Analyst Prose Pass** - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
-8. **Extract** - Format claims as YAML
-9. **Register** - Add source and claims to database
-10. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
-11. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
-12. **Validate** - Run integrity checks
-13. **README** - Update data project analysis index
-14. **File Inbox** - Move/archive inbox items to permanent locations
-15. **Commit** - Stage and commit changes to data repo
-16. **Push** - Push to remote
-17. **Report** - Generate summary
+7. **Claim-Evidence Alignment Pass** (analysis) - Test each crux claim as worded against its evidence; split/narrow/retype unsupported parts; make every surface (summary, tables, YAML) agree
+8. **Neutral Analyst Prose Pass** (writing) - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+9. **Extract** - Format claims as YAML
+10. **Register** - Add source and claims to database
+11. **Provenance** (for high-credence claims) - Link evidence + capture reasoning trails
+12. **Complete Tracking** - Finalize token usage + register `analysis_logs` row
+13. **Validate** - Run integrity checks
+14. **README** - Update data project analysis index
+15. **File Inbox** - Move/archive inbox items to permanent locations
+16. **Commit** - Stage and commit changes to data repo
+17. **Push** - Push to remote
+18. **Report** - Generate summary
 
 ---
 
@@ -174,6 +175,88 @@ For multi-source requests, produce:
 
 ---
 
+## Claim-Evidence Alignment Pass
+
+This is an **analysis** pass. Run it after the last analysis stage (Stage 3,
+or Stage 2 when `--quick` skips Stage 3) and before the prose pass.
+It checks that each claim says no more than its evidence supports, and that
+every place the claim appears says the same thing. Clearer prose makes an
+unsupported claim more persuasive, so fix the analysis first.
+
+### 1. Test each crux claim as worded
+
+For each crux claim, and each claim with credence >= 0.7, ask:
+
+> Could the cited evidence be accurate and this sentence still be false?
+
+If yes, identify the unsupported part and fix it in the analysis:
+
+- **Split** the claim when it bundles parts with different support. Common
+  splits: what happened; what the source or author says caused it or means; what
+  the evidence can distinguish between those readings.
+- **Narrow** the wording, scope, or quantifier to what the evidence covers.
+- **Retype or re-score** the claim when the unsupported part is the point of the
+  claim (for example, a causal interpretation stored as `[F]` usually belongs in
+  `[H]` or `[T]`, or as an attributed `[F]`: "X attributes Y to Z").
+
+Scope distinctions that apply often:
+
+- A source establishes what its author said. It does not establish that the
+  author is right.
+- Two reports can corroborate an event without independently corroborating its
+  cause or motive. Check whether they share an upstream source.
+- A published policy, specification, or promise establishes what was stated. It
+  does not establish what happened in a particular case.
+
+### 2. Status applies to the claim as worded
+
+In **Key Factual Claims Verified**, `ok` means the evidence verifies the claim
+as worded, at its stated scope. If the evidence supports only part of the claim,
+do not mark `ok`. Split the claim and give each part its own status, or record
+the supported and unsupported parts in **Search Notes** and choose the status
+that fits the unsupported part (`nf` when searched and not established).
+
+### 3. Contested conclusions
+
+When a conclusion is disputed, state the strongest plausible alternative
+explanation and the evidence that would distinguish it from the analysis's
+reading. If no alternative would change the answer, say so in one line; do not
+add a ceremonial counterargument.
+
+### 4. Dependencies and chains
+
+Name the weakest dependency the conclusion relies on and what fails if it
+breaks. For a conjunctive chain (every step must hold), the least credible step
+is an **upper bound** on the credence that all steps hold, not an estimate of
+it. The conclusion may also have support outside this chain. Do not present the
+weakest step's credence as the conclusion's credence without saying which of
+these applies.
+
+### 5. Consistency across surfaces
+
+Each claim must say the same thing, with the same type, evidence level,
+credence, and verification status, everywhere it appears:
+
+- the opening assessment or summary
+- the Key Claims table (including `Verified?`)
+- the Key Factual Claims Verified table (`Status`)
+- the Claim Summary table
+- the Claims to Register YAML
+- the database record (`rc-db claim get <id>`)
+
+When an update, correction, or `--continue` pass changes a claim, revise every
+surface above. An appended update section explains the change; it does not
+replace correcting the active claim. Record the change in **Corrections &
+Updates** and, for registered claims, update the database row.
+
+The framework's analysis-file validator
+(`uv run python scripts/analysis_validator.py <file>`, run from the framework
+repo; not part of `rc-validate`) warns when a status code in Key Claims
+`Verified?` disagrees with the Stage 2 `Status` for the same claim. No validator
+checks whether the wording matches the evidence; that remains the analyst's job.
+
+---
+
 ## Neutral Analyst Prose Pass
 
 Before finalizing an analysis or synthesis, run a short pass over the
@@ -232,7 +315,7 @@ Use this structure for analysis documents:
 
 | # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
 |---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [ok/x/nf/blocked/? + source] | [what would refute] |
 | 2 | | | | | | | | | | | | |
 | 3 | | | | | | | | | | | | |
 
@@ -247,7 +330,7 @@ Use this structure for analysis documents:
 - **Domain**: Primary domain code (TECH/LABOR/ECON/GOV/SOC/RESOURCE/TRANS/GEO/INST/RISK/META)
 - **Evid**: Evidence level E1-E6
 - **Credence**: Probability estimate 0.00-1.00
-- **Verified?**: Source reference if verified, `?` if unverified
+- **Verified?**: Stage 2 status code (`ok`/`x`/`nf`/`blocked`/`?`), optionally followed by the source reference. Must match the claim's Status in Key Factual Claims Verified
 - **Falsifiable By**: What evidence would refute this claim
 
 ### Argument Structure
@@ -307,8 +390,8 @@ Use this structure for analysis documents:
 - **Actual**: What verification found (or `?` if unresolved)
 - **External Source**: URL/reference used for verification (`ok`/`x` should include one)
 - **Search Notes**: Queries attempted, date/timebox notes, and blockers if unresolved
-- **Status**:
-  - `ok` = verified
+- **Status** (applies to the claim **as worded**, at its stated scope):
+  - `ok` = verified as worded. If only part is supported (for example, the event but not its stated cause), split the claim or use the status that fits the unsupported part and say which part in Search Notes
   - `x` = refuted
   - `nf` = searched, not found
   - `blocked` = access/capture blocked
@@ -532,8 +615,9 @@ To maintain well-calibrated credence:
 **Aggregation notes**:
 - A theory with many 0.7 credence claims is not itself 0.7 credence
 - Credence in overall theory depends on logical structure and weakest critical links
-- Chain arguments: overall credence <= weakest link
-- Explicitly model dependencies when possible
+- Chain arguments: for a conjunctive chain (every step must hold), the weakest step's credence is an upper bound on the credence that all steps hold, not an estimate of it; it is lower when steps are independently uncertain
+- The conclusion may have support outside the chain; say whether a chain credence describes the chain or the conclusion
+- Name the weakest dependency and what fails if it breaks; explicitly model dependencies when possible
 
 ---
 
@@ -979,6 +1063,8 @@ When using `--continue` on an existing analysis:
    - Address questions or gaps identified in the original pass
    - Cross-reference with newly added claims in the database
 5. **Preserve content**: Append new sections, update claim counts, note what changed
+6. **Propagate changes**: If the new pass changes any claim's wording, type, evidence level, credence, or status, rerun the Claim-Evidence Alignment Pass and revise every surface it lists (opening summary, Key Claims, Key Factual Claims Verified, Claim Summary, YAML, database row). An appended update section does not replace correcting the active claim.
+7. **Then rerun the prose pass** on changed analyst prose, as a separate step
 
 ---
 

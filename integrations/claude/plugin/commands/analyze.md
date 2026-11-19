@@ -43,7 +43,16 @@ Perform a full 3-stage analysis of a source following the Reality Check methodol
 - Map interventions: what would change these claims?
 - Synthesize: where does this fit in the broader landscape?
 
-### Neutral Analyst Prose Pass
+### Claim-Evidence Alignment Pass (analysis)
+- For each crux claim, ask: could the cited evidence be accurate and this claim,
+  as worded, still be false? If so, split the claim (what happened / what the
+  source attributes it to / what the evidence can distinguish), narrow it, or
+  change its type or credence.
+- A source establishes what its author said, not that the author is right. Two
+  reports can corroborate an event without corroborating its cause.
+- Make the summary, claim tables, verification status, and YAML agree.
+
+### Neutral Analyst Prose Pass (writing)
 - Apply this pass to the analyst's prose, not to source text, direct quotes,
   titles, quoted slogans, or persuasion/rhetoric examples.
 - Remove rhetorical setup, marketing language, vague intensifiers, hedge stacks,

@@ -69,7 +69,7 @@ Argument chains (A → B → C → Conclusion).
 | `id` | string | Yes | Unique ID: `CHAIN-[YYYY]-[NNN]` |
 | `name` | string | Yes | Chain name/title |
 | `thesis` | string | Yes | Final conclusion |
-| `credence` | float32 | Yes | MIN(step credences) |
+| `credence` | float32 | Yes | Credence that the chain holds. `rc-db chain add` defaults to MIN(step credences), an upper bound for a conjunctive chain; `rc-validate` warns if it exceeds that minimum |
 | `claims` | list[string] | Yes | Ordered list of claim IDs in chain |
 | `analysis_file` | string | No | Path to analysis document |
 | `weakest_link` | string | No | ID of weakest claim |

@@ -6,6 +6,20 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ## Unreleased
 
+### Added
+
+- Claim-Evidence Alignment Pass in check/analyze/synthesize workflows and generated skills. It runs after Stage 3 and before the prose pass, tests each crux claim as worded against its evidence, and requires the summary, Key Claims, Stage 2 status, Claim Summary, YAML, and database row to agree (including after `--continue`/update passes).
+- `scripts/analysis_validator.py` warns when a Key Claims `Verified?` status code disagrees with the Stage 2 `Status` for the same claim.
+
+### Changed
+
+- `ok` in Key Factual Claims Verified now means the claim *as worded* is verified; partial support requires a split claim or a status that fits the unsupported part.
+- Chain-credence guidance: the minimum step credence is an upper bound for a conjunctive chain, not an estimate of it, and a chain credence does not by itself describe a conclusion that has other support.
+
+### Fixed
+
+- `scripts/analysis_validator.py` finds Stage 2 tables under nested headings (for example `#### Key Factual Claims Verified`); such analyses were previously skipped by the factual-verification checks.
+
 ## 0.3.5 - 2026-07-04
 
 **Analysis style guardrails & Pi sync hardening** — adds a neutral analyst prose pass to analysis workflows and fixes packaged integration sync for Pi/wheel installs.

@@ -40,11 +40,15 @@ The synthesis should link back to relevant source analyses in:
    - Points of disagreement (where do they conflict, and why?)
    - Conclusions with calibrated credence + key uncertainties
    - Link claim IDs and source analysis files wherever possible
-4. **Neutral Analyst Prose Pass**
+4. **Claim-Evidence Alignment Pass** (analysis)
+   - Check each conclusion against the evidence it cites. Corroboration of an event is not corroboration of its cause; sources sharing an upstream source are not independent.
+   - For disputed conclusions, state the strongest alternative and what evidence would distinguish it.
+   - For argument chains, the weakest step's credence is a ceiling on the chain, not an estimate of it.
+5. **Neutral Analyst Prose Pass** (writing)
    - Apply this pass to the analyst's prose, not source text, direct quotes, titles, quoted slogans, or persuasion/rhetoric examples.
    - Remove rhetorical setup, marketing language, vague intensifiers, hedge stacks, and conclusion recaps from analyst prose.
    - Preserve source wording when it is evidence for rhetoric, framing, or persuasion; label it as source language instead of adopting it as the analyst's voice.
-5. **(Optional) Register an argument chain**
+6. **(Optional) Register an argument chain**
    - If the synthesis centers on a specific argument chain, register it and point `--analysis-file` at the synthesis document:
 
 ```bash
@@ -56,15 +60,15 @@ The synthesis should link back to relevant source analyses in:
   --analysis-file "analysis/syntheses/<synth-id>.md"
 ```
 
-6. **Validate**
+7. **Validate**
 
 ```bash
 "${CLAUDE_PLUGIN_ROOT}/scripts/run-validate.sh"
 ```
 
-7. **Update README**
+8. **Update README**
    - Add a row to the "Syntheses" table (kept above "Source Analyses") in your data repo `README.md`.
-8. **Commit and push**
+9. **Commit and push**
    - If you ran a DB write command (e.g., `chain add`), the plugin hook may auto-commit.
    - Otherwise, commit your `analysis/` + `README.md` changes manually.
 

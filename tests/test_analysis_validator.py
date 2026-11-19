@@ -709,6 +709,7 @@ def _build_full_analysis_for_stage2_checks(
     *,
     key_claim_credence: str = "0.80",
     key_claim_type: str = "[F]",
+    key_claim_verified: str = "?",
     stage2_table_override: str | None = None,
     rigor_level: str = "[REVIEWED]",
 ) -> str:
@@ -731,7 +732,7 @@ Test.
 ### Key Claims
 | # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
 |---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
-| 1 | Test claim | TECH-2026-001 | ASSERTED | N/A | who=all | most | {key_claim_type} | TECH | E6 | {key_claim_credence} | ? | N/A |
+| 1 | Test claim | TECH-2026-001 | ASSERTED | N/A | who=all | most | {key_claim_type} | TECH | E6 | {key_claim_credence} | {key_claim_verified} | N/A |
 ### Argument Structure
 ### Theoretical Lineage
 ## Stage 2: Evaluative Analysis
@@ -949,3 +950,82 @@ class TestStage2VerificationRigor:
 
         result = validate_file(test_file, profile="full")
         assert any("missing required columns for factual verification gating" in warning for warning in result.warnings)
+
+
+class TestVerificationStatusConsistency:
+    """Key Claims `Verified?` and Stage 2 `Status` must describe the same claim the same way."""
+
+    MISMATCH = "Verified? is"
+
+    def _validate(self, tmp_path, stage2_status: str, key_claim_verified: str):
+        content = _build_full_analysis_for_stage2_checks(
+            f"| TECH-2026-001 | Test claim | Y | Source assertion | value | https://example.com/source | q1; q2 | {stage2_status} |",
+            key_claim_credence="0.65",
+            key_claim_verified=key_claim_verified,
+        )
+        test_file = tmp_path / "consistency.md"
+        test_file.write_text(content)
+        return validate_file(test_file, profile="full")
+
+    def test_unverified_key_claim_with_ok_stage2_warns(self, tmp_path):
+        """Doctorow pattern: Key Claims says `?` while Stage 2 says `ok`."""
+        result = self._validate(tmp_path, "ok", "?")
+        assert any(self.MISMATCH in w and "TECH-2026-001" in w for w in result.warnings)
+
+    def test_verified_key_claim_with_nf_stage2_warns(self, tmp_path):
+        result = self._validate(tmp_path, "nf", "ok")
+        assert any(self.MISMATCH in w for w in result.warnings)
+
+    def test_refuted_key_claim_with_ok_stage2_warns(self, tmp_path):
+        result = self._validate(tmp_path, "ok", "x")
+        assert any(self.MISMATCH in w for w in result.warnings)
+
+    def test_matching_status_codes_do_not_warn(self, tmp_path):
+        result = self._validate(tmp_path, "ok", "ok")
+        assert not any(self.MISMATCH in w for w in result.warnings)
+
+    def test_matching_unattempted_does_not_warn(self, tmp_path):
+        result = self._validate(tmp_path, "?", "?")
+        assert not any(self.MISMATCH in w for w in result.warnings)
+
+    def test_source_reference_in_verified_column_is_not_compared(self, tmp_path):
+        """A source reference (legacy usage) is not a status code; do not compare it."""
+        result = self._validate(tmp_path, "ok", "METR 2026-08-26 report")
+        assert not any(self.MISMATCH in w for w in result.warnings)
+
+    def test_mismatch_warns_without_reviewed_rigor_level(self, tmp_path):
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | value | https://example.com/source | q1; q2 | ok |",
+            key_claim_credence="0.65",
+            key_claim_verified="?",
+            rigor_level="[DRAFT]",
+        )
+        test_file = tmp_path / "draft-consistency.md"
+        test_file.write_text(content)
+        result = validate_file(test_file, profile="full")
+        assert any(self.MISMATCH in w for w in result.warnings)
+
+    def test_mismatch_detected_with_nested_heading_level(self, tmp_path):
+        """Real analyses sometimes nest Stage 2 tables under `####` headings."""
+        content = _build_full_analysis_for_stage2_checks(
+            "| TECH-2026-001 | Test claim | Y | Source assertion | value | https://example.com/source | q1; q2 | ok |",
+            key_claim_credence="0.65",
+            key_claim_verified="?",
+        )
+        content = content.replace("### Key Factual Claims Verified", "#### Key Factual Claims Verified", 1)
+        test_file = tmp_path / "nested-heading.md"
+        test_file.write_text(content)
+        result = validate_file(test_file, profile="full")
+        assert any(self.MISMATCH in w for w in result.warnings)
+
+    def test_status_code_followed_by_source_is_compared(self, tmp_path):
+        result = self._validate(tmp_path, "nf", "ok (METR 2026-08-26)")
+        assert any(self.MISMATCH in w for w in result.warnings)
+
+    def test_status_code_followed_by_matching_source_does_not_warn(self, tmp_path):
+        result = self._validate(tmp_path, "ok", "ok; METR 2026-08-26")
+        assert not any(self.MISMATCH in w for w in result.warnings)
+
+    def test_word_starting_with_x_is_not_a_status_code(self, tmp_path):
+        result = self._validate(tmp_path, "ok", "xAI blog post")
+        assert not any(self.MISMATCH in w for w in result.warnings)

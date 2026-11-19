@@ -150,6 +150,16 @@ rc-db source capture https://example.com/report.pdf \
 
 ---
 
+## Claim-Evidence Alignment and Reader-First Writing
+
+**Implementation**: [IMPLEMENTATION-claim-alignment-reader-first.md](IMPLEMENTATION-claim-alignment-reader-first.md)
+
+**Problem**: Analyses can mark a claim `ok` when the evidence supports only part of it, and appended updates can leave the active claim, verification row, and DB record unchanged. Openings lead with legends and metadata rather than the answer.
+
+**Status**: In progress (2026-11-20) — Phase A (analysis pass) implemented; Phase B (writing pass) next; cross-model evaluation deferred (D-R5).
+
+---
+
 ## Analysis Rigor Improvements (Primary Evidence, Layering, Corrections)
 
 **Plan**: [PLAN-analysis-rigor-improvement.md](PLAN-analysis-rigor-improvement.md)

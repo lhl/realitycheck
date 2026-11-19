@@ -110,15 +110,100 @@ Write a synthesis document to:
 5. **Write the synthesis**
    - Link each major claim back to source analyses (when available)
    - Resolve conflicts where possible; otherwise record open questions + what would resolve them
-6. **Neutral Analyst Prose Pass**
+6. **Claim-Evidence Alignment Pass** (analysis)
+   - Check each synthesized conclusion against the evidence it cites: corroboration of an event is not corroboration of its cause; agreement between sources that share an upstream source is not independent
+   - For disputed conclusions, state the strongest alternative and what would distinguish it
+   - Make the assessment, tables, and any registered chain agree
+7. **Neutral Analyst Prose Pass** (writing)
    - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
-7. **(Optional) Register an argument chain**
+8. **(Optional) Register an argument chain**
    - Use `rc-db chain add ... --analysis-file "analysis/syntheses/<synth-id>.md" --claims "ID1,ID2,..."` for the central claim chain
-8. **Complete Tracking** - Finalize token usage with synthesis attribution
-9. **Update README**
+   - Chain credence defaults to the minimum step credence, which is a ceiling for a conjunctive chain; pass `--credence` with a lower value when step dependence warrants it
+9. **Complete Tracking** - Finalize token usage with synthesis attribution
+10. **Update README**
    - Add the synthesis to the "Syntheses" table (kept **above** "Source Analyses")
-10. **Commit and push**
+11. **Commit and push**
    - Commit changes to `analysis/` and `README.md` (and any generated exports), then push
+
+## Claim-Evidence Alignment Pass
+
+This is an **analysis** pass. Run it after the last analysis stage (Stage 3,
+or Stage 2 when `--quick` skips Stage 3) and before the prose pass.
+It checks that each claim says no more than its evidence supports, and that
+every place the claim appears says the same thing. Clearer prose makes an
+unsupported claim more persuasive, so fix the analysis first.
+
+### 1. Test each crux claim as worded
+
+For each crux claim, and each claim with credence >= 0.7, ask:
+
+> Could the cited evidence be accurate and this sentence still be false?
+
+If yes, identify the unsupported part and fix it in the analysis:
+
+- **Split** the claim when it bundles parts with different support. Common
+  splits: what happened; what the source or author says caused it or means; what
+  the evidence can distinguish between those readings.
+- **Narrow** the wording, scope, or quantifier to what the evidence covers.
+- **Retype or re-score** the claim when the unsupported part is the point of the
+  claim (for example, a causal interpretation stored as `[F]` usually belongs in
+  `[H]` or `[T]`, or as an attributed `[F]`: "X attributes Y to Z").
+
+Scope distinctions that apply often:
+
+- A source establishes what its author said. It does not establish that the
+  author is right.
+- Two reports can corroborate an event without independently corroborating its
+  cause or motive. Check whether they share an upstream source.
+- A published policy, specification, or promise establishes what was stated. It
+  does not establish what happened in a particular case.
+
+### 2. Status applies to the claim as worded
+
+In **Key Factual Claims Verified**, `ok` means the evidence verifies the claim
+as worded, at its stated scope. If the evidence supports only part of the claim,
+do not mark `ok`. Split the claim and give each part its own status, or record
+the supported and unsupported parts in **Search Notes** and choose the status
+that fits the unsupported part (`nf` when searched and not established).
+
+### 3. Contested conclusions
+
+When a conclusion is disputed, state the strongest plausible alternative
+explanation and the evidence that would distinguish it from the analysis's
+reading. If no alternative would change the answer, say so in one line; do not
+add a ceremonial counterargument.
+
+### 4. Dependencies and chains
+
+Name the weakest dependency the conclusion relies on and what fails if it
+breaks. For a conjunctive chain (every step must hold), the least credible step
+is an **upper bound** on the credence that all steps hold, not an estimate of
+it. The conclusion may also have support outside this chain. Do not present the
+weakest step's credence as the conclusion's credence without saying which of
+these applies.
+
+### 5. Consistency across surfaces
+
+Each claim must say the same thing, with the same type, evidence level,
+credence, and verification status, everywhere it appears:
+
+- the opening assessment or summary
+- the Key Claims table (including `Verified?`)
+- the Key Factual Claims Verified table (`Status`)
+- the Claim Summary table
+- the Claims to Register YAML
+- the database record (`rc-db claim get <id>`)
+
+When an update, correction, or `--continue` pass changes a claim, revise every
+surface above. An appended update section explains the change; it does not
+replace correcting the active claim. Record the change in **Corrections &
+Updates** and, for registered claims, update the database row.
+
+The framework's analysis-file validator
+(`uv run python scripts/analysis_validator.py <file>`, run from the framework
+repo; not part of `rc-validate`) warns when a status code in Key Claims
+`Verified?` disagrees with the Stage 2 `Status` for the same claim. No validator
+checks whether the wording matches the evidence; that remains the analyst's job.
 
 ## Neutral Analyst Prose Pass
 

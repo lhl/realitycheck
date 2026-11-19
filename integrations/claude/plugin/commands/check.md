@@ -35,13 +35,18 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 1. **Fetch** - Use `WebFetch` to retrieve source content
 2. **Metadata** - Extract title, author, date, type, generate source-id
 3. **Analysis** - Perform 3-stage analysis (see methodology)
-4. **Neutral Analyst Prose Pass** - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
-5. **Extract** - Format claims as YAML (see methodology)
-6. **Register** - Add source and claims to database
-7. **Audit Log** - Append in-document Analysis Log + register `analysis_logs` row
-8. **Validate** - Run integrity checks
-9. **README** - Update data project analysis index
-10. **Report** - Generate summary
+4. **Claim-Evidence Alignment Pass** (analysis) - For each crux claim, ask whether the cited evidence could be accurate and the claim as worded still be false; if so, split, narrow, or retype it. `ok` means the claim as worded is verified. Make the summary, Key Claims `Verified?`, Stage 2 `Status`, Claim Summary, YAML, and database row agree
+5. **Neutral Analyst Prose Pass** (writing) - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
+6. **Extract** - Format claims as YAML (see methodology)
+7. **Register** - Add source and claims to database
+8. **Audit Log** - Append in-document Analysis Log + register `analysis_logs` row
+9. **Validate** - Run integrity checks
+10. **README** - Update data project analysis index
+11. **Report** - Generate summary
+
+With `--continue` or when appending an update: if a claim's wording, type,
+evidence level, credence, or status changes, revise every surface listed in
+step 4. An appended update section does not replace correcting the active claim.
 
 The neutral prose pass applies to the analysis voice, not the content being
 analyzed. Do not remove direct quotes, source wording, titles, quoted slogans,

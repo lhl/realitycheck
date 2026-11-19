@@ -15,5 +15,6 @@ To maintain well-calibrated credence:
 **Aggregation notes**:
 - A theory with many 0.7 credence claims is not itself 0.7 credence
 - Credence in overall theory depends on logical structure and weakest critical links
-- Chain arguments: overall credence <= weakest link
-- Explicitly model dependencies when possible
+- Chain arguments: for a conjunctive chain (every step must hold), the weakest step's credence is an upper bound on the credence that all steps hold, not an estimate of it; it is lower when steps are independently uncertain
+- The conclusion may have support outside the chain; say whether a chain credence describes the chain or the conclusion
+- Name the weakest dependency and what fails if it breaks; explicitly model dependencies when possible

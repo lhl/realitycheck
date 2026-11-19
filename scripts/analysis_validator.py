@@ -390,7 +390,10 @@ def _is_table_separator_row(cells: list[str]) -> bool:
 
 def _extract_section_content(content: str, section_header: str) -> str:
     """Extract a section body from a markdown document."""
-    section_pattern = re.compile(rf"^\s*{re.escape(section_header)}\s*$", re.IGNORECASE | re.MULTILINE)
+    # Match the heading title at any level (## through ######) so nested
+    # headings such as "#### Key Factual Claims Verified" are still found.
+    title = section_header.lstrip("#").strip()
+    section_pattern = re.compile(rf"^\s*#{{2,6}}\s+{re.escape(title)}\s*$", re.IGNORECASE | re.MULTILINE)
     section_match = section_pattern.search(content)
     if not section_match:
         return ""
@@ -449,6 +452,15 @@ def _normalize_status(status: str) -> str:
     if cleaned.startswith("[") and cleaned.endswith("]") and len(cleaned) >= 3:
         cleaned = cleaned[1:-1].strip()
     return cleaned
+
+
+_LEADING_STATUS_RE = re.compile(r"^(ok|x|nf|blocked|\?)(?=$|[\s;:,(\-—–])")
+
+
+def _leading_status_code(value: str) -> str:
+    """Return the Stage 2 status code that leads a cell (e.g. "ok (METR)" -> "ok"), or ""."""
+    match = _LEADING_STATUS_RE.match(_normalize_status(value))
+    return match.group(1) if match else ""
 
 
 def _is_crux_value(value: str) -> bool:
@@ -555,6 +567,7 @@ def _extract_key_claim_rows(content: str) -> list[dict[str, str | float]]:
     claim_id_idx: int | None = None
     claim_type_idx: int | None = None
     credence_idx: int | None = None
+    verified_idx: int | None = None
 
     for index in range(len(lines) - 1):
         header_cells = _split_md_table_row(lines[index])
@@ -583,6 +596,7 @@ def _extract_key_claim_rows(content: str) -> list[dict[str, str | float]]:
         claim_id_idx = maybe_claim_id_idx
         claim_type_idx = maybe_claim_type_idx
         credence_idx = maybe_credence_idx
+        verified_idx = _find_column_index(column_map, "verified?", "verified")
         break
 
     if header_index is None or claim_id_idx is None or claim_type_idx is None or credence_idx is None:
@@ -607,11 +621,16 @@ def _extract_key_claim_rows(content: str) -> list[dict[str, str | float]]:
         except ValueError:
             continue
 
+        verified = ""
+        if verified_idx is not None and verified_idx < len(row_cells):
+            verified = row_cells[verified_idx].strip()
+
         claims.append(
             {
                 "claim_id": claim_id,
                 "claim_type": claim_type,
                 "credence": credence,
+                "verified": verified,
             }
         )
 
@@ -684,6 +703,16 @@ def validate_factual_verification_rigor(content: str) -> list[str]:
         if claim_type == "F" and credence >= 0.7 and status not in {"ok", "x"}:
             warnings.append(
                 f"High-credence factual claim {claim_id} is not verified/refuted — add citation/verification or lower credence"
+            )
+
+        # Claim-evidence alignment: when Key Claims records a status code in
+        # Verified?, it must agree with the Stage 2 Status for the same claim.
+        # A source reference (legacy usage) is not a status code and is not compared.
+        verified_status = _leading_status_code(str(claim.get("verified", "")))
+        if status and verified_status and verified_status != status:
+            warnings.append(
+                f"Claim {claim_id}: Key Claims Verified? is '{verified_status}' but Key Factual Claims "
+                f"Verified Status is '{status}' — reconcile both so they describe the claim as worded"
             )
 
     return warnings
