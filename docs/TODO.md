@@ -156,7 +156,7 @@ rc-db source capture https://example.com/report.pdf \
 
 **Problem**: Analyses can mark a claim `ok` when the evidence supports only part of it, and appended updates can leave the active claim, verification row, and DB record unchanged. Openings lead with legends and metadata rather than the answer.
 
-**Status**: In progress (2026-11-20) — Phase A (analysis pass) implemented; Phase B (writing pass) next; cross-model evaluation deferred (D-R5).
+**Status**: In progress (2026-11-20) — Phase A (analysis pass) and Phase B (writing pass) implemented, pending review; cross-model evaluation deferred (D-R5).
 
 ---
 

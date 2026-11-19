@@ -89,11 +89,12 @@ Write a synthesis document to:
 `PROJECT_ROOT/analysis/syntheses/<synth-id>.md`
 
 **Required elements**:
-1. **Synthesis metadata** (topic, date, synthesis ID)
-2. **Claims referenced** (claim IDs)
-3. **Source analysis links** for relevant sources (prefer linking `analysis/sources/<source-id>.md`)
-4. **Agreement/disagreement** with explanations
-5. **Synthesis conclusions** with calibrated credence and key uncertainties
+1. **Assessment** (first section after the title: the analyst's answer to the synthesis question, the evidence carrying the most weight, and what remains unsettled; metadata goes after it)
+2. **Synthesis metadata** (topic, date, synthesis ID)
+3. **Claims referenced** (claim IDs)
+4. **Source analysis links** for relevant sources (prefer linking `analysis/sources/<source-id>.md`)
+5. **Agreement/disagreement** with explanations
+6. **Synthesis conclusions** with calibrated credence and key uncertainties
 
 **Corner case**: If you have *claims/evidence but no analyzable sources*, explicitly say so and explain why (e.g., internal notes, private sources, offline materials). Still reference claim IDs and any evidence artifacts available.
 
@@ -108,6 +109,7 @@ Write a synthesis document to:
    - Points of agreement (which claims converge?)
    - Points of disagreement (where do they conflict, and why?)
 5. **Write the synthesis**
+   - Write the Assessment first: answer the question defined in step 2 before the landscape and chain sections
    - Link each major claim back to source analyses (when available)
    - Resolve conflicts where possible; otherwise record open questions + what would resolve them
 6. **Claim-Evidence Alignment Pass** (analysis)
@@ -207,27 +209,88 @@ checks whether the wording matches the evidence; that remains the analyst's job.
 
 ## Neutral Analyst Prose Pass
 
-Before finalizing an analysis or synthesis, run a short pass over the
-analyst-authored prose.
+This is a **writing** pass. Run it after the Claim-Evidence Alignment Pass. It
+changes how the analysis reads, not what it concludes. If it turns up a claim
+that says more than its evidence, or an opening that disagrees with the tables,
+return to the alignment pass and fix the analysis first.
+
+Accuracy and the reader's task outrank style. Do not apply a rule below when it
+would make the analysis less accurate or harder to use.
 
 **Scope**:
-- Applies to the analyst's prose: summaries, thesis statements, evidence
-  assessments, credence reasoning, synthesis notes, and recommendations.
+- Applies to the analyst's prose: the opening assessment, summaries, thesis
+  statements, evidence assessments, credence reasoning, synthesis notes, and
+  recommendations.
 - Does not apply to source text, direct quotes, titles, quoted slogans, or
   sections that intentionally analyze rhetoric/persuasion techniques.
 - Preserve source wording when it is evidence for rhetoric, framing, or
   persuasion. Label it as source language instead of adopting it as the
   analyst's voice.
 
-**Rewrite rules**:
+### Open with the answer
+
+The opening (`## Assessment`) answers the question the reader brought. For a
+substantial analysis it gives:
+
+1. the answer;
+2. the evidence that carries the most weight, with the citation or claim ID
+   beside the inference it supports;
+3. the limitation most likely to change the reader's interpretation. Include a
+   coverage or capture gap here only if it could reverse the answer.
+
+The shape depends on the task. These are examples, not required sentence frames:
+
+- **Source analysis**: what the source argues, what holds up, what does not,
+  and what was not checked.
+- **Quick extraction**: what the source says, and what was not checked. Do not
+  imply a verdict the extraction did not reach.
+- **Fact-check**: "The evidence establishes X. It does not settle Y, because …"
+- **Choice**: "Pick X for this use because … Choose Y instead if …"
+- **Explanation**: "X happens because … That explanation applies when …"
+- **Unresolved dispute**: "Both accounts fit X. They differ on Y; the available
+  evidence cannot distinguish them."
+- **Synthesis**: the analyst's assessment across sources, before the landscape,
+  chain, and intervention sections.
+
+After the opening, give the argument in the order the reader needs to follow
+it. Keep the full record (claim tables, verification rows, captures, search
+notes, analysis log) below it for inspection; do not shorten the investigation
+to shorten the page. Legends, metadata, workflow names, and capture counts go
+after the opening unless they change the answer.
+
+State each qualification once, beside the claim it qualifies. Do not repeat the
+same caveat verbatim in several sections; refer back to it by claim ID or
+section instead.
+
+### Edit sentences
+
 - State facts, claim IDs, dates, sources, methods, search results, evidence
   levels, credences, falsifiers, and open questions directly.
-- Remove rhetorical setup, marketing language, reassurance frames, vague
-  intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+- For each candidate cut, ask: **what would a careful reader lose if this
+  sentence disappeared?** Keep it if they would lose an explanation, an
+  inference, a qualification, a comparison, or a route to the evidence. Cut it
+  if only emphasis or tone would disappear.
+- Use word lists (intensifiers, marketing language, hedge stacks, transition
+  scaffolding, "not X but Y" frames, conclusion recaps) to find candidates, not
+  to decide. A contrast that separates two things a reader could confuse (an
+  event and its cause, a policy and what happened in practice, what a source
+  says and whether it is right) is content; keep it. A contrast that argues with
+  an imagined objection is filler.
+- Replace hedge stacks with the specific unknown, condition, or evidence gap.
+  Do not delete a qualifier that bounds a claim's scope.
 - Replace vague quantifiers (`many`, `several`, `various`) with counts, IDs,
   bounded scopes, or `unknown`.
 - Do not change claim IDs, evidence levels, credences, source-backed facts, or
   quotes unless the analysis records why.
+
+### Check the result
+
+- After reading only the opening, can a reader say what the answer is, why, and
+  what remains unsettled?
+- Can they reach the supporting evidence (claim IDs, source links, verification
+  rows) without reconstructing the investigation?
+- Does the opening say the same thing as the claim tables and YAML? If not,
+  return to the alignment pass.
 
 ## Token Usage Tracking (Synthesis Mode)
 
@@ -258,6 +321,10 @@ The `inputs_source_ids` and `inputs_analysis_ids` fields enable end-to-end cost 
 
 ```markdown
 # Synthesis: [Topic]
+
+## Assessment
+
+[The analyst's answer to the synthesis question, the evidence that carries the most weight (with claim IDs and source-analysis links), and what remains unsettled. Where sources agree on an event but differ on cause or motive, say so and say whether the evidence can distinguish them.]
 
 ## Synthesis Metadata
 

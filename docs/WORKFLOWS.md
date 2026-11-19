@@ -538,8 +538,23 @@ It does not check wording against evidence.
 
 ### Neutral Analyst Prose Pass
 
-Before finalizing an analysis or synthesis, run a short pass over the
-analyst-authored prose.
+A writing pass that runs after the Claim-Evidence Alignment Pass. It changes
+how the analysis reads, not what it concludes; if it turns up an analysis
+problem, return to the alignment pass.
+
+**Open with the answer.** Full source analyses and syntheses start with an
+`## Assessment` section, before legends and metadata. It gives the answer to
+the reader's question, the evidence that carries the most weight (with claim
+IDs beside the inference), and the limitation most likely to change the
+interpretation. A coverage gap belongs there only if it could reverse the
+answer. Quick extractions lead with what the source says and what was not
+checked. The full record stays below for inspection.
+
+**Deletion test.** For each candidate cut, ask what a careful reader would lose
+if the sentence disappeared. Keep explanations, inferences, qualifications,
+comparisons, and routes to evidence. Word lists (intensifiers, marketing terms,
+"not X but Y" frames) identify candidates; they do not decide. A contrast that
+separates an event from its cause, or a policy from practice, is content.
 
 This applies to summaries, thesis statements, evidence assessments, credence
 reasoning, synthesis notes, and recommendations. It does **not** apply to source
@@ -548,8 +563,9 @@ analyze rhetoric/persuasion techniques. Preserve source wording when it is
 evidence for rhetoric, framing, or persuasion; label it as source language
 instead of adopting it as the analyst's voice.
 
-The pass should remove rhetorical setup, marketing language, reassurance frames,
-vague intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+Within that test, the pass removes rhetorical setup, marketing language,
+reassurance frames, vague intensifiers, hedge stacks, and conclusion recaps
+from analyst prose.
 Replace vague quantifiers such as `many`, `several`, and `various` with counts,
 IDs, bounded scopes, or `unknown`. Do not change claim IDs, evidence levels,
 credences, source-backed facts, or quotes unless the analysis records why.

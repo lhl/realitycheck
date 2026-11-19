@@ -124,6 +124,23 @@ class TestLegendInsertion:
         # Legends should come before Metadata
         assert result.index("> **Claim types**:") < result.index("## Metadata")
 
+    def test_insert_legends_after_assessment(self):
+        """When an Assessment opens the analysis, legends follow it (answer first)."""
+        content = """# Source Analysis: Test
+
+## Assessment
+
+The source establishes X. It does not settle Y.
+
+## Metadata
+"""
+        result = insert_legends(content)
+
+        legend_pos = result.index("> **Claim types**:")
+        assert result.index("## Assessment") < legend_pos
+        assert result.index("It does not settle Y.") < legend_pos
+        assert legend_pos < result.index("## Metadata")
+
     def test_insert_legends_idempotent(self):
         """Legends not duplicated if already present."""
         content = """# Source Analysis: Test

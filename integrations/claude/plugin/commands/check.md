@@ -48,6 +48,13 @@ With `--continue` or when appending an update: if a claim's wording, type,
 evidence level, credence, or status changes, revise every surface listed in
 step 4. An appended update section does not replace correcting the active claim.
 
+The neutral prose pass is a writing pass; it does not change what the analysis
+concludes. Open the analysis with an `## Assessment` section that gives the
+answer, the evidence carrying the most weight, and the limitation most likely to
+change the interpretation; legends and metadata follow it. For each candidate
+cut, ask what a careful reader would lose if it disappeared: keep explanations,
+qualifications, distinctions, and routes to evidence; cut emphasis-only text.
+
 The neutral prose pass applies to the analysis voice, not the content being
 analyzed. Do not remove direct quotes, source wording, titles, quoted slogans,
 or examples in persuasion/rhetoric analysis; label those as source language

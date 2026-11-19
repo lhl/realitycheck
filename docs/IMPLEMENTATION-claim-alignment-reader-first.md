@@ -1,6 +1,6 @@
 # Implementation: Claim-Evidence Alignment and Reader-First Writing
 
-**Status**: In progress (awaiting second-agent review)
+**Status**: Phases A and B implemented; awaiting second-agent review
 **Started**: 2026-11-20
 **Last Updated**: 2026-11-20
 **Input**: Editorial/methodological review (2026-11) of the Jouzu writing skills
@@ -82,12 +82,13 @@ results; if it surfaces an analysis problem, return to the alignment pass.
 
 ### Phase B — Writing pass (R2, R3, R4)
 
-- [ ] Revise `partials/neutral-prose-pass.md.j2`: governing rule, reader-loss test, word lists as diagnostics, reader route
-- [ ] Add opening assessment to full source-analysis template, synthesis template, and methodology templates; move workflow metadata below
-- [ ] Quick extraction: lead with what the source says and what was not checked
-- [ ] Synthesis: move the bottom-line assessment above landscape/intervention sections
-- [ ] Plugin commands + `docs/WORKFLOWS.md` parity
-- [ ] Regenerate skills + `check-core.md`
+- [x] Revise `partials/neutral-prose-pass.md.j2`: writing pass runs after alignment and does not change conclusions; accuracy outranks style; answer-first opening by task type (examples, not frames); reader-loss deletion test; word lists as diagnostics; qualification stated once beside its claim
+- [x] `## Assessment` opens full source analyses (`check.md.j2` template, `analysis/source-analysis-full.md.j2`, `methodology/templates/source-analysis.md`); legends and metadata follow
+- [x] Quick extraction summary: say what the source says and what was not checked; no implied verdict
+- [x] Synthesis: `## Assessment` before metadata (`synthesize.md.j2` contract + snippet, `methodology/templates/synthesis.md`); removed the trailing "Summary Assessment" subsection it replaces
+- [x] `analysis_formatter.insert_legends` places missing legends after an opening `## Assessment` (test first)
+- [x] Plugin commands + `docs/WORKFLOWS.md` parity
+- [x] Regenerate skills + `check-core.md`
 
 ## Deferrals
 
@@ -120,3 +121,11 @@ TECH-2026-102). A revised run passes only if both hold:
 - `make assemble-skills` → regenerated.
 - `make check-skills` → `Generated: 41 files, 0 changed`.
 - Full suite: `REALITYCHECK_EMBED_SKIP=1 uv run pytest -q` → `454 passed, 17 skipped`.
+
+### 2026-11-20: Phase B (writing pass)
+
+- Rewrote `partials/neutral-prose-pass.md.j2` (heading kept as "Neutral Analyst Prose Pass" for continuity with v0.3.5 docs).
+- Added `## Assessment` as the first section in source-analysis and synthesis templates; legends/metadata follow. Not enforced by the validator (deferral D-A1).
+- Tests first: `TestLegendInsertion::test_insert_legends_after_assessment` failed, then passed after updating `insert_legends`.
+- `uv run pytest tests/test_analysis_formatter.py tests/test_analysis_validator.py -q` → `122 passed`.
+- Full suite: `REALITYCHECK_EMBED_SKIP=1 uv run pytest -q` → `455 passed, 17 skipped`; `make check-skills` → `Generated: 41 files, 0 changed`.

@@ -9,11 +9,19 @@ corroboration of its cause; agreement between sources that share an upstream
 source is not independent. Make the assessment, tables, and any registered
 chain agree. See methodology/workflows/check-core.md "Claim-Evidence Alignment Pass".
 
-Then, before finalizing, run a neutral analyst prose pass over analyst-authored text.
+Then, before finalizing, run a neutral analyst prose pass over analyst-authored text:
+open with the Assessment, and for each candidate cut ask what a careful reader
+would lose if it disappeared.
 This does not apply to source text, direct quotes, titles, quoted slogans, or
 sections that analyze rhetoric/persuasion. Preserve source wording when it is
 evidence; do not adopt that wording as the analyst's voice.
 -->
+
+---
+
+## Assessment
+
+[Answer the synthesis question first: what should we believe given all the evidence, the evidence that carries the most weight (claim IDs + source-analysis links), and what remains unsettled. Where sources agree on an event but differ on cause or motive, say so and say whether the evidence can distinguish them. Metadata and the detailed sections follow.]
 
 ---
 
@@ -131,9 +139,6 @@ For major argument chains, trace the logic:
 ---
 
 ## Synthesis Conclusions
-
-### Summary Assessment
-[What's the bottom line? What should we believe given all the evidence?]
 
 ### Confidence-Weighted View
 [State the synthesized position with calibrated credence]

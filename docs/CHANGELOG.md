@@ -13,6 +13,8 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ### Changed
 
+- Neutral Analyst Prose Pass is now an explicit writing pass that runs after the alignment pass and does not change conclusions. It asks for an answer-first opening (answer, evidence carrying the most weight, limitation most likely to change the interpretation) and replaces delete-on-match rules with a reader-loss test; word lists find candidates, they do not decide.
+- Source-analysis and synthesis templates open with `## Assessment`; legends and metadata follow. Quick extractions state what was not checked. `analysis_formatter` inserts missing legends after an opening Assessment.
 - `ok` in Key Factual Claims Verified now means the claim *as worded* is verified; partial support requires a split claim or a status that fits the unsupported part.
 - Chain-credence guidance: the minimum step credence is an upper bound for a conjunctive chain, not an estimate of it, and a chain credence does not by itself describe a conclusion that has other support.
 

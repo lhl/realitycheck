@@ -36,6 +36,7 @@ The synthesis should link back to relevant source analyses in:
    - Prefer existing source analyses in `analysis/sources/`
    - If a relevant source has no analysis yet, run `/reality:check` first (or explicitly record the gap)
 3. **Write the synthesis**
+   - Open with an `## Assessment` that answers the synthesis question (answer, evidence carrying the most weight, what remains unsettled); metadata follows it
    - Points of agreement (which claims converge?)
    - Points of disagreement (where do they conflict, and why?)
    - Conclusions with calibrated credence + key uncertainties
@@ -46,7 +47,7 @@ The synthesis should link back to relevant source analyses in:
    - For argument chains, the weakest step's credence is a ceiling on the chain, not an estimate of it.
 5. **Neutral Analyst Prose Pass** (writing)
    - Apply this pass to the analyst's prose, not source text, direct quotes, titles, quoted slogans, or persuasion/rhetoric examples.
-   - Remove rhetorical setup, marketing language, vague intensifiers, hedge stacks, and conclusion recaps from analyst prose.
+   - For each candidate cut, ask what a careful reader would lose if it disappeared. Keep explanations, qualifications, and distinctions between accounts; cut emphasis-only text, marketing language, hedge stacks, and conclusion recaps.
    - Preserve source wording when it is evidence for rhetoric, framing, or persuasion; label it as source language instead of adopting it as the analyst's voice.
 6. **(Optional) Register an argument chain**
    - If the synthesis centers on a specific argument chain, register it and point `--analysis-file` at the synthesis document:

@@ -644,9 +644,17 @@ def find_section_position(content: str, section: str, section_order: list[str]) 
 
 
 def insert_legends(content: str) -> str:
-    """Insert legends block after the title."""
+    """Insert legends block after the title, or after an opening Assessment section."""
     if has_legends(content):
         return content
+
+    # Answer-first layout: if the analysis opens with "## Assessment", put the
+    # legends after it (they explain the tables, not the opening).
+    assessment = re.search(r'^## Assessment\s*\n', content, re.MULTILINE)
+    if assessment:
+        next_header = re.search(r'^#{1,2} ', content[assessment.end():], re.MULTILINE)
+        insert_pos = assessment.end() + next_header.start() if next_header else len(content)
+        return content[:insert_pos].rstrip("\n") + "\n\n" + LEGENDS + "\n\n" + content[insert_pos:]
 
     # Find the first # heading (title)
     match = re.search(r'^# .+\n', content, re.MULTILINE)

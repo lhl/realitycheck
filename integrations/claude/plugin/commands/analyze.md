@@ -54,9 +54,15 @@ Perform a full 3-stage analysis of a source following the Reality Check methodol
 
 ### Neutral Analyst Prose Pass (writing)
 - Apply this pass to the analyst's prose, not to source text, direct quotes,
-  titles, quoted slogans, or persuasion/rhetoric examples.
-- Remove rhetorical setup, marketing language, vague intensifiers, hedge stacks,
-  and conclusion recaps from analyst prose.
+  titles, quoted slogans, or persuasion/rhetoric examples. It does not change
+  what the analysis concludes.
+- Open with an `## Assessment`: the answer, the evidence carrying the most
+  weight, and the limitation most likely to change the interpretation. Legends,
+  metadata, and the detailed record follow.
+- For each candidate cut, ask what a careful reader would lose if it
+  disappeared. Keep explanations, qualifications, distinctions (event vs cause,
+  policy vs practice), and routes to evidence; cut emphasis-only text, marketing
+  language, hedge stacks, and conclusion recaps.
 - Preserve source wording when it is evidence for rhetoric, framing, or
   persuasion; label it as source language instead of adopting it as the
   analyst's voice.

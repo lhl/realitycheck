@@ -9,11 +9,19 @@ as worded still be false. If so, split, narrow, or retype the claim. Make the
 summary, claim tables, verification status, YAML, and database record agree.
 See methodology/workflows/check-core.md "Claim-Evidence Alignment Pass".
 
-Then, before finalizing, run a neutral analyst prose pass over analyst-authored text.
+Then, before finalizing, run a neutral analyst prose pass over analyst-authored text:
+open with the Assessment, and for each candidate cut ask what a careful reader
+would lose if it disappeared.
 This does not apply to source text, direct quotes, titles, quoted slogans, or
 the Persuasion Techniques section when it is analyzing rhetoric. Preserve source
 wording when it is evidence; do not adopt that wording as the analyst's voice.
 -->
+
+---
+
+## Assessment
+
+[Answer the reader's question first: what the source argues, what holds up, what does not, and what was not checked. Give the evidence that carries the most weight (with claim IDs) and the limitation most likely to change the interpretation. Must agree with the claim tables and YAML below.]
 
 ---
 
@@ -146,7 +154,7 @@ wording when it is evidence; do not adopt that wording as the analyst's voice.
 | [policy/action] | [claim IDs] | [how] | Low/Med/High |
 
 ### Synthesis
-[Where does this fit in the broader theoretical landscape? What's the bottom line?]
+[Where does this fit in the broader theoretical landscape? State the bottom line in the Assessment at the top; here, explain how it follows.]
 
 ---
 
