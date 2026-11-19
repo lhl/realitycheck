@@ -1029,3 +1029,8 @@ class TestVerificationStatusConsistency:
     def test_word_starting_with_x_is_not_a_status_code(self, tmp_path):
         result = self._validate(tmp_path, "ok", "xAI blog post")
         assert not any(self.MISMATCH in w for w in result.warnings)
+
+    def test_stage2_status_with_annotation_matches_leading_code(self, tmp_path):
+        """Stage 2 'nf (partially contradicted)' agrees with Key Claims 'nf'."""
+        result = self._validate(tmp_path, "nf (partially contradicted)", "nf")
+        assert not any(self.MISMATCH in w for w in result.warnings)

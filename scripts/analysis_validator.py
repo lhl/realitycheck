@@ -709,7 +709,8 @@ def validate_factual_verification_rigor(content: str) -> list[str]:
         # Verified?, it must agree with the Stage 2 Status for the same claim.
         # A source reference (legacy usage) is not a status code and is not compared.
         verified_status = _leading_status_code(str(claim.get("verified", "")))
-        if status and verified_status and verified_status != status:
+        stage2_code = _leading_status_code(status) or status
+        if status and verified_status and verified_status != stage2_code:
             warnings.append(
                 f"Claim {claim_id}: Key Claims Verified? is '{verified_status}' but Key Factual Claims "
                 f"Verified Status is '{status}' — reconcile both so they describe the claim as worded"

@@ -111,7 +111,7 @@ and commands; rationale lives once in `docs/WORKFLOWS.md`.
 - [x] Templates: quick skeleton, key-claims table, `check.md.j2` registered-claims block and continuation step
 - [x] Plugin commands, `docs/WORKFLOWS.md` (full reference + field table + `claim update` example), `README.md` CLI line
 - [x] Acceptance harness `_dev/acceptance/doctorow/` (setup, TASK, score, RUBRIC, README); baseline scores 3/6
-- [ ] Acceptance runs: DSv4.1f 1017, GPT-6.2-Sol, GPT-6.2-Astra (jouzu), Claude Opus 5.5 (Claude Code); new vs old arm
+- [x] Acceptance runs: DSv4.1f 1017, GPT-6.2-Sol, GPT-6.2-Astra (jouzu), Claude Opus 5.5 (Claude Code); new vs old arm (results in worklog 2026-11-20 "Acceptance runs")
 
 ## Deferrals
 
@@ -166,3 +166,47 @@ seeds the colliding TECH-2026-101/102 claims, and scores the result.
 - Acceptance harness dry run: `setup.sh $SCRATCH/acc-new new` then `score.sh` on the untouched workspace → `Automated: 3/6 passed` (expected baseline).
 - Replaced the alignment-pass example (originally an anonymized version of the Doctorow incident) with an unrelated layoffs/rollout example so the "new" acceptance arm is not given the answer.
 - Full suite before that template-only change: `REALITYCHECK_EMBED_SKIP=1 uv run pytest -q` → `463 passed, 17 skipped`; after it: `make check-skills` → `Generated: 41 files, 0 changed`, `uv run pytest tests/test_codex_skills.py tests/test_analysis_formatter.py tests/test_analysis_validator.py -q` → `127 passed`.
+
+### 2026-11-20: Acceptance runs (before = v0.3.5 skills, after = `6f3118e` skills)
+
+Setup: one workspace per run from `_dev/acceptance/doctorow/setup.sh`; runs in parallel, 60 min limit, n=1 per cell.
+Runners: `jouzu pi -p --no-session --thinking high` with `deepseek-v4.1-flash-1017`, `office-pool/gpt-6.2-sol`, `office-pool/gpt-6.2-astra`;
+`claude -p --model claude-opus-5-5` (default effort; `ANTHROPIC_API_KEY` unset so the claude.ai login is used; WebFetch/WebSearch disallowed).
+Judges: GPT-6.2-Astra and Claude Opus 5.5, tools disabled, on anonymized packets (letters, model names redacted) graded with `RUBRIC.md`.
+Fable 5.2 was unavailable (out of usage credits). Judges are also runners; their agreement is not verification.
+
+Automated (`score.sh`): 8/8 runs pass 6/6 after two fixes below. The automated checks do not separate the arms; all eight avoided overwriting the colliding TECH-2026-101/102 rows.
+
+Disputed-cause claim as registered:
+
+| Model | Before | After |
+|---|---|---|
+| DSv4.1f 1017 | cause `[F]` 0.45 | event `[F]` 0.85 + cause `[H]` 0.40 |
+| GPT-6.2-Astra | cause `[F]` 0.65 (verbatim) | event `[F]` 0.90 + cause `[H]` 0.55 |
+| GPT-6.2-Sol | event `[F]` 0.85 + cause `[H]` 0.65 | event `[F]` 0.88 + cause `[H]` 0.75 (reworded as "enabling condition") |
+| Claude Opus 5.5 | cause `[H]` 0.35, original wording | event `[F]` 0.85 + cause `[H]` 0.35, attributed to Doctorow |
+
+Blind grades (P/F per item; judge Astra / judge Opus):
+
+| Run | E1 | E2 | E3 | E4 | E5 | R6 | R7 | R8 | Evidence pass |
+|---|---|---|---|---|---|---|---|---|---|
+| DSv4.1 before | F/F | F/F | F/F | P/P | P/P | F/F | F/F | F/F | no / no |
+| DSv4.1 after | P/P | P/P | P/P | P/P | P/P | P/P | P/F | P/P | yes / yes |
+| Astra before | F/F | P/P | F/F | P/P | P/P | F/F | P/F | F/F | no / no |
+| Astra after | P/P | P/P | P/P | P/P | P/P | P/P | P/P | P/F | yes / yes |
+| Sol before | P/P | P/P | P/P | P/P | P/P | F/F | F/F | F/F | yes / yes |
+| Sol after | P/P | P/P | P/P | P/P | F/P | P/P | F/F | P/P | no / yes |
+| Opus before | P/P | P/P | F/P | P/P | P/P | F/F | F/F | F/F | no / yes |
+| Opus after | P/P | P/P | P/P | P/P | P/P | P/P | F/P | P/F | yes / yes |
+
+Evidence test: before 1.5/4 runs pass (judge-averaged), after 3.5/4. Reader test R6 (answer from the opening): before 0/8 judgments, after 8/8.
+R7 (why the evidence cannot settle the dispute): after 4/8 judgments fail; R8 (where to look): after 2/8 fail. Judges agreed on 6/8 evidence verdicts.
+Disagreements: Sol after E5 (Astra: dropped METR's concealment finding); Opus before E3 (Astra: retyped to `[H]` but kept the unattributed wording).
+
+Wall time (s, before/after): DSv4.1 397/340, Astra 491/456, Sol 679/859, Opus 365/396.
+
+Fixes found by the runs (tests first):
+- `analysis_validator`: a Stage 2 status with an annotation (`nf (partially contradicted)`) was compared as a whole string; now compares leading status codes.
+- `score.sh`: read the sidecar `.yaml` when claims are not embedded (allowed by the output contract), and fail the YAML↔DB check when there are no claims (it previously passed vacuously).
+
+Follow-up candidate (not applied; would need a rerun): openings in the after arm state the dispute but often not why the evidence cannot settle it or which record would (R7/R8). The alignment pass already asks for "the evidence that would tell them apart"; the prose-pass opening could require carrying that sentence into the Assessment for unresolved disputes.

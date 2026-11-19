@@ -48,8 +48,13 @@ print(f"  (validator: {len(result.errors)} errors, {len(result.warnings)} warnin
 
 m = re.search(r"```yaml\s*\n(claims:.*?)```", content, re.S)
 yaml_claims = (yaml.safe_load(m.group(1)) or {}).get("claims", []) if m else []
-check("Claims to Register YAML parses", bool(yaml_claims))
-mismatches = []
+yaml_where = "embedded"
+sidecar = path.with_suffix(".yaml")
+if not yaml_claims and sidecar.exists():  # the output contract allows a separate YAML file
+    yaml_claims = (yaml.safe_load(sidecar.read_text()) or {}).get("claims", []) or []
+    yaml_where = "sidecar .yaml"
+check(f"Claims to Register YAML parses ({yaml_where})", bool(yaml_claims))
+mismatches = [] if yaml_claims else ["no YAML claims to compare"]
 for c in yaml_claims:
     row = get_claim(str(c.get("id")), db)
     if not row:
