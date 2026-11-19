@@ -2871,6 +2871,7 @@ Examples:
     claim_update.add_argument("claim_id", help="Claim ID to update")
     claim_update.add_argument("--credence", type=float, help="New credence value")
     claim_update.add_argument("--evidence-level", help="New evidence level")
+    claim_update.add_argument("--type", help="New claim type ([F]/[T]/[H]/[P]/[A]/[C]/[S]/[X])")
     claim_update.add_argument("--notes", help="New notes")
     claim_update.add_argument("--text", help="New text (triggers re-embedding)")
 
@@ -3952,6 +3953,14 @@ rc-validate
                 updates["credence"] = args.credence
             if args.evidence_level:
                 updates["evidence_level"] = args.evidence_level
+            if args.type:
+                claim_type = args.type.strip().upper()
+                if not claim_type.startswith("["):
+                    claim_type = f"[{claim_type}]"
+                if claim_type not in {"[F]", "[T]", "[H]", "[P]", "[A]", "[C]", "[S]", "[X]"}:
+                    print(f"Invalid claim type: {args.type} (use [F]/[T]/[H]/[P]/[A]/[C]/[S]/[X])", file=sys.stderr)
+                    sys.exit(1)
+                updates["type"] = claim_type
             if args.notes:
                 updates["notes"] = args.notes
             if args.text:

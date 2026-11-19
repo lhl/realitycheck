@@ -1071,6 +1071,51 @@ class TestClaimCLI:
         assert data["notes"] == "Updated notes"
 
 
+    def _run(self, env, *args):
+        return subprocess.run(
+            ["uv", "run", "python", "scripts/db.py", *args],
+            env=env, capture_output=True, text=True, cwd=Path(__file__).parent.parent,
+        )
+
+    def test_claim_update_type_and_text(self, temp_db_path: Path):
+        """claim update --type retypes a registered claim (e.g. [F] causal claim -> [H])."""
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._run(env, "init")
+        self._run(env, "claim", "add", "--id", "TEST-2026-001", "--text", "X caused Y",
+                  "--type", "[F]", "--domain", "TECH", "--evidence-level", "E4",
+                  "--credence", "0.65", "--no-embedding")
+
+        result = self._run(env, "claim", "update", "TEST-2026-001", "--type", "[H]",
+                           "--text", "Author attributes Y to X")
+        assert_cli_success(result)
+
+        data = json.loads(self._run(env, "claim", "get", "TEST-2026-001").stdout)
+        assert data["type"] == "[H]"
+        assert data["text"] == "Author attributes Y to X"
+
+    def test_claim_update_type_accepts_unbracketed(self, temp_db_path: Path):
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._run(env, "init")
+        self._run(env, "claim", "add", "--id", "TEST-2026-001", "--text", "t",
+                  "--type", "[F]", "--domain", "TECH", "--evidence-level", "E4", "--no-embedding")
+        assert_cli_success(self._run(env, "claim", "update", "TEST-2026-001", "--type", "h"))
+        data = json.loads(self._run(env, "claim", "get", "TEST-2026-001").stdout)
+        assert data["type"] == "[H]"
+
+    def test_claim_update_rejects_invalid_type(self, temp_db_path: Path):
+        env = os.environ.copy()
+        env["REALITYCHECK_DATA"] = str(temp_db_path)
+        self._run(env, "init")
+        self._run(env, "claim", "add", "--id", "TEST-2026-001", "--text", "t",
+                  "--type", "[F]", "--domain", "TECH", "--evidence-level", "E4", "--no-embedding")
+        result = self._run(env, "claim", "update", "TEST-2026-001", "--type", "[Q]")
+        assert result.returncode != 0
+        data = json.loads(self._run(env, "claim", "get", "TEST-2026-001").stdout)
+        assert data["type"] == "[F]"
+
+
 class TestSourceCLI:
     """Tests for source CLI subcommands."""
 

@@ -42,7 +42,7 @@ The synthesis should link back to relevant source analyses in:
    - Conclusions with calibrated credence + key uncertainties
    - Link claim IDs and source analysis files wherever possible
 4. **Claim-Evidence Alignment Pass** (analysis)
-   - Check each conclusion against the evidence it cites. Corroboration of an event is not corroboration of its cause; sources sharing an upstream source are not independent.
+   - For each conclusion, ask: could the cited evidence be accurate while this conclusion is materially wrong at its stated scope or credence? Corroboration of an event is not corroboration of its cause; sources sharing an upstream source are not independent.
    - For disputed conclusions, state the strongest alternative and what evidence would distinguish it.
    - For argument chains, the weakest step's credence is a ceiling on the chain, not an estimate of it.
 5. **Neutral Analyst Prose Pass** (writing)

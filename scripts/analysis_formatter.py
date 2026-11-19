@@ -141,9 +141,9 @@ LEGENDS = """> **Claim types**: `[F]` fact, `[T]` theory, `[H]` hypothesis, `[P]
 
 KEY_CLAIMS_TABLE = """### Key Claims
 
-| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
-|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|----------------|
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [what would refute] |
 
 **Column guide**:
 - **Layer**: `ASSERTED` (positions/claims made), `LAWFUL` (controlling law), `PRACTICED` (practice), `EFFECT` (causal effects)
@@ -648,12 +648,16 @@ def insert_legends(content: str) -> str:
     if has_legends(content):
         return content
 
-    # Answer-first layout: if the analysis opens with "## Assessment", put the
-    # legends after it (they explain the tables, not the opening).
-    assessment = re.search(r'^## Assessment\s*\n', content, re.MULTILINE)
-    if assessment:
-        next_header = re.search(r'^#{1,2} ', content[assessment.end():], re.MULTILINE)
-        insert_pos = assessment.end() + next_header.start() if next_header else len(content)
+    # Answer-first layout: if the first section after the title is
+    # "## Assessment" (full) or "## Summary" (quick), put the legends after it.
+    # Legends explain the tables, not the opening.
+    title = re.search(r'^# .+\n', content, re.MULTILINE)
+    after_title = title.end() if title else 0
+    first_section = re.search(r'^## .+$', content[after_title:], re.MULTILINE)
+    if first_section and re.match(r'## (Assessment|Summary)\s*$', first_section.group(0)):
+        opening_end = after_title + first_section.end()
+        next_header = re.search(r'^#{1,2} ', content[opening_end:], re.MULTILINE)
+        insert_pos = opening_end + next_header.start() if next_header else len(content)
         return content[:insert_pos].rstrip("\n") + "\n\n" + LEGENDS + "\n\n" + content[insert_pos:]
 
     # Find the first # heading (title)
@@ -698,9 +702,9 @@ def insert_key_claims_table(content: str) -> str:
                         insert_pos = match.end()
             # Rigor-v1 table format
             table_content = """
-| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
-|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
-| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [source or ?] | [what would refute] |
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|----------------|
+| 1 | [claim text] | DOMAIN-YYYY-NNN | ASSERTED/LAWFUL/PRACTICED/EFFECT | ICE/CBP/DHS/DOJ/COURT/OTHER | who=...; where=...; when=... | none/some/often/most/always/OTHER:<...> | [F/T/H/P/A/C/S/X] | DOMAIN | E1-E6 | 0.00-1.00 | [what would refute] |
 
 """
             return content[:insert_pos] + table_content + content[insert_pos:]

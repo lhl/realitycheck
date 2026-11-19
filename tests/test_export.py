@@ -189,14 +189,28 @@ class TestMarkdownExport:
         assert sample_chain["thesis"] in md
 
     def test_export_chain_md_contains_scoring_rule(self, initialized_db, temp_db_path, sample_claim, sample_source, sample_chain):
-        """Exported chain MD mentions MIN scoring rule."""
+        """Exported chain MD states the weakest step as a ceiling, not the score."""
         add_source(sample_source, initialized_db, generate_embedding=False)
         add_claim(sample_claim, initialized_db, generate_embedding=False)
         add_chain(sample_chain, initialized_db, generate_embedding=False)
 
         md = export_chain_md("CHAIN-2026-001", temp_db_path)
 
-        assert "MIN" in md
+        assert "at most" in md
+        assert "Chain credence = MIN" not in md
+
+    def test_export_chain_md_below_min_is_consistent(self, initialized_db, temp_db_path, sample_claim, sample_source, sample_chain):
+        """A chain scored below its weakest step exports without contradicting its own score."""
+        add_source(sample_source, initialized_db, generate_embedding=False)
+        claim = {**sample_claim, "credence": 0.8}
+        add_claim(claim, initialized_db, generate_embedding=False)
+        add_chain({**sample_chain, "credence": 0.4}, initialized_db, generate_embedding=False)
+
+        md = export_chain_md("CHAIN-2026-001", temp_db_path)
+
+        assert "**Credence**: 0.40" in md
+        assert "Chain credence = MIN" not in md
+        assert "0.80" in md  # weakest step credence shown as the ceiling
 
     def test_export_predictions_md_header(self, initialized_db, temp_db_path, sample_prediction):
         """Exported predictions MD has header."""

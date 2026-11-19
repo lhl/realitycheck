@@ -238,7 +238,14 @@ uv run python scripts/db.py claim update TECH-2026-001 --credence 0.85
 
 # Add notes
 uv run python scripts/db.py claim update TECH-2026-001 --notes "Updated based on 2026 data"
+
+# Correct wording and type (e.g. a disputed cause registered as [F])
+uv run python scripts/db.py claim update TECH-2026-001 --text "Author attributes Y to X" --type "[H]"
 ```
+
+Before updating, run `claim get` and confirm the claim's `source_ids` include the
+source you are revising. Claim IDs are global; if the ID belongs to another
+source's claim, reserve a new ID with `claim ticket` instead.
 
 ## Source Workflows
 
@@ -410,8 +417,8 @@ This contract is implemented via:
 **Key Claims** (Stage 1) table columns (rigor-v1):
 
 ```markdown
-| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Verified? | Falsifiable By |
-|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|-----------|----------------|
+| # | Claim | Claim ID | Layer | Actor | Scope | Quantifier | Type | Domain | Evid | Credence | Falsifiable By |
+|---|-------|----------|-------|-------|-------|------------|------|--------|------|----------|----------------|
 ```
 
 **Claim Summary** (end of analysis) table columns (rigor-v1):
@@ -516,25 +523,56 @@ Reviewer suggestions are inputs to investigation, not evidence. Represent them a
 
 ### Claim-Evidence Alignment Pass
 
-An analysis pass that runs after Stage 3 and before the prose pass. It is
-separate from the prose pass because clearer writing makes an unsupported claim
-more persuasive; the analysis has to be right first.
+An analysis pass that runs after the last analysis stage and before the prose
+pass. It is separate from the prose pass because clearer writing makes an
+unsupported claim more persuasive; the analysis has to be right first. The
+skills carry a short version of these instructions; this section is the full
+reference.
 
-For each crux claim and each claim with credence >= 0.7, ask: could the cited
-evidence be accurate and this claim, as worded, still be false? If so, split
-the claim (what happened / what the source attributes it to / what the evidence
-can distinguish), narrow its scope, or change its type or credence. In Key
+**The test.** For each crux claim and each claim with credence >= 0.7: could
+the cited evidence be accurate while the claim is materially wrong at its
+stated scope or credence? The qualifier matters. Uncertainty that the credence
+already expresses is not a defect; a 0.6 inference is not wrong because it
+might be false.
+
+**Common scope errors** the test catches:
+
+- A source establishes what its author said, not that the author is right.
+- Two reports can corroborate an event without independently corroborating its
+  cause or motive, and reports that share an upstream source are not
+  independent.
+- A published policy or specification establishes what was stated, not what
+  happened in a particular case.
+
+**Fixes**: split the claim (event / attribution / disputed cause), narrow its
+wording or scope, or change its type, evidence level, or credence. In Key
 Factual Claims Verified, `ok` means the claim as worded is verified.
 
-Then check that the claim reads the same everywhere it appears: opening
-summary, Key Claims (`Verified?`), Key Factual Claims Verified (`Status`), Claim
-Summary, Claims to Register YAML, and the database row. Updates and
-`--continue` passes revise all of these; an appended update section does not
-replace correcting the active claim.
+**Which surface holds which field.** Stage 2 `Status` is the only verification
+status; it is not stored in the database.
 
-The framework's `scripts/analysis_validator.py` warns when a Key Claims
-`Verified?` status code disagrees with the Stage 2 `Status` for the same claim.
-It does not check wording against evidence.
+| Surface | Text | Type | Evidence level | Credence | Verification status |
+|---------|------|------|----------------|----------|---------------------|
+| Assessment / Summary | must not overstate | — | — | — | — |
+| Key Claims | yes | yes | yes | yes | — (legacy `Verified?` cells are still read) |
+| Key Factual Claims Verified | paraphrase | — | — | — | `Status` (authoritative) |
+| Claim Summary | yes | yes | yes | yes | — |
+| Claims to Register YAML | yes | yes | yes | yes | — |
+| Database (`rc-db claim get`) | yes | yes | yes | yes | — |
+
+Correct a registered claim with `rc-db claim update <id> [--text ...] [--type ...]
+[--evidence-level ...] [--credence ...]`, then confirm with `rc-db claim get`.
+`--continue` and update passes correct every row above; an appended update
+section does not replace the correction.
+
+**Chains.** See the chain scoring rule in `methodology/evidence-hierarchy.md`:
+the weakest step's credence is an upper bound for a conjunctive chain, not an
+estimate.
+
+**Validation.** The framework's `scripts/analysis_validator.py` warns when a
+legacy Key Claims `Verified?` status code disagrees with the Stage 2 `Status`.
+It does not check wording against evidence. Do not silence that warning by
+editing `Verified?`; fix or remove the column and keep Stage 2 correct.
 
 ### Neutral Analyst Prose Pass
 

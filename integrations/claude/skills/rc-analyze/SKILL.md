@@ -106,170 +106,86 @@ To retrieve and parse source content:
 
 ## Claim-Evidence Alignment Pass
 
-This is an **analysis** pass. Run it after the last analysis stage (Stage 3,
-or Stage 2 when `--quick` skips Stage 3) and before the prose pass.
-It checks that each claim says no more than its evidence supports, and that
-every place the claim appears says the same thing. Clearer prose makes an
-unsupported claim more persuasive, so fix the analysis first.
+Run after the last analysis stage and before the prose pass. Fix conclusions
+here; the prose pass must not change them.
 
-### 1. Test each crux claim as worded
+For each crux claim and each claim with credence >= 0.7:
 
-For each crux claim, and each claim with credence >= 0.7, ask:
+1. Ask: **could the cited evidence be accurate while this claim is materially
+   wrong at its stated scope or credence?** Uncertainty already reflected in
+   the credence does not count.
+2. If yes, fix the claim. Split it when parts have different support. Example:
+   "layoffs followed the software rollout" (an event the records document) and
+   "the rollout caused the layoffs" (a disputed cause). Record the cause as
+   `[H]`, or as an attributed fact ("the author attributes the layoffs to the
+   rollout"). Otherwise narrow the wording or scope, or change the type,
+   evidence level, or credence.
+3. Mark `ok` in Key Factual Claims Verified only when the evidence verifies the
+   claim as worded. That Status is the claim's only verification status.
+4. If the conclusion is disputed, name the strongest alternative and the
+   evidence that would tell them apart. Skip this when no alternative would
+   change the answer.
 
-> Could the cited evidence be accurate and this sentence still be false?
+Then make every copy of each claim match:
 
-If yes, identify the unsupported part and fix it in the analysis:
+- Key Claims, Claim Summary, and the Claims to Register YAML use the same text,
+  type, evidence level, and credence.
+- The Assessment or Summary says nothing stronger than those claims.
 
-- **Split** the claim when it bundles parts with different support. Common
-  splits: what happened; what the source or author says caused it or means; what
-  the evidence can distinguish between those readings.
-- **Narrow** the wording, scope, or quantifier to what the evidence covers.
-- **Retype or re-score** the claim when the unsupported part is the point of the
-  claim (for example, a causal interpretation stored as `[F]` usually belongs in
-  `[H]` or `[T]`, or as an attributed `[F]`: "X attributes Y to Z").
-
-Scope distinctions that apply often:
-
-- A source establishes what its author said. It does not establish that the
-  author is right.
-- Two reports can corroborate an event without independently corroborating its
-  cause or motive. Check whether they share an upstream source.
-- A published policy, specification, or promise establishes what was stated. It
-  does not establish what happened in a particular case.
-
-### 2. Status applies to the claim as worded
-
-In **Key Factual Claims Verified**, `ok` means the evidence verifies the claim
-as worded, at its stated scope. If the evidence supports only part of the claim,
-do not mark `ok`. Split the claim and give each part its own status, or record
-the supported and unsupported parts in **Search Notes** and choose the status
-that fits the unsupported part (`nf` when searched and not established).
-
-### 3. Contested conclusions
-
-When a conclusion is disputed, state the strongest plausible alternative
-explanation and the evidence that would distinguish it from the analysis's
-reading. If no alternative would change the answer, say so in one line; do not
-add a ceremonial counterargument.
-
-### 4. Dependencies and chains
-
-Name the weakest dependency the conclusion relies on and what fails if it
-breaks. For a conjunctive chain (every step must hold), the least credible step
-is an **upper bound** on the credence that all steps hold, not an estimate of
-it. The conclusion may also have support outside this chain. Do not present the
-weakest step's credence as the conclusion's credence without saying which of
-these applies.
-
-### 5. Consistency across surfaces
-
-Each claim must say the same thing, with the same type, evidence level,
-credence, and verification status, everywhere it appears:
-
-- the opening assessment or summary
-- the Key Claims table (including `Verified?`)
-- the Key Factual Claims Verified table (`Status`)
-- the Claim Summary table
-- the Claims to Register YAML
-- the database record (`rc-db claim get <id>`)
-
-When an update, correction, or `--continue` pass changes a claim, revise every
-surface above. An appended update section explains the change; it does not
-replace correcting the active claim. Record the change in **Corrections &
-Updates** and, for registered claims, update the database row.
-
-The framework's analysis-file validator
-(`uv run python scripts/analysis_validator.py <file>`, run from the framework
-repo; not part of `rc-validate`) warns when a status code in Key Claims
-`Verified?` disagrees with the Stage 2 `Status` for the same claim. No validator
-checks whether the wording matches the evidence; that remains the analyst's job.
+When revising an existing analysis, correct the claim in all of these places.
+An appended update section does not replace the correction.
 
 ---
 
 ## Neutral Analyst Prose Pass
 
-This is a **writing** pass. Run it after the Claim-Evidence Alignment Pass. It
-changes how the analysis reads, not what it concludes. If it turns up a claim
-that says more than its evidence, or an opening that disagrees with the tables,
-return to the alignment pass and fix the analysis first.
+Run after the Claim-Evidence Alignment Pass. Change how the analysis reads, not
+what it concludes. If you find a claim stronger than its evidence, or an opening
+that disagrees with the claim tables, go back to the alignment pass. Accuracy
+outranks every style rule below.
 
-Accuracy and the reader's task outrank style. Do not apply a rule below when it
-would make the analysis less accurate or harder to use.
+Edit only the analyst's prose. Leave source text, direct quotes, titles, and
+quoted slogans as written; in rhetoric/persuasion sections, label source
+wording as the source's rather than adopting it.
 
-**Scope**:
-- Applies to the analyst's prose: the opening assessment, summaries, thesis
-  statements, evidence assessments, credence reasoning, synthesis notes, and
-  recommendations.
-- Does not apply to source text, direct quotes, titles, quoted slogans, or
-  sections that intentionally analyze rhetoric/persuasion techniques.
-- Preserve source wording when it is evidence for rhetoric, framing, or
-  persuasion. Label it as source language instead of adopting it as the
-  analyst's voice.
+### Opening
 
-### Open with the answer
+Put the opening directly below the title, before legends and metadata.
 
-The opening (`## Assessment`) answers the question the reader brought. For a
-substantial analysis it gives:
+- **Full analysis or synthesis** (`## Assessment`): the answer to the reader's
+  question, the evidence that carries the most weight (with claim IDs), and the
+  limitation most likely to change the interpretation. Mention a coverage or
+  capture gap only if it could reverse the answer.
+- **Quick extraction** (`## Summary`): what the source says and the most
+  important thing the extraction did not check, in one or two sentences. No
+  verdict, counterargument, or limitations paragraph.
 
-1. the answer;
-2. the evidence that carries the most weight, with the citation or claim ID
-   beside the inference it supports;
-3. the limitation most likely to change the reader's interpretation. Include a
-   coverage or capture gap here only if it could reverse the answer.
+Fit the opening to the task. Examples, not required wording:
 
-The shape depends on the task. These are examples, not required sentence frames:
-
-- **Source analysis**: what the source argues, what holds up, what does not,
-  and what was not checked.
-- **Quick extraction**: what the source says, and what was not checked. Do not
-  imply a verdict the extraction did not reach.
-- **Fact-check**: "The evidence establishes X. It does not settle Y, because …"
-- **Choice**: "Pick X for this use because … Choose Y instead if …"
-- **Explanation**: "X happens because … That explanation applies when …"
-- **Unresolved dispute**: "Both accounts fit X. They differ on Y; the available
+- Fact-check: "The evidence establishes X. It does not settle Y, because …"
+- Choice: "Pick X for this use because … Choose Y instead if …"
+- Unresolved dispute: "Both accounts fit X. They differ on Y; the available
   evidence cannot distinguish them."
-- **Synthesis**: the analyst's assessment across sources, before the landscape,
-  chain, and intervention sections.
 
-After the opening, give the argument in the order the reader needs to follow
-it. Keep the full record (claim tables, verification rows, captures, search
-notes, analysis log) below it for inspection; do not shorten the investigation
-to shorten the page. Legends, metadata, workflow names, and capture counts go
-after the opening unless they change the answer.
+Keep the full record (tables, verification rows, search notes, logs) below the
+opening. State each qualification once, beside the claim it qualifies.
 
-State each qualification once, beside the claim it qualifies. Do not repeat the
-same caveat verbatim in several sections; refer back to it by claim ID or
-section instead.
+### Sentences
 
-### Edit sentences
-
-- State facts, claim IDs, dates, sources, methods, search results, evidence
-  levels, credences, falsifiers, and open questions directly.
-- For each candidate cut, ask: **what would a careful reader lose if this
-  sentence disappeared?** Keep it if they would lose an explanation, an
-  inference, a qualification, a comparison, or a route to the evidence. Cut it
-  if only emphasis or tone would disappear.
-- Use word lists (intensifiers, marketing language, hedge stacks, transition
-  scaffolding, "not X but Y" frames, conclusion recaps) to find candidates, not
-  to decide. A contrast that separates two things a reader could confuse (an
-  event and its cause, a policy and what happened in practice, what a source
-  says and whether it is right) is content; keep it. A contrast that argues with
-  an imagined objection is filler.
-- Replace hedge stacks with the specific unknown, condition, or evidence gap.
-  Do not delete a qualifier that bounds a claim's scope.
-- Replace vague quantifiers (`many`, `several`, `various`) with counts, IDs,
-  bounded scopes, or `unknown`.
+- Before cutting a sentence, ask what a careful reader would lose. Keep it if
+  they would lose an explanation, inference, qualification, comparison, or link
+  to evidence. Cut it if only emphasis or tone would go.
+- Word lists (intensifiers, marketing terms, hedge stacks, "not X but Y",
+  recaps) find candidates; they do not decide. Keep a contrast that separates
+  things a reader could confuse (event vs cause, policy vs practice); cut one
+  that argues with an imagined objection.
+- Replace hedge stacks with the specific unknown. Replace vague quantifiers
+  (`many`, `several`) with counts, IDs, or `unknown`.
 - Do not change claim IDs, evidence levels, credences, source-backed facts, or
-  quotes unless the analysis records why.
+  quotes.
 
-### Check the result
-
-- After reading only the opening, can a reader say what the answer is, why, and
-  what remains unsettled?
-- Can they reach the supporting evidence (claim IDs, source links, verification
-  rows) without reconstructing the investigation?
-- Does the opening say the same thing as the claim tables and YAML? If not,
-  return to the alignment pass.
+Check: after reading only the opening, can a reader say what the answer is, why,
+and what remains unsettled?
 
 ---
 

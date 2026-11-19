@@ -35,7 +35,7 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 1. **Fetch** - Use `WebFetch` to retrieve source content
 2. **Metadata** - Extract title, author, date, type, generate source-id
 3. **Analysis** - Perform 3-stage analysis (see methodology)
-4. **Claim-Evidence Alignment Pass** (analysis) - For each crux claim, ask whether the cited evidence could be accurate and the claim as worded still be false; if so, split, narrow, or retype it. `ok` means the claim as worded is verified. Make the summary, Key Claims `Verified?`, Stage 2 `Status`, Claim Summary, YAML, and database row agree
+4. **Claim-Evidence Alignment Pass** (analysis) - For each crux claim, ask: could the cited evidence be accurate while this claim is materially wrong at its stated scope or credence? If yes, split, narrow, or retype it. Mark `ok` only when the evidence verifies the claim as worded. Use the same text, type, evidence level, and credence in Key Claims, Claim Summary, YAML, and the database
 5. **Neutral Analyst Prose Pass** (writing) - Clean up analyst-authored prose without changing source content, quotes, claim IDs, evidence levels, or credences
 6. **Extract** - Format claims as YAML (see methodology)
 7. **Register** - Add source and claims to database
@@ -44,14 +44,22 @@ Before starting, read `methodology/workflows/check-core.md` and follow its **Out
 10. **README** - Update data project analysis index
 11. **Report** - Generate summary
 
-With `--continue` or when appending an update: if a claim's wording, type,
-evidence level, credence, or status changes, revise every surface listed in
-step 4. An appended update section does not replace correcting the active claim.
+With `--continue` or when appending an update: correct the claim everywhere in
+step 4. Before changing the database, run `run-db.sh claim get CLAIM_ID`. If it
+is not found, register it. If its `source_ids` include this source, run
+`run-db.sh claim update CLAIM_ID --text ... --type ... --evidence-level ...
+--credence ...` and `claim get` again to confirm. If it belongs to another
+source, do not update it: reserve a new ID with `run-db.sh claim ticket`,
+renumber the claim in the analysis, and register it under the new ID. An appended update section does not replace the
+correction. If the database update fails, list the claim ID as outstanding in
+the Report.
 
 The neutral prose pass is a writing pass; it does not change what the analysis
 concludes. Open the analysis with an `## Assessment` section that gives the
 answer, the evidence carrying the most weight, and the limitation most likely to
-change the interpretation; legends and metadata follow it. For each candidate
+change the interpretation; legends and metadata follow it. With `--quick`, open
+with `## Summary` instead: what the source says and the most important thing
+not checked, in one or two sentences. For each candidate
 cut, ask what a careful reader would lose if it disappeared: keep explanations,
 qualifications, distinctions, and routes to evidence; cut emphasis-only text.
 

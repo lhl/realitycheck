@@ -269,6 +269,21 @@ def export_claim_md(claim_id: str, db_path: Optional[Path] = None) -> str:
     return "\n".join(lines)
 
 
+def _chain_scoring_note(chain: dict, db) -> str:
+    """Describe the weakest step as a ceiling on chain credence, not as the score."""
+    step_credences = []
+    for claim_id in chain.get("claims") or []:
+        claim = get_claim(claim_id, db)
+        if claim and claim.get("credence") is not None:
+            step_credences.append(float(claim["credence"]))
+    if not step_credences:
+        return "> **Scoring rule**: chain credence is at most the lowest step credence."
+    return (
+        f"> **Scoring rule**: chain credence is at most the lowest step credence "
+        f"({min(step_credences):.2f}); it is lower when steps are independently uncertain."
+    )
+
+
 def export_chain_md(chain_id: str, db_path: Optional[Path] = None) -> str:
     """Export an argument chain as Markdown."""
     db = get_db(db_path)
@@ -284,7 +299,7 @@ def export_chain_md(chain_id: str, db_path: Optional[Path] = None) -> str:
         "",
         f"**Credence**: {chain['credence']:.2f}",
         "",
-        f"> **Scoring Rule**: Chain credence = MIN(step credences)",
+        _chain_scoring_note(chain, db),
         "",
         "## Claims in Chain",
         "",

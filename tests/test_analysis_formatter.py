@@ -29,6 +29,7 @@ from analysis_formatter import (
     insert_confidence,
     insert_missing_sections,
     format_file,
+    insert_key_claims_table,
     extract_claim_id,
     is_linked_claim_id,
 )
@@ -140,6 +141,34 @@ The source establishes X. It does not settle Y.
         assert result.index("## Assessment") < legend_pos
         assert result.index("It does not settle Y.") < legend_pos
         assert legend_pos < result.index("## Metadata")
+
+    def test_insert_legends_after_quick_summary_opening(self):
+        """Quick extractions open with ## Summary; legends follow it."""
+        content = """# Source Analysis: Test
+
+## Summary
+
+The source says X. This extraction did not check Y.
+
+## Metadata
+"""
+        result = insert_legends(content)
+
+        legend_pos = result.index("> **Claim types**:")
+        assert result.index("did not check Y.") < legend_pos < result.index("## Metadata")
+
+    def test_insert_legends_after_title_when_summary_is_not_first(self):
+        """Legacy layout (Metadata before Summary): legends still go after the title."""
+        content = """# Source Analysis: Test
+
+## Metadata
+
+## Summary
+Text.
+"""
+        result = insert_legends(content)
+
+        assert result.index("> **Claim types**:") < result.index("## Metadata")
 
     def test_insert_legends_idempotent(self):
         """Legends not duplicated if already present."""
@@ -1055,3 +1084,29 @@ Test thesis.
         assert "LABOR-2025-042" in formatted
         # Both should be in the Claim Summary
         assert "### Claim Summary" in formatted
+
+
+class TestKeyClaimsTableShape:
+    """Stage 2 Status is the single verification status; new Key Claims tables omit Verified?."""
+
+    def test_inserted_key_claims_table_has_no_verified_column(self):
+        content = """# Source Analysis: Test
+
+## Stage 1: Descriptive Analysis
+"""
+        result = insert_key_claims_table(content)
+
+        assert "| Falsifiable By |" in result
+        assert "Verified?" not in result
+
+    def test_inserted_key_claims_table_under_existing_header_has_no_verified_column(self):
+        content = """# Source Analysis: Test
+
+### Key Claims
+
+### Argument Structure
+"""
+        result = insert_key_claims_table(content)
+
+        assert "| Falsifiable By |" in result
+        assert "Verified?" not in result

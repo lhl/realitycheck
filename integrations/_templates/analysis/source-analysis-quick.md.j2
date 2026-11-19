@@ -1,6 +1,10 @@
 {#- Quick analysis skeleton template - minimal required sections for cross-reference sources -#}
 # Source Analysis: {{ title | default('[Title]') }}
 
+## Summary
+
+[One or two sentences: what the source says, and the most important thing this extraction did not check. Example: "The policy says API data is excluded from training by default; this extraction did not check how any particular account was handled." No verdict.]
+
 {% include "partials/legends.md.j2" %}
 
 ## Metadata
@@ -17,12 +21,6 @@
 | **Analysis Depth** | quick |
 
 > **Note**: This is a quick extraction for cross-reference purposes. For full analysis, use `--continue` to expand.
-
----
-
-## Summary
-
-[Brief 1-2 paragraph summary of what the source says. This is an extraction, not a verdict: state what was not checked (for example, "claims not independently verified") rather than implying an assessment.]
 
 ---
 

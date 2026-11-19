@@ -203,7 +203,7 @@ rc-db claim ticket release --abandoned --older-than-days 7  # Clean abandoned re
 rc-db claim add --id "TECH-2026-001" --text "..." ...  # With explicit ID
 rc-db claim get <id>                    # Get single claim (JSON)
 rc-db claim list [--domain D] [--type T] [--format json|text]
-rc-db claim update <id> --credence 0.9 [--notes "..."]
+rc-db claim update <id> --credence 0.9 [--notes "..."] [--text "..."] [--type "[H]"] [--evidence-level E4]
 rc-db claim delete <id>                 # Delete a claim
 
 # Source operations

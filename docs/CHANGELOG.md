@@ -8,13 +8,17 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 
 ### Added
 
-- Claim-Evidence Alignment Pass in check/analyze/synthesize workflows and generated skills. It runs after Stage 3 and before the prose pass, tests each crux claim as worded against its evidence, and requires the summary, Key Claims, Stage 2 status, Claim Summary, YAML, and database row to agree (including after `--continue`/update passes).
-- `scripts/analysis_validator.py` warns when a Key Claims `Verified?` status code disagrees with the Stage 2 `Status` for the same claim.
+- Claim-Evidence Alignment Pass in check/analyze/synthesize workflows and generated skills. It runs before the prose pass and asks whether the cited evidence could be accurate while a claim is materially wrong at its stated scope or credence. Key Claims, Claim Summary, YAML, and the database row must carry the same text, type, evidence level, and credence, including after `--continue`/update passes. In `check`, database corrections first confirm the claim ID belongs to the source being revised.
+- `scripts/analysis_validator.py` warns when a legacy Key Claims `Verified?` status code disagrees with the Stage 2 `Status` for the same claim.
+- `rc-db claim update --type` corrects a registered claim's type (accepts `[H]` or `H`; rejects unknown types).
+- `_dev/acceptance/doctorow/`: disposable-workspace acceptance test (setup, task prompt, scoring script, rubric) for comparing models and skill versions on the Doctorow case.
 
 ### Changed
 
 - Neutral Analyst Prose Pass is now an explicit writing pass that runs after the alignment pass and does not change conclusions. It asks for an answer-first opening (answer, evidence carrying the most weight, limitation most likely to change the interpretation) and replaces delete-on-match rules with a reader-loss test; word lists find candidates, they do not decide.
-- Source-analysis and synthesis templates open with `## Assessment`; legends and metadata follow. Quick extractions state what was not checked. `analysis_formatter` inserts missing legends after an opening Assessment.
+- Source-analysis and synthesis templates open with `## Assessment`; quick extractions open with a one- or two-sentence `## Summary` (what the source says and what was not checked). Legends and metadata follow. `analysis_formatter` inserts missing legends after either opening.
+- Stage 2 `Status` is the only verification status. New Key Claims tables (templates and `analysis_formatter`) omit the `Verified?` column; legacy cells are still read.
+- Exported chains (`rc-export md chain`) describe the lowest step credence as a ceiling instead of printing "Chain credence = MIN(step credences)".
 - `ok` in Key Factual Claims Verified now means the claim *as worded* is verified; partial support requires a split claim or a status that fits the unsupported part.
 - Chain-credence guidance: the minimum step credence is an upper bound for a conjunctive chain, not an estimate of it, and a chain credence does not by itself describe a conclusion that has other support.
 
