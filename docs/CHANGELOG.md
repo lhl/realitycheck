@@ -4,7 +4,9 @@ All notable changes to `realitycheck` are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/) and the structure is inspired by [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.4.0 - 2026-11-20
+
+**Claim-evidence alignment & reader-first analyses** — adds an analysis pass that checks each claim against its evidence before the prose pass, opens analyses with the answer, and makes Stage 2 `Status` the only verification status.
 
 ### Added
 
@@ -20,11 +22,18 @@ This project follows [Semantic Versioning](https://semver.org/) and the structur
 - Stage 2 `Status` is the only verification status. New Key Claims tables (templates and `analysis_formatter`) omit the `Verified?` column; legacy cells are still read.
 - Exported chains (`rc-export md chain`) describe the lowest step credence as a ceiling instead of printing "Chain credence = MIN(step credences)".
 - `ok` in Key Factual Claims Verified now means the claim *as worded* is verified; partial support requires a split claim or a status that fits the unsupported part.
+- The sdist excludes `_dev/` (acceptance harness and archived runs).
 - Chain-credence guidance: the minimum step credence is an upper bound for a conjunctive chain, not an estimate of it, and a chain credence does not by itself describe a conclusion that has other support.
 
 ### Fixed
 
 - `scripts/analysis_validator.py` finds Stage 2 tables under nested headings (for example `#### Key Factual Claims Verified`); such analyses were previously skipped by the factual-verification checks.
+- `scripts/analysis_validator.py` compares the leading status code, so an annotated Stage 2 status (for example `ok (event only)`) no longer reports a false `Verified?` mismatch.
+
+### Tested
+
+- `REALITYCHECK_EMBED_SKIP=1 uv run pytest -q` -> `464 passed, 17 skipped`
+- Doctorow acceptance campaign (`_dev/acceptance/doctorow/results/2026-11-20/`): four models, v0.3.5 vs new skills, two blind judges; one run per cell.
 
 ## 0.3.5 - 2026-07-04
 

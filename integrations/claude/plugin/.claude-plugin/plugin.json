@@ -1,6 +1,6 @@
 {
   "name": "reality",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "description": "Framework for rigorous analysis of claims, sources, predictions, and argument chains",
   "author": {
     "name": "Leonard Lin",
